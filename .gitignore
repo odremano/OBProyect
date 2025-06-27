@@ -1,0 +1,116 @@
+# =====================================================
+# .gitignore para Proyecto Django - Sistema Barbería
+# =====================================================
+
+# Entornos virtuales Python
+venv/
+env/
+ENV/
+.venv/
+.env/
+barberia-env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Archivos de configuración sensibles
+.env
+.env.local
+.env.production
+.env.development
+secrets.json
+
+# Base de datos (excepto schema)
+*.db
+*.sqlite
+*.sqlite3
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Archivos temporales de Windows
+ehthumbs.db
+Desktop.ini
+
+# Archivos de backup
+*.bak
+*.backup
+*.old
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de testing
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Archivos de documentación generados
+docs/_build/
+target/
+
+# Node.js (si usas frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos específicos del proyecto
+uploads/
+temp/
+cache/
+
+# =====================================================
+# CONSERVAR: Archivos importantes del proyecto
+# =====================================================
+# ✅ requirements.txt
+# ✅ manage.py
+# ✅ database_schema.sql
+# ✅ README.md
+# ✅ core/models.py
+# ✅ core/admin.py
+# ✅ barberia_project/settings.py 
