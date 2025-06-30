@@ -172,17 +172,15 @@ class TurnoForm(forms.ModelForm):
         )
     )
     
-    # ✅ FILTRAR SOLO CLIENTES:
-    cliente = forms.ModelChoiceField(
-        queryset=Usuario.objects.filter(role='cliente'),
-        label='Cliente',
-        empty_label="Selecciona un cliente"
-    )
-    
     class Meta:
         model = Turno
         fields = '__all__'
-        exclude = ['end_datetime']  # Excluir end_datetime ya que se calcula automáticamente
+        exclude = ['end_datetime']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cliente'].queryset = Usuario.objects.filter(role='cliente')
+        self.fields['cliente'].empty_label = "Selecciona un cliente"
 
 # =====================================================
 # ADMIN PARA TURNOS
