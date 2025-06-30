@@ -15,11 +15,20 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 urlpatterns = [
+    # Panel de Administración Django
     path('admin/', admin.site.urls),
+    
+    # APIs v1 - Para App Móvil y Panel Admin
+    path('api/v1/', include('core.urls')),
+    
+    # Navegador de APIs (Django REST Framework)
+    path('api-auth/', include('rest_framework.urls')),
 ]
+
+# Configuración del Admin
 admin.site.site_header = "OdremanBarber Administration"  # Título en el encabezado
 admin.site.site_title = "Panel de OdremanBarber"         # Título en la pestaña del navegador
 admin.site.index_title = "Bienvenido al Panel de OdremanBarber" # Título en la página de inicio del admin
