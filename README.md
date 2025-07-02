@@ -1,212 +1,152 @@
-# Sistema de Gestión de Barbería
-
-## 📋 Descripción
-
-Sistema completo de gestión para barberías que incluye:
-- Gestión de usuarios (clientes, profesionales, administradores)
-- Catálogo de servicios
-- Sistema de reservas y turnos
-- Gestión de horarios y disponibilidad
-- Backend API para aplicación móvil
-- Panel de administración web
-
-## 🗄️ Base de Datos
-
-### Estructura de Tablas
-
-1. **usuario** - Gestión de usuarios del sistema
-2. **servicio** - Catálogo de servicios ofrecidos
-3. **profesional** - Información específica de profesionales
-4. **horario_disponibilidad** - Horarios regulares de trabajo
-5. **bloqueo_horario** - Bloqueos específicos de tiempo
-6. **turno** - Citas y reservas
-
-### Instalación de la Base de Datos
-
-1. **Requisitos previos:**
-   - MySQL 8.0 o superior
-   - Acceso de administrador a MySQL
-
-2. **Ejecutar el script SQL:**
-   ```bash
-   mysql -u root -p < database_schema.sql
-   ```
-
-3. **Verificar la instalación:**
-   ```sql
-   USE barberia_system;
-   SHOW TABLES;
-   ```
-
-### Características de la Base de Datos
-
-- ✅ **Integridad referencial** con foreign keys
-- ✅ **Índices optimizados** para consultas frecuentes
-- ✅ **Validaciones de datos** con CHECK constraints
-- ✅ **Vistas útiles** para consultas complejas
-- ✅ **Procedimientos almacenados** para lógica de negocio
-- ✅ **Datos de ejemplo** para pruebas
-
-## 🚀 Próximos Pasos
-
-### 1. Configurar Django
-
-```bash
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-
-# Instalar dependencias
-pip install django djangorestframework mysqlclient python-decouple
-
-# Crear proyecto Django
-django-admin startproject barberia_project .
-```
-
-### 2. Configurar settings.py
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'barberia_system',
-        'USER': 'tu_usuario',
-        'PASSWORD': 'tu_password',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
-```
-
-### 3. Crear Apps Django
-
-```bash
-python manage.py startapp usuarios
-python manage.py startapp servicios
-python manage.py startapp turnos
-python manage.py startapp api
-```
-
-### 4. Implementar Modelos Django
-
-Los modelos deben reflejar la estructura de la base de datos creada, aprovechando las relaciones y validaciones ya definidas.
-
-### 5. Crear APIs REST
-
-- Autenticación JWT
-- Endpoints para gestión de turnos
-- Endpoints para disponibilidad
-- Endpoints para servicios y profesionales
-
-### 6. Implementar Funcionalidades
-
-- Sistema de notificaciones
-- Integración con pasarelas de pago
-- Reportes y estadísticas
-- Panel de administración
-
-## 📱 Funcionalidades Principales
-
-### Para Clientes
-- Registro e inicio de sesión
-- Ver servicios disponibles
-- Reservar turnos
-- Ver historial de citas
-- Cancelar/modificar reservas
-
-### Para Profesionales
-- Gestionar horarios de trabajo
-- Ver agenda de turnos
-- Marcar servicios completados
-- Gestionar bloqueos de tiempo
-
-### Para Administradores
-- Gestión completa de usuarios
-- Configuración de servicios
-- Reportes y estadísticas
-- Gestión del sistema
-
-## 🔧 Tecnologías Sugeridas
-
-### Backend
-- **Django** - Framework web
-- **Django REST Framework** - APIs REST
-- **MySQL** - Base de datos
-- **Celery** - Tareas asíncronas
-- **Redis** - Cache y cola de tareas
-
-### Frontend (App Móvil)
-- **React Native** o **Flutter**
-- **Redux** o **Provider** para estado
-- **Axios** para APIs
-
-### Frontend (Panel Web)
-- **React** o **Vue.js**
-- **Material-UI** o **Ant Design**
-- **Chart.js** para gráficos
-
-## 📊 Estructura del Proyecto
-
-```
-barberia_system/
-├── database_schema.sql      # Esquema de base de datos
-├── README.md               # Este archivo
-├── requirements.txt        # Dependencias Python
-├── manage.py              # Django management
-├── barberia_project/      # Configuración Django
-├── usuarios/              # App de usuarios
-├── servicios/             # App de servicios
-├── turnos/                # App de turnos
-├── api/                   # APIs REST
-└── static/                # Archivos estáticos
-```
-
-## 🛠️ Comandos Útiles
-
-### Base de Datos
-```sql
--- Verificar disponibilidad de un profesional
-CALL VerificarDisponibilidad(1, '2024-01-15', '10:00:00', '11:00:00');
-
--- Obtener horarios disponibles
-CALL ObtenerHorariosDisponibles(1, '2024-01-15');
-
--- Ver turnos completos
-SELECT * FROM v_turnos_completos;
-```
-
-### Django
-```bash
-# Crear migraciones
-python manage.py makemigrations
-
-# Aplicar migraciones
-python manage.py migrate
-
-# Crear superusuario
-python manage.py createsuperuser
-
-# Ejecutar servidor
-python manage.py runserver
-```
-
-## 📞 Soporte
-
-Para dudas o problemas con la implementación, revisa:
-1. La documentación de Django
-2. Los comentarios en el script SQL
-3. Los logs de error del servidor
-
-## 🔄 Versiones
-
-- **v0.1** - Estructura base de base de datos
-- **v0.2** - APIs REST básicas
-- **v0.3** - App móvil
-- **v1.0** - Sistema completo
+# OdremanBarber — Sistema de Gestión para Barbería
 
 ---
 
-**Nota:** Este es un sistema escalable diseñado para crecer con tu negocio. La estructura permite agregar múltiples ubicaciones, nuevos tipos de servicios y funcionalidades avanzadas en el futuro. 
+## Índice
+1. [Descripción General](#descripcion-general)
+2. [Arquitectura del Proyecto](#arquitectura-del-proyecto)
+3. [Instalación y Configuración](#instalacion-y-configuracion)
+4. [Modelos Principales](#modelos-principales)
+5. [APIs REST Disponibles](#apis-rest-disponibles)
+6. [Flujos Principales (MVP)](#flujos-principales-mvp)
+7. [Personalización del Admin](#personalizacion-del-admin)
+8. [Pruebas y Datos de Ejemplo](#pruebas-y-datos-de-ejemplo)
+9. [Próximos Pasos y Mejoras](#proximos-pasos-y-mejoras)
+
+---
+
+## 1. <a name="descripcion-general"></a>Descripción General
+OdremanBarber es un sistema de gestión para barberías, pensado para ser utilizado tanto por administradores/profesionales (vía panel web) como por clientes (vía app móvil). Permite gestionar reservas, servicios, profesionales, horarios y usuarios, con una arquitectura robusta y escalable basada en Django y Django REST Framework.
+
+---
+
+## 2. <a name="arquitectura-del-proyecto"></a>Arquitectura del Proyecto
+
+```
+┌───────────────┐      ┌───────────────┐
+│   App Móvil   │      │   Panel Admin │
+│ (ReactNative) │      │   (Django)    │
+└──────┬────────┘      └──────┬────────┘
+       │                        │
+       └─────►  Django REST  ◄──┘
+                (APIs + JWT)
+                     │
+              ┌──────┴──────┐
+              │   MySQL     │
+              │  Database   │
+              └─────────────┘
+```
+
+---
+
+## 3. <a name="instalacion-y-configuracion"></a>Instalación y Configuración
+
+### **Requisitos**
+- Python 3.11+
+- Django 4.2+
+- MySQL
+- Node.js (para app móvil, opcional)
+
+### **Instalación**
+```bash
+# Clona el repositorio
+git clone <repo>
+cd <repo>
+# Crea y activa el entorno virtual
+python -m venv venv
+source venv/bin/activate  # o venv\Scripts\activate en Windows
+# Instala dependencias
+pip install -r requirements.txt
+```
+
+### **Configuración**
+- Edita `barberia_project/settings.py` con tus credenciales de base de datos.
+- Aplica migraciones:
+  ```bash
+  python manage.py makemigrations
+  python manage.py migrate
+  ```
+- Crea un superusuario:
+  ```bash
+  python manage.py createsuperuser
+  ```
+- Corre el servidor:
+  ```bash
+  python manage.py runserver
+  ```
+
+---
+
+## 4. <a name="modelos-principales"></a>Modelos Principales
+
+- **Usuario:** Hereda de AbstractUser, con roles (cliente, profesional, administrador).
+- **Servicio:** Nombre, descripción, duración, precio, activo.
+- **Profesional:** Relación uno a uno con Usuario, bio, foto, disponibilidad.
+- **HorarioDisponibilidad:** Horarios semanales de cada profesional.
+- **BloqueoHorario:** Bloqueos puntuales de agenda.
+- **Turno:** Reserva de un cliente con profesional y servicio, con validaciones de solapamiento y horarios.
+
+---
+
+## 5. <a name="apis-rest-disponibles"></a>APIs REST Disponibles
+
+### **Autenticación**
+- `POST /api/v1/auth/registro/` — Registro de clientes
+- `POST /api/v1/auth/login/` — Login (JWT)
+- `POST /api/v1/auth/logout/` — Logout (blacklist token)
+- `GET/PUT/PATCH /api/v1/auth/perfil/` — Perfil de usuario
+
+### **Públicas**
+- `GET /api/v1/servicios-publicos/` — Listar servicios activos
+- `GET /api/v1/profesionales-disponibles/` — Listar profesionales disponibles
+- `GET /api/v1/resumen-barberia/` — Estadísticas generales
+
+### **Reservas**
+- `GET /api/v1/reservas/disponibilidad/?profesional_id=&fecha=&servicio_id=` — Consultar horarios disponibles
+- `POST /api/v1/reservas/crear/` — Crear reserva (cliente autenticado)
+- `GET /api/v1/reservas/mis-turnos/` — Ver mis turnos (cliente autenticado)
+- `POST /api/v1/reservas/cancelar/<turno_id>/` — Cancelar turno
+
+---
+
+## 6. <a name="flujos-principales-mvp"></a>Flujos Principales (MVP)
+
+1. **Registro/Login de cliente**
+2. **Ver servicios y profesionales**
+3. **Consultar disponibilidad y reservar turno**
+4. **Ver y cancelar mis turnos**
+5. **Gestión de agenda y servicios desde el admin**
+
+---
+
+## 7. <a name="personalizacion-del-admin"></a>Personalización del Admin
+
+- **Formularios customizados** para turnos (solo clientes y profesionales disponibles).
+- **Botón "+"** para agregar clientes, profesionales y servicios desde el formulario de turnos.
+- **Filtros y búsquedas** en todos los modelos.
+- **Widget de fecha/hora** con botón "Ahora".
+
+---
+
+## 8. <a name="pruebas-y-datos-de-ejemplo"></a>Pruebas y Datos de Ejemplo
+
+- Usa el admin para crear servicios, profesionales y horarios.
+- Prueba los endpoints con Postman (ver ejemplos en la documentación anterior).
+- Los endpoints devuelven mensajes claros de error y validan solapamientos y horarios.
+
+---
+
+## 9. <a name="proximos-pasos-y-mejoras"></a>Próximos Pasos y Mejoras
+
+- Desarrollar la app móvil en React Native.
+- Mejorar la documentación técnica (OpenAPI/Swagger).
+- Agregar tests automáticos.
+- Mejorar la experiencia de usuario en el admin.
+- Implementar notificaciones y recordatorios.
+- Optimizar la gestión de horarios y bloqueos.
+
+---
+
+## **Contacto y Soporte**
+
+Para dudas técnicas, sugerencias o reportar bugs, contacta a jaosodreman@gmail.com. 
