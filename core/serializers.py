@@ -323,15 +323,21 @@ class MisTurnosSerializer(serializers.ModelSerializer):
     
     def get_fecha(self, obj):
         """Devolver fecha en formato legible"""
-        return obj.start_datetime.strftime('%d/%m/%Y')
+        if obj.start_datetime:
+            return obj.start_datetime.strftime('%d/%m/%Y')
+        return None
     
     def get_hora_inicio(self, obj):
         """Devolver hora de inicio en formato legible"""
-        return obj.start_datetime.strftime('%H:%M')
+        if obj.start_datetime:
+            return obj.start_datetime.strftime('%H:%M')
+        return None
     
     def get_hora_fin(self, obj):
         """Devolver hora de fin en formato legible"""
-        return obj.end_datetime.strftime('%H:%M')
+        if obj.end_datetime:
+            return obj.end_datetime.strftime('%H:%M')
+        return None
     
     def get_puede_cancelar(self, obj):
         """Determinar si el turno se puede cancelar"""

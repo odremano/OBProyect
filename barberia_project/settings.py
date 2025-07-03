@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "192.168.0.19",  # <-- Agrega tu IP local aquí
+]
 
 
 # Application definition
@@ -37,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
     
     # Django REST Framework
     'rest_framework',
@@ -132,7 +137,7 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -204,6 +209,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8080",  # Para desarrollo web
     "http://127.0.0.1:8080",
+    "http://192.168.0.19:8000",  # Cambia por tu IP real y puerto del backend
+    "http://192.168.0.19:19006", # Si usas Expo, agrega el puerto de Expo
 ]
 
 CORS_ALLOW_CREDENTIALS = True
