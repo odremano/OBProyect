@@ -1,23 +1,70 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import colors from '../theme/colors';
-// Si luego usas íconos reales, importa react-native-vector-icons aquí
 
-const BottomNavBar: React.FC = () => {
+interface BottomNavBarProps {
+  activeTab?: string;
+  onTabPress?: (tabName: string) => void;
+}
+
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab = 'Inicio', onTabPress }) => {
+  const handleTabPress = (tabName: string) => {
+    if (onTabPress) {
+      onTabPress(tabName);
+    }
+  };
+
+  const getIconColor = (tabName: string) => {
+    return activeTab === tabName ? colors.white : colors.light3;
+  };
+
+  const getTextColor = (tabName: string) => {
+    return activeTab === tabName ? colors.white : colors.light3;
+  };
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.item}>
-        {/* Aquí puedes poner un ícono real */}
-        <Text style={styles.icon}>🏠</Text>
-        <Text style={styles.label}>Inicio</Text>
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => handleTabPress('Inicio')}
+      >
+        <Icon 
+          name="home" 
+          size={24} 
+          color={getIconColor('Inicio')} 
+        />
+        <Text style={[styles.label, { color: getTextColor('Inicio') }]}>
+          Inicio
+        </Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.item}>
-        <Text style={styles.icon}>🗺️</Text>
-        <Text style={styles.label}>Ubícanos</Text>
+
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => handleTabPress('Ubícanos')}
+      >
+        <Icon 
+          name="location" 
+          size={24} 
+          color={getIconColor('Ubícanos')} 
+        />
+        <Text style={[styles.label, { color: getTextColor('Ubícanos') }]}>
+          Ubícanos
+        </Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.item}>
-        <Text style={styles.icon}>≡</Text>
-        <Text style={styles.label}>Más</Text>
+
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => handleTabPress('Más')}
+      >
+        <Icon 
+          name="menu" 
+          size={24} 
+          color={getIconColor('Más')} 
+        />
+        <Text style={[styles.label, { color: getTextColor('Más') }]}>
+          Más
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -39,23 +86,19 @@ const styles = StyleSheet.create({
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   item: {
     alignItems: 'center',
     flex: 1,
     marginBottom: 10,
-  },
-  icon: {
-    fontSize: 22,
-    color: colors.white,
-    marginBottom: 2,
+    paddingVertical: 8,
   },
   label: {
     fontSize: 12,
-    color: colors.white,
     fontWeight: '500',
+    marginTop: 4,
   },
 });
 
