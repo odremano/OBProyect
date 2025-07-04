@@ -1,62 +1,120 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { login, LoginResult } from '../api/auth';
-import { AuthContext } from '../context/AuthContext'; // Ajusta la ruta si es necesario
+import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import colors from '../theme/colors';
+import BottomNavBar from '../components/BottomNavBar';
+import LoginModal from '../components/LoginModal';
+import { login } from '../api/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import HomeScreen from '../screens/HomeScreen';
+import { AuthContext } from '../context/AuthContext';
 
-export default function LoginScreen() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+const { width } = Dimensions.get('window');
+
+const WelcomeScreen: React.FC = () => {
+  const [loginVisible, setLoginVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login: loginContext } = useContext(AuthContext);
+  const [loginError, setLoginError] = useState<string | undefined>(undefined);
+  const navigation = useNavigation();
+  const { login: contextLogin } = useContext(AuthContext);
 
-  const handleLogin = async () => {
+  // Simulación de login (luego se conecta a la API real)
+  const handleLogin = async (username: string, password: string) => {
     setLoading(true);
-    const result: LoginResult = await login(username, password);
-    setLoading(false);
-
-    console.log('RESULTADO DEL LOGIN:', result);
-
-    if (result.success) {
-      await loginContext(result.user, result.tokens);
-      // Aquí puedes guardar el token y navegar
-    } else {
-      // Muestra el mensaje principal
-      Alert.alert('Error', result.message);
-      // (Opcional) Muestra detalles adicionales
-      if (result.errors && result.errors.non_field_errors) {
-        console.log('Detalles:', result.errors.non_field_errors.join(', '));
+    setLoginError(undefined);
+    try {
+      const data = await login(username, password);
+      if (data.success) {
+        // Guarda los tokens en AsyncStorage
+        await AsyncStorage.setItem('accessToken', data.tokens.access);
+        await AsyncStorage.setItem('refreshToken', data.tokens.refresh);
+        
+        // Actualiza el AuthContext - esto triggereará la navegación automática
+        await contextLogin(data.user, data.tokens);
+        
+        setLoginVisible(false);
+      } else {
+        setLoginError(data.message || 'Error al iniciar sesión');
       }
+    } catch (err: any) {
+      setLoginError(err.message || 'Error de red');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Iniciar Sesión</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Usuario"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <View style={styles.content}>
+        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.title}>Bienvenido/a</Text>
+        <Text style={styles.subtitle}>al Gestor de Turnos{"\n"}OdremanBarber</Text>
+        <TouchableOpacity style={styles.button} onPress={() => setLoginVisible(true)}>
+          <Text style={styles.buttonText}>Ingresar</Text>
+        </TouchableOpacity>
+      </View>
+      <BottomNavBar />
+      <LoginModal
+        visible={loginVisible}
+        onClose={() => setLoginVisible(false)}
+        onLogin={handleLogin}
+        loading={loading}
+        error={loginError}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      {loading ? (
-        <ActivityIndicator size="large" color="#007cba" />
-      ) : (
-        <Button title="Ingresar" onPress={handleLogin} />
-      )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 15, padding: 10 }
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'space-between',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 24,
+    paddingBottom: 80,
+    width: '100%',
+  },
+  logo: {
+    width: 330,
+    height: 71,
+    marginBottom: 150,
+    marginTop: 100,
+  },
+  title: {
+    color: colors.white,
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'left',
+  },
+  subtitle: {
+    color: colors.dark3,
+    fontSize: 20,
+    marginBottom: 40,
+    textAlign: 'left',
+    fontWeight: '500',
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    marginTop: 8,
+    width: '100%',
+    maxWidth: 340,
+  },
+  buttonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
+
+export default WelcomeScreen;

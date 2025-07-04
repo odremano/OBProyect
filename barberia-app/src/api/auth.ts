@@ -38,6 +38,7 @@ export type LoginResult = LoginSuccess | LoginError;
 
 export async function login(username: string, password: string): Promise<LoginResult> {
   try {
+    console.log('Login URL:', `${API_URL}/auth/login/`);
     const response = await axios.post(`${API_URL}/auth/login/`, {
       username,
       password,
@@ -64,3 +65,4 @@ export async function login(username: string, password: string): Promise<LoginRe
     };
   }
 }
+
