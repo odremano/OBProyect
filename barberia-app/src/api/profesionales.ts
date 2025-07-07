@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { Tokens } from './auth';
-
-const API_URL = 'http://192.168.0.19:8000/api/v1/profesionales-disponibles/'; // Ajusta si es necesario
+import { API_URL } from './apiURL';
 
 export interface UserDetails {
   id: number;
@@ -30,7 +29,7 @@ interface ProfesionalesResponse {
 }
 
 export async function fetchProfesionales(tokens: Tokens): Promise<Profesional[]> {
-  const response = await axios.get<ProfesionalesResponse>(API_URL, {
+  const response = await axios.get<ProfesionalesResponse>(`${API_URL}/profesionales-disponibles/`, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
     },

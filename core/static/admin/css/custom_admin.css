@@ -1,0 +1,102 @@
+/* Fondo general */
+body {
+    background-color: #17361E !important;
+}
+
+/* Header del admin */
+#header {
+    background-color: #116225 !important;
+    color: #FFFFFF !important;
+}
+
+/* Barra lateral de navegación */
+#nav-sidebar {
+    background-color: #2D5336 !important;
+}
+
+/* Links principales */
+a {
+    color: #ffffff !important;
+}
+
+/* Links activos o seleccionados */
+#nav-sidebar .current-app .section, #nav-sidebar .current-model {
+    background-color: #116225 !important;
+    color: #FFFFFF !important;
+}
+
+/* Botones principales */
+.button, input[type="submit"], .submit-row input {
+    background-color: #178232 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+}
+
+.button:hover, input[type="submit"]:hover, .submit-row input:hover {
+    background-color: #116225 !important;
+}
+
+/* Tablas y cajas */
+.module, .grp-module, .change-form, .change-list {
+    background-color: #476B50 !important;
+    color: #FFFFFF !important;
+}
+
+/* Inputs y selects */
+input, select, textarea {
+    background-color: #DEEDE2 !important;
+    color: #17361E !important;
+    border: 1px solid #2D5336 !important;
+}
+
+/* Mensajes de error */
+.errornote, .errorlist {
+    background-color: #D32F2F !important;
+    color: #FFFFFF !important;
+}
+
+/* Cambia el color de fondo de los encabezados de sección */
+.module caption, .module .section {
+    background-color: #2D5336 !important; /* Usa aquí el color que prefieras */
+    color: #F4FAF6 !important;            /* Color del texto */
+}
+
+/* Fondo del panel de acciones recientes */
+#recent-actions-module, .dashboard #content-related, .b readcrumbs {
+    background-color: #2D5336 !important;
+    color: #F4FAF6 !important;
+}
+
+/* Título del panel */
+#recent-actions-module h2, .dashboard #content-related h2 {
+    color: #F4FAF6 !important;
+}
+
+/* Línea divisoria */
+#recent-actions-module hr, .dashboard #content-related hr {
+    border-color: #476B50 !important;
+}
+
+/* Texto de acciones */
+#recent-actions-module .actionlist li, .dashboard #content-related .actionlist li {
+    color: #F4FAF6 !important;
+}
+
+/* Ícono de edición (lápiz) */
+#recent-actions-module .icon-edit, 
+.dashboard #content-related .icon-edit {
+    color: #178232 !important; /* primary */
+}
+
+/* Ícono de agregado (más) */
+#recent-actions-module .icon-addition, 
+.dashboard #content-related .icon-addition {
+    color: #178232 !important; /* primary */
+}
+
+/* Ícono de eliminación (equis) */
+#recent-actions-module .icon-deletion, 
+.dashboard #content-related .icon-deletion {
+    color: #D32F2F !important; /* error */
+}
+

@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { Tokens } from './auth';
-
-const API_URL = 'http://192.168.0.19:8000/api/v1/servicios-publicos/'; // Ajusta si es necesario
+import { API_URL } from './apiURL';
 
 export interface Servicio {
   id: number;
@@ -19,7 +18,7 @@ interface ServiciosResponse {
 }
 
 export async function fetchServicios(tokens: Tokens): Promise<Servicio[]> {
-  const response = await axios.get<ServiciosResponse>(API_URL, {
+  const response = await axios.get<ServiciosResponse>(`${API_URL}/servicios-publicos/`, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
     },

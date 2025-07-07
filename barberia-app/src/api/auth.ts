@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Alert } from 'react-native';
+import { API_URL } from './apiURL';
 
-const API_URL = 'http://192.168.0.19:8000/api/v1'; // Cambia si usas otra IP o puerto
 
 // Define el tipo de respuesta esperada del backend
 export interface User {
@@ -43,26 +43,30 @@ export async function login(username: string, password: string): Promise<LoginRe
       username,
       password,
     });
-    // Si la respuesta es exitosa, response.data.success será true
     return response.data;
   } catch (error: any) {
-    console.log('Error al reservar:', error);
-    // Si el backend devolvió un error con detalles
     if (error.response && error.response.data) {
       const data = error.response.data;
-      let errorMsg = data.message || 'No se pudo reservar el turno.';
+      let errorMsg = data.message || 'No se pudo iniciar sesión.';
       if (data.errors) {
-        const detalles = Object.values(data.errors).flat().join('\n');
-        errorMsg += '\n' + detalles;
+        const detalles = Object.values(data.errors).flat();
+        if (detalles.includes(errorMsg)) {
+          errorMsg = errorMsg;
+        } else {
+          errorMsg += '\n' + detalles.join('\n');
+        }
       }
-      Alert.alert('Error', errorMsg);
+      return {
+        success: false,
+        message: errorMsg,
+      };
     } else {
-      Alert.alert('Error', 'No se pudo reservar el turno. Intenta nuevamente.');
+      // Error de red
+      return {
+        success: false,
+        message: 'Error de red o servidor no disponible',
+      };
     }
-    return {
-      success: false,
-      message: 'Error de red o servidor no disponible',
-    };
   }
 }
 

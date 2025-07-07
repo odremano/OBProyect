@@ -1,24 +1,32 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
 import colors from '../theme/colors';
-import BottomNavBar from '../components/BottomNavBar';
+// import BottomNavBar from '../components/BottomNavBar';
 import LoginModal from '../components/LoginModal';
 import { login } from '../api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import HomeScreen from '../screens/HomeScreen';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 const { width } = Dimensions.get('window');
 
-const WelcomeScreen: React.FC = () => {
+const LoginScreen: React.FC = () => {
   const [loginVisible, setLoginVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | undefined>(undefined);
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { login: contextLogin } = useContext(AuthContext);
 
-  // Simulación de login (luego se conecta a la API real)
+  const handleTabPress = (tabName: string) => {
+    if (tabName === 'Más') {
+      navigation.navigate('More');
+    } else {
+      // Para otros tabs que aún no están implementados
+      console.log(`Tab pressed: ${tabName}`);
+    }
+  };
+
   const handleLogin = async (username: string, password: string) => {
     setLoading(true);
     setLoginError(undefined);
@@ -54,7 +62,6 @@ const WelcomeScreen: React.FC = () => {
           <Text style={styles.buttonText}>Ingresar</Text>
         </TouchableOpacity>
       </View>
-      <BottomNavBar />
       <LoginModal
         visible={loginVisible}
         onClose={() => setLoginVisible(false)}
@@ -117,4 +124,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WelcomeScreen;
+export default LoginScreen;

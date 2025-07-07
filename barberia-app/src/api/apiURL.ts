@@ -1,0 +1,1 @@
+export const API_URL = 'http://192.168.0.40:8000/api/v1'; // Cambia si usas otra IP o puerto

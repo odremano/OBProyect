@@ -8,14 +8,21 @@ import ServiciosScreen from '../screens/ServiciosScreen';
 import ProfesionalesScreen from '../screens/ProfesionalesScreen';
 import ReservaTurnoScreen from '../screens/ReservaTurnoScreen';
 import MisTurnosScreen from '../screens/MisTurnosScreen';
+import MoreScreen from '../screens/MoreScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import AboutScreen from '../screens/AboutScreen';
+import TabNavigator from './TabNavigator';
 
 export type RootStackParamList = {
-  Home: undefined;
+  MainTabs: undefined;
   Servicios: undefined;
   Profesionales: undefined;
   ReservaTurno: { profesionalId: number };
   Login: undefined;
   MisTurnos: undefined;
+  More: { isAuthenticated?: boolean; userName?: string } | undefined;
+  Settings: undefined;
+  About: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -32,17 +39,13 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {user ? (
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Servicios" component={ServiciosScreen} />
-            <Stack.Screen name="Profesionales" component={ProfesionalesScreen} />
-            <Stack.Screen name="ReservaTurno" component={ReservaTurnoScreen} />
-            <Stack.Screen name="MisTurnos" component={MisTurnosScreen} />
-          </>
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        )}
+        <Stack.Screen name="MainTabs" component={TabNavigator} options={{ headerShown: false }} />
+        <Stack.Screen name="ReservaTurno" component={ReservaTurnoScreen} />
+        <Stack.Screen name="Servicios" component={ServiciosScreen} />
+        <Stack.Screen name="Profesionales" component={ProfesionalesScreen} />
+        <Stack.Screen name="MisTurnos" component={MisTurnosScreen} />
+        <Stack.Screen name="About" component={AboutScreen} options={{headerShown: false }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

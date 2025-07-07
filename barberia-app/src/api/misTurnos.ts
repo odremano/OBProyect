@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Tokens } from './auth';
+import { API_URL } from './apiURL';
 
 // Reutiliza la interfaz Turno si ya la tienes, o defínela aquí
 export interface Turno {
@@ -40,8 +41,7 @@ export interface MisTurnosResponse {
 }
 
 export async function fetchMisTurnos(tokens: Tokens): Promise<MisTurnosResponse> {
-  const API_URL = 'http://192.168.0.19:8000/api/v1/reservas/mis-turnos/';
-  const response = await axios.get<MisTurnosResponse>(API_URL, {
+  const response = await axios.get<MisTurnosResponse>(`${API_URL}/reservas/mis-turnos/`, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
     },
@@ -51,8 +51,7 @@ export async function fetchMisTurnos(tokens: Tokens): Promise<MisTurnosResponse>
 }
 
 export async function cancelarTurno(tokens: Tokens, turnoId: number) {
-  const API_URL = `http://192.168.0.19:8000/api/v1/reservas/cancelar/${turnoId}/`; // Usa la IP correcta si es necesario
-  const response = await axios.post(API_URL, {}, {
+  const response = await axios.post(`${API_URL}/reservas/cancelar/${turnoId}/`, {}, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
       'Content-Type': 'application/json',

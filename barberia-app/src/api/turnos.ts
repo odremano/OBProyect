@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { Tokens } from './auth';
-
-const API_URL = 'http://192.168.0.19:8000/api/v1/reservas/crear/'; // Ajusta si es necesario
+import { API_URL } from './apiURL';
 
 export interface ReservaPayload {
   profesional: number;
@@ -48,7 +47,7 @@ export interface ReservaError {
 export type ReservaResponse = ReservaSuccess | ReservaError;
 
 export async function reservarTurno(tokens: Tokens, payload: ReservaPayload): Promise<ReservaResponse> {
-  const response = await axios.post<ReservaResponse>(API_URL, payload, {
+  const response = await axios.post<ReservaResponse>(`${API_URL}/reservas/crear/`, payload, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
       'Content-Type': 'application/json',
