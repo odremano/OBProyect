@@ -15,6 +15,7 @@ export interface UserDetails {
 }
 
 export interface Profesional {
+  id: number; // Este es el profesional_id que necesitamos
   user: number;
   user_details: UserDetails;
   bio: string;

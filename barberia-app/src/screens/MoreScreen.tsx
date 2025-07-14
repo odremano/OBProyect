@@ -91,7 +91,8 @@ const MoreScreen: React.FC = () => {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      {/* Header fijo */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
           {isAuthenticated ? `Hola, ${userName}` : 'Menú Principal'}
@@ -104,11 +105,52 @@ const MoreScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* Sección de Perfil primero */}
-      {isAuthenticated && perfilItems.length > 0 && (
+      {/* Contenido scrolleable */}
+      <ScrollView 
+        style={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContentContainer}
+      >
+        {/* Sección de Perfil primero */}
+        {isAuthenticated && perfilItems.length > 0 && (
+          <View style={styles.menuContainer}>
+            <Text style={styles.sectionTitle}>Perfil</Text>
+            {perfilItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.menuItem}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.iconContainer}>
+                    <Icon
+                      name={item.icon}
+                      size={24}
+                      color={colors.white}
+                    />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.menuTitle}>{item.title}</Text>
+                    {item.description && (
+                      <Text style={styles.menuDescription}>{item.description}</Text>
+                    )}
+                  </View>
+                </View>
+                <Icon
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.dark3}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Sección de Configuración después */}
         <View style={styles.menuContainer}>
-          <Text style={styles.sectionTitle}>Perfil</Text>
-          {perfilItems.map((item) => (
+          <Text style={styles.sectionTitle}>Configuración</Text>
+          {menuItems.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
@@ -138,49 +180,15 @@ const MoreScreen: React.FC = () => {
             </TouchableOpacity>
           ))}
         </View>
-      )}
 
-      {/* Sección de Configuración después */}
-      <View style={styles.menuContainer}>
-        <Text style={styles.sectionTitle}>Configuración</Text>
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.menuItem}
-            onPress={item.onPress}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={styles.iconContainer}>
-                <Icon
-                  name={item.icon}
-                  size={24}
-                  color={colors.white}
-                />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                {item.description && (
-                  <Text style={styles.menuDescription}>{item.description}</Text>
-                )}
-              </View>
-            </View>
-            <Icon
-              name="chevron-forward"
-              size={20}
-              color={colors.dark3}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.versionText}>OdremanBarber v1.0.0</Text>
-        <Text style={styles.footerText}>
-          Desarrollado con ❤️ para la mejor experiencia
-        </Text>
-      </View>
-    </ScrollView>
+        <View style={styles.footer}>
+          <Text style={styles.versionText}>OdremanBarber v1.0.0</Text>
+          <Text style={styles.footerText}>
+            Desarrollado con ❤️ para la mejor experiencia
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -191,7 +199,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 56,
     backgroundColor: colors.primaryDark,
   },
   headerTitle: {
@@ -204,6 +212,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.light3,
     opacity: 0.9,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 34,
   },
   menuContainer: {
     padding: 16,

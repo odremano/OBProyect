@@ -87,11 +87,17 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
     width: '100%',
   },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
   logo: {
     width: 330,
     height: 71,
     marginBottom: 150,
     marginTop: 100,
+    marginLeft: 10
   },
   title: {
     color: colors.white,

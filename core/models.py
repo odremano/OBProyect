@@ -66,11 +66,15 @@ class Servicio(models.Model):
 # 3. MODELO PROFESIONAL (Professional)
 # =====================================================
 class Profesional(models.Model):
+    # Campo ID autoincremental como PK (coincide con la BD)
+    id = models.AutoField(primary_key=True)
+    
     # Relación uno a uno con nuestro Custom User Model (Usuario)
+    # Sin primary_key=True para que coincida con la estructura real
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, # Referencia al modelo de usuario configurado en settings.py
         on_delete=models.CASCADE,
-        primary_key=True # Esto lo convierte en la PK y FK al mismo tiempo, como en tu SQL
+        unique=True  # Para mantener la relación uno a uno
     )
     bio = models.TextField(null=True, blank=True)
     profile_picture_url = models.CharField(max_length=500, null=True, blank=True)

@@ -119,7 +119,7 @@ class ProfesionalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profesional
-        fields = ['user', 'user_details', 'bio', 'profile_picture_url', 'is_available']
+        fields = ['id', 'user', 'user_details', 'bio', 'profile_picture_url', 'is_available']
         read_only_fields = ['user_details']
 
 

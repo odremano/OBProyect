@@ -1,29 +1,145 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  StyleSheet, 
+  ActivityIndicator, 
+  TouchableOpacity, 
+  Alert,
+  ScrollView,
+  RefreshControl 
+} from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { fetchMisTurnos, Turno, MisTurnosResponse, cancelarTurno } from '../api/misTurnos';
+import TurnoCard from '../components/TurnoCard';
+import HistorialItem from '../components/HistorialItem';
+import Icon from 'react-native-vector-icons/Ionicons';
+import colors from '../theme/colors';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+import { fetchMisTurnos, cancelarTurno, Turno as TurnoAPI, MisTurnosResponse } from '../api/misTurnos';
 
-export default function MisTurnosScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, 'MisTurnos'>;
+
+// Tipos para la nueva estructura de datos
+interface Turno {
+  id: string;
+  fecha: string; // formato ISO
+  hora: string; // ej: "18:30 hs"
+  profesional: string;
+  servicio: string;
+  estado: 'confirmado' | 'completado' | 'cancelado';
+  precio: string;
+  avatar: string; // url de imagen
+}
+
+// Función para mapear datos de la API a nuestra estructura
+const mapearTurnosAPI = (turnosResponse: MisTurnosResponse): Turno[] => {
+  const turnos: Turno[] = [];
+  
+  // Función auxiliar para formatear el precio
+  const formatearPrecio = (precio: string) => {
+    const precioNum = parseFloat(precio.replace(/[^0-9.-]+/g, ''));
+    return isNaN(precioNum) ? precio : `$${precioNum.toLocaleString()}`;
+  };
+  
+  // Función auxiliar para formatear la hora
+  const formatearHora = (hora: string) => {
+    return hora.includes('hs') ? hora : `${hora}hs`;
+  };
+  
+  // Mapear turnos próximos (confirmados)
+  turnosResponse.turnos.proximos.forEach(turno => {
+    turnos.push({
+      id: turno.id.toString(),
+      fecha: turno.start_datetime,
+      hora: formatearHora(turno.hora_inicio),
+      profesional: turno.profesional_name || 'Profesional no asignado',
+      servicio: turno.servicio_name || 'Servicio no especificado',
+      estado: 'confirmado',
+      precio: formatearPrecio(turno.servicio_price),
+      avatar: turno.profesional_photo || ''
+    });
+  });
+  
+  // Mapear turnos pasados (completados)
+  turnosResponse.turnos.pasados.forEach(turno => {
+    turnos.push({
+      id: turno.id.toString(),
+      fecha: turno.start_datetime,
+      hora: formatearHora(turno.hora_inicio),
+      profesional: turno.profesional_name || 'Profesional no asignado',
+      servicio: turno.servicio_name || 'Servicio no especificado',
+      estado: 'completado',
+      precio: formatearPrecio(turno.servicio_price),
+      avatar: turno.profesional_photo || ''
+    });
+  });
+  
+  // Mapear turnos cancelados
+  turnosResponse.turnos.cancelados.forEach(turno => {
+    turnos.push({
+      id: turno.id.toString(),
+      fecha: turno.start_datetime,
+      hora: formatearHora(turno.hora_inicio),
+      profesional: turno.profesional_name || 'Profesional no asignado',
+      servicio: turno.servicio_name || 'Servicio no especificado',
+      estado: 'cancelado',
+      precio: formatearPrecio(turno.servicio_price),
+      avatar: turno.profesional_photo || ''
+    });
+  });
+  
+  return turnos;
+};
+
+export default function MisTurnosScreen({ navigation }: Props) {
   const { tokens } = useContext(AuthContext);
-  const [turnos, setTurnos] = useState<MisTurnosResponse | null>(null);
+  const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Función para cargar turnos desde la API
+  const cargarTurnos = async (showLoading = true) => {
+    if (!tokens) {
+      setLoading(false);
+      return;
+    }
+
+    if (showLoading) setLoading(true);
+
+    try {
+      const response = await fetchMisTurnos(tokens);
+      const turnosMapeados = mapearTurnosAPI(response);
+      setTurnos(turnosMapeados);
+    } catch (error: any) {
+      console.error('Error cargando turnos:', error);
+      if (error.response && error.response.status === 401) {
+        Alert.alert('Sesión expirada', 'Por favor, inicia sesión nuevamente.');
+      } else {
+        Alert.alert('Error', 'No se pudieron cargar los turnos.');
+      }
+      setTurnos([]);
+    } finally {
+      if (showLoading) setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Función para refrescar la lista
+  const handleRefresh = () => {
+    setRefreshing(true);
+    cargarTurnos(false);
+  };
+
+  // Cargar turnos al montar el componente
   useEffect(() => {
-    if (!tokens) return;
-    fetchMisTurnos(tokens)
-      .then(setTurnos)
-      .catch((err) => {
-        if (err.response && err.response.status === 401) {
-          Alert.alert('Sesión expirada', 'Por favor, inicia sesión nuevamente.');
-          // Aquí puedes redirigir al login si lo deseas
-        }
-        setTurnos(null);
-      })
-      .finally(() => setLoading(false));
+    cargarTurnos();
   }, [tokens]);
 
-  const handleCancelar = async (turnoId: number) => {
+  const handleCancelarTurno = async (turnoId: string) => {
     if (!tokens) return;
+    
     Alert.alert(
       'Cancelar turno',
       '¿Estás seguro de que deseas cancelar este turno?',
@@ -34,14 +150,15 @@ export default function MisTurnosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await cancelarTurno(tokens, turnoId);
+              // Llamada real a la API
+              await cancelarTurno(tokens, parseInt(turnoId));
+              
+              // Refrescar la lista desde el servidor
+              await cargarTurnos(false);
+              
               Alert.alert('Turno cancelado', 'El turno ha sido cancelado correctamente.');
-              // Refresca la lista
-              setLoading(true);
-              const data = await fetchMisTurnos(tokens);
-              setTurnos(data);
-              setLoading(false);
-            } catch (error) {
+            } catch (error: any) {
+              console.error('Error cancelando turno:', error);
               Alert.alert('Error', 'No se pudo cancelar el turno.');
             }
           }
@@ -50,77 +167,166 @@ export default function MisTurnosScreen() {
     );
   };
 
-  if (loading) return <ActivityIndicator size="large" color="#007cba" />;
-  if (!turnos) return <Text style={{ textAlign: 'center', marginTop: 20 }}>No se pudieron cargar los turnos.</Text>;
+  const handleReservarTurno = () => {
+    navigation.navigate('ReservaTurno', {});
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#178232" />
+      </View>
+    );
+  }
+
+  // Filtrar turnos confirmados y historial
+  const turnosConfirmados = turnos.filter(turno => turno.estado === 'confirmado');
+  const proximoTurno = turnosConfirmados.length > 0 ? turnosConfirmados[0] : null;
+  const historial = turnos.filter(turno => turno.estado !== 'confirmado');
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mis Turnos</Text>
-      <Text style={styles.resumen}>
-        Total: {turnos.resumen.total_turnos} | Próximos: {turnos.resumen.proximos} | Pasados: {turnos.resumen.pasados} | Cancelados: {turnos.resumen.cancelados}
-      </Text>
+      {/* Header fijo */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={styles.closeButton}
+        >
+          <Icon name="close" size={24} color={colors.white}  />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mis turnos</Text>
+        <View style={{ width: 20 }} />
+      </View>
 
-      <Text style={styles.seccion}>Próximos</Text>
-      <FlatList
-        data={turnos.turnos.proximos}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.turno}>
-            <Text style={styles.servicio}>{item.servicio_name}</Text>
-            <Text>Profesional: {item.profesional_name}</Text>
-            <Text>Fecha: {item.fecha} {item.hora_inicio} - {item.hora_fin}</Text>
-            <Text>Estado: {item.status}</Text>
-            {item.puede_cancelar && (
-              <Button
-                title="Cancelar turno"
-                color="#d9534f"
-                onPress={() => handleCancelar(item.id)}
-              />
-            )}
+      {/* Contenido scrolleable */}
+      <ScrollView 
+        style={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* Próximo turno */}
+        {proximoTurno ? (
+          <View style={styles.seccion}>
+            <Text style={styles.subtitulo}>Próximo turno</Text>
+            <TurnoCard 
+              turno={proximoTurno} 
+              onCancelar={handleCancelarTurno}
+              puedeCancel={true}
+            />
+          </View>
+        ) : (
+          <View style={styles.seccionVacia}>
+            <Text style={styles.subtitulo}>Próximo turno</Text>
+            <Text style={styles.mensajeVacio}>
+              Todavía no tienes turnos.{'\n'}¿Querés agendar uno ahora?
+            </Text>
+            <TouchableOpacity 
+              style={styles.botonReservar}
+              onPress={handleReservarTurno}
+            >
+              <Text style={styles.textoReservar}>Reservar turno</Text>
+            </TouchableOpacity>
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.vacio}>No hay turnos próximos.</Text>}
-      />
 
-      <Text style={styles.seccion}>Pasados</Text>
-      <FlatList
-        data={turnos.turnos.pasados}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.turno}>
-            <Text style={styles.servicio}>{item.servicio_name}</Text>
-            <Text>Profesional: {item.profesional_name}</Text>
-            <Text>Fecha: {item.fecha} {item.hora_inicio} - {item.hora_fin}</Text>
-            <Text>Estado: {item.status}</Text>
+        {/* Historial */}
+        {historial.length > 0 && (
+          <View style={styles.seccion}>
+            <Text style={styles.subtitulo}>Historial</Text>
+            <FlatList
+              data={historial}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => <HistorialItem turno={item} />}
+              scrollEnabled={false}
+            />
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.vacio}>No hay turnos pasados.</Text>}
-      />
-
-      <Text style={styles.seccion}>Cancelados</Text>
-      <FlatList
-        data={turnos.turnos.cancelados}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.turno}>
-            <Text style={styles.servicio}>{item.servicio_name}</Text>
-            <Text>Profesional: {item.profesional_name}</Text>
-            <Text>Fecha: {item.fecha} {item.hora_inicio} - {item.hora_fin}</Text>
-            <Text>Estado: {item.status}</Text>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={styles.vacio}>No hay turnos cancelados.</Text>}
-      />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, marginBottom: 10, textAlign: 'center' },
-  resumen: { fontSize: 16, marginBottom: 10, textAlign: 'center' },
-  seccion: { fontSize: 20, marginTop: 20, marginBottom: 5, fontWeight: 'bold' },
-  turno: { marginBottom: 10, padding: 10, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, backgroundColor: '#f9f9f9' },
-  servicio: { fontWeight: 'bold', fontSize: 16 },
-  vacio: { textAlign: 'center', color: '#888', marginBottom: 10 }
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 56,
+    backgroundColor: colors.primaryDark,
+    paddingHorizontal: 20,
+  },
+  closeButton: {
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.white,
+    marginBottom: 20,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 34,
+  },
+  titulo: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.white,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  seccion: {
+    marginBottom: 24,
+  },
+  seccionVacia: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  subtitulo: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.white,
+    marginBottom: 16,
+  },
+  mensajeVacio: {
+    fontSize: 16,
+    color: colors.light3,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  botonReservar: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  textoReservar: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
