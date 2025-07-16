@@ -16,12 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 # Swagger/OpenAPI imports
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from django.conf import settings
-from django.conf.urls.static import static
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -49,8 +49,10 @@ urlpatterns = [
 ]
 
 # Configuración del Admin
-admin.site.site_header = "OdremanBarber Administration"  # Título en el encabezado
-admin.site.site_title = "Panel de OdremanBarber"         # Título en la pestaña del navegador
-admin.site.index_title = "Bienvenido al Panel de OdremanBarber" # Título en la página de inicio del admin
+admin.site.site_header = "Ordema Administration"  # Título en el encabezado
+admin.site.site_title = "Panel de Ordema"
+admin.site.index_title = "Bienvenido al Panel de Administración de Ordema"
 
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Servir archivos de medios en desarrollo
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -2,6 +2,16 @@ import axios from 'axios';
 import { Alert } from 'react-native';
 import { API_URL } from './apiURL';
 
+// Interfaz para los colores del tema
+export interface ThemeColors {
+  dark2: string;
+  dark3: string;
+  light2: string;
+  light3: string;
+  primary: string;
+  background: string;
+  primaryDark: string;
+}
 
 // Define el tipo de respuesta esperada del backend
 export interface User {
@@ -14,6 +24,12 @@ export interface User {
   role: string;
   is_active: boolean;
   date_joined: string;
+  negocio?: {
+    id: number;
+    nombre: string;
+    logo_url?: string;
+    theme_colors?: ThemeColors;
+  };
 }
 
 export interface Tokens {
@@ -26,6 +42,12 @@ export interface LoginSuccess {
   message: string;
   user: User;
   tokens: Tokens;
+  negocio?: {
+    id: number;
+    nombre: string;
+    logo_url?: string;
+    theme_colors?: ThemeColors;
+  };
 }
 
 export interface LoginError {
@@ -43,6 +65,7 @@ export async function login(username: string, password: string): Promise<LoginRe
       username,
       password,
     });
+    console.log('Respuesta completa del login:', response.data);
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.data) {

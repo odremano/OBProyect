@@ -1,8 +1,9 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
-import colors from '../theme/colors';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 // import BottomNavBar from '../components/BottomNavBar';
 import LoginModal from '../components/LoginModal';
+import DynamicLogo from '../components/DynamicLogo';
 import { login } from '../api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -17,6 +18,7 @@ const LoginScreen: React.FC = () => {
   const [loginError, setLoginError] = useState<string | undefined>(undefined);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { login: contextLogin } = useContext(AuthContext);
+  const { colors } = useTheme();
 
   const handleTabPress = (tabName: string) => {
     if (tabName === 'Más') {
@@ -38,7 +40,8 @@ const LoginScreen: React.FC = () => {
         await AsyncStorage.setItem('refreshToken', data.tokens.refresh);
         
         // Actualiza el AuthContext - esto triggereará la navegación automática
-        await contextLogin(data.user, data.tokens);
+        // Pasar el objeto negocio para que se carguen los colores dinámicos
+        await contextLogin(data.user, data.tokens, data.negocio);
         
         setLoginVisible(false);
       } else {
@@ -52,14 +55,14 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <View style={styles.content}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.title}>Bienvenido/a</Text>
-        <Text style={styles.subtitle}>al Gestor de Turnos{"\n"}OdremanBarber</Text>
-        <TouchableOpacity style={styles.button} onPress={() => setLoginVisible(true)}>
-          <Text style={styles.buttonText}>Ingresar</Text>
+        <DynamicLogo style={styles.logo} resizeMode="contain" />
+        <Text style={[styles.title, { color: colors.text }]}>Bienvenido/a</Text>
+        <Text style={[styles.subtitle, { color: colors.dark3 }]}>al Gestor de Turnos{"\n"}ORDEMA</Text>
+        <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => setLoginVisible(true)}>
+          <Text style={[styles.buttonText, { color: colors.white }]}>Ingresar</Text>
         </TouchableOpacity>
       </View>
       <LoginModal
@@ -76,7 +79,6 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'space-between',
   },
   content: {
@@ -100,21 +102,18 @@ const styles = StyleSheet.create({
     marginLeft: 10
   },
   title: {
-    color: colors.white,
     fontSize: 36,
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'left',
   },
   subtitle: {
-    color: colors.dark3,
     fontSize: 20,
     marginBottom: 40,
     textAlign: 'left',
     fontWeight: '500',
   },
   button: {
-    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 40,
@@ -124,7 +123,6 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   buttonText: {
-    color: colors.white,
     fontSize: 16,
     fontWeight: 'bold',
   },

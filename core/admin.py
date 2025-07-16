@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django import forms
 from django.utils.html import format_html
-from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno
+from .models import Usuario, Negocio, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno
+import copy
 
 # =====================================================
 # WIDGET PERSONALIZADO PARA DATETIME CON BOTÓN "AHORA"
@@ -44,120 +45,195 @@ class DateTimeWithNowWidget(forms.SplitDateTimeWidget):
         
         return html + button_html
 
-# =====================================================
-# ADMIN PARA USUARIO PERSONALIZADO
-# =====================================================
-@admin.register(Usuario)
+# --- Usuario ---
 class UsuarioAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'date_joined')
-    list_filter = ('role', 'is_active', 'is_staff', 'is_superuser', 'date_joined')
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'phone_number')
-    ordering = ('-date_joined',)
-    
-    # Campos adicionales para el formulario de edición
-    fieldsets = UserAdmin.fieldsets + (
-        ('Información Personal', {
-            'fields': ('phone_number', 'role')
-        }),
-    )
-    
-    # Campos para crear nuevo usuario
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Información Personal', {
-            'fields': ('phone_number', 'role')
-        }),
-    )
+    def get_fieldsets(self, request, obj=None):
+        # Convierte a lista y haz copia profunda
+        fieldsets = list(copy.deepcopy(super().get_fieldsets(request, obj)))
+        if request.user.is_superuser:
+            if not any('negocio' in opts.get('fields', ()) for _, opts in fieldsets):
+                fieldsets.append(('Negocio', {'fields': ('negocio',)}))
+        else:
+            for name, opts in fieldsets:
+                if 'fields' in opts:
+                    opts['fields'] = tuple(
+                        f for f in opts['fields']
+                        if f not in ('negocio', 'is_superuser', 'is_staff')
+                    )
+        return fieldsets
 
-# =====================================================
-# ADMIN PARA SERVICIOS
-# =====================================================
-@admin.register(Servicio)
+    def get_fields(self, request, obj=None):
+        fields = list(super().get_fields(request, obj))  # crea una copia
+        if not request.user.is_superuser:
+            for f in ['negocio', 'is_superuser', 'is_staff']:
+                if f in fields:
+                    fields.remove(f)
+        return fields
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(negocio=request.user.negocio)
+
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.negocio = request.user.negocio
+            obj.is_superuser = False
+            obj.is_staff = False
+        obj.save()
+
+    def has_change_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        if obj is not None and obj.pk == request.user.pk:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        if obj is not None and obj.pk == request.user.pk:
+            return False
+        return super().has_delete_permission(request, obj)
+
+admin.site.register(Usuario, UsuarioAdmin)
+
+# --- Negocio ---
+class NegocioAdmin(admin.ModelAdmin):
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(id=request.user.negocio_id)
+admin.site.register(Negocio, NegocioAdmin)
+
+# --- Servicio ---
 class ServicioAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'duration_minutes', 'is_active', 'created_at')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('name', 'description')
-    ordering = ('name',)
-    
-    fieldsets = (
-        ('Información Básica', {
-            'fields': ('name', 'description')
-        }),
-        ('Configuración', {
-            'fields': ('duration_minutes', 'price', 'is_active')
-        }),
-    )
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(negocio=request.user.negocio)
 
-# =====================================================
-# ADMIN PARA PROFESIONALES
-# =====================================================
-@admin.register(Profesional)
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.negocio = request.user.negocio
+        obj.save()
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser and 'negocio' in fields:
+            fields = [f for f in fields if f != 'negocio']
+        return fields
+admin.site.register(Servicio, ServicioAdmin)
+
+# --- Profesional ---
 class ProfesionalAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'get_email', 'is_available', 'created_at')
-    list_filter = ('is_available', 'created_at')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'user__email')
-    ordering = ('user__first_name',)
-    
-    fieldsets = (
-        ('Usuario Asociado', {
-            'fields': ('user',)
-        }),
-        ('Información Profesional', {
-            'fields': ('bio', 'profile_picture_url', 'is_available')
-        }),
-    )
-    
-    def get_full_name(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}"
-    get_full_name.short_description = 'Nombre Completo'
-    
-    def get_email(self, obj):
-        return obj.user.email
-    get_email.short_description = 'Email'
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(negocio=request.user.negocio)
 
-# =====================================================
-# ADMIN PARA HORARIOS DE DISPONIBILIDAD
-# =====================================================
-@admin.register(HorarioDisponibilidad)
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.negocio = request.user.negocio
+        obj.save()
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser and 'negocio' in fields:
+            fields = [f for f in fields if f != 'negocio']
+        return fields
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "user" and not request.user.is_superuser:
+            kwargs["queryset"] = Usuario.objects.filter(negocio=request.user.negocio)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+admin.site.register(Profesional, ProfesionalAdmin)
+
+# --- HorarioDisponibilidad ---
 class HorarioDisponibilidadAdmin(admin.ModelAdmin):
-    list_display = ('profesional', 'get_day_name', 'start_time', 'end_time', 'is_recurring')
-    list_filter = ('day_of_week', 'is_recurring', 'profesional')
-    search_fields = ('profesional__user__first_name', 'profesional__user__last_name')
-    ordering = ('profesional__user__first_name', 'day_of_week', 'start_time')
-    
-    fieldsets = (
-        ('Profesional', {
-            'fields': ('profesional',)
-        }),
-        ('Horario', {
-            'fields': ('day_of_week', 'start_time', 'end_time')
-        }),
-        ('Configuración', {
-            'fields': ('is_recurring', 'start_date', 'end_date')
-        }),
-    )
-    
-    def get_day_name(self, obj):
-        return dict(obj.day_of_week_choices).get(obj.day_of_week, 'Desconocido')
-    get_day_name.short_description = 'Día'
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(negocio=request.user.negocio)
 
-# =====================================================
-# ADMIN PARA BLOQUEOS DE HORARIO
-# =====================================================
-@admin.register(BloqueoHorario)
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.negocio = request.user.negocio
+        obj.save()
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser and 'negocio' in fields:
+            fields = [f for f in fields if f != 'negocio']
+        return fields
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser:
+            if db_field.name == "profesional":
+                kwargs["queryset"] = Profesional.objects.filter(negocio=request.user.negocio)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+admin.site.register(HorarioDisponibilidad, HorarioDisponibilidadAdmin)
+
+# --- BloqueoHorario ---
 class BloqueoHorarioAdmin(admin.ModelAdmin):
-    list_display = ('profesional', 'start_datetime', 'end_datetime', 'reason', 'created_at')
-    list_filter = ('profesional', 'created_at')
-    search_fields = ('profesional__user__first_name', 'profesional__user__last_name', 'reason')
-    ordering = ('-start_datetime',)
-    
-    fieldsets = (
-        ('Profesional', {
-            'fields': ('profesional',)
-        }),
-        ('Período de Bloqueo', {
-            'fields': ('start_datetime', 'end_datetime', 'reason')
-        }),
-    )
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(negocio=request.user.negocio)
+
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.negocio = request.user.negocio
+        obj.save()
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser and 'negocio' in fields:
+            fields = [f for f in fields if f != 'negocio']
+        return fields
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser:
+            if db_field.name == "profesional":
+                kwargs["queryset"] = Profesional.objects.filter(negocio=request.user.negocio)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+admin.site.register(BloqueoHorario, BloqueoHorarioAdmin)
+
+# --- Turno ---
+class TurnoAdmin(admin.ModelAdmin):
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(negocio=request.user.negocio)
+
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.negocio = request.user.negocio
+        obj.save()
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not request.user.is_superuser and 'negocio' in fields:
+            fields = [f for f in fields if f != 'negocio']
+        return fields
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser:
+            if db_field.name == "cliente":
+                kwargs["queryset"] = Usuario.objects.filter(negocio=request.user.negocio, role='cliente')
+            if db_field.name == "profesional":
+                kwargs["queryset"] = Profesional.objects.filter(negocio=request.user.negocio)
+            if db_field.name == "servicio":
+                kwargs["queryset"] = Servicio.objects.filter(negocio=request.user.negocio)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+admin.site.register(Turno, TurnoAdmin)
 
 # =====================================================
 # FORMULARIO PERSONALIZADO PARA TURNOS
@@ -181,44 +257,6 @@ class TurnoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['cliente'].queryset = Usuario.objects.filter(role='cliente')
         self.fields['cliente'].empty_label = "Selecciona un cliente"
-
-# =====================================================
-# ADMIN PARA TURNOS
-# =====================================================
-@admin.register(Turno)
-class TurnoAdmin(admin.ModelAdmin):
-    form = TurnoForm  # Usa el formulario personalizado
-    
-    list_display = ('get_cliente_name', 'get_profesional_name', 'servicio', 'start_datetime', 'status', 'created_at')
-    list_filter = ('status', 'servicio', 'created_at', 'start_datetime')
-    search_fields = (
-        'cliente__username', 'cliente__first_name', 'cliente__last_name',
-        'profesional__user__first_name', 'profesional__user__last_name',
-        'servicio__name'
-    )
-    ordering = ('-start_datetime',)
-    
-    fieldsets = (
-        ('Participantes', {
-            'fields': ('cliente', 'profesional', 'servicio')
-        }),
-        ('Horario', {
-            'fields': ('start_datetime',)
-        }),
-        ('Estado', {
-            'fields': ('status', 'notes')
-        }),
-    )
-    
-    # readonly_fields = ('end_datetime',)  # Comentado porque end_datetime está excluido del formulario
-    
-    def get_cliente_name(self, obj):
-        return f"{obj.cliente.first_name} {obj.cliente.last_name}"
-    get_cliente_name.short_description = 'Cliente'
-    
-    def get_profesional_name(self, obj):
-        return f"{obj.profesional.user.first_name} {obj.profesional.user.last_name}"
-    get_profesional_name.short_description = 'Profesional'
 
 # =====================================================
 # CONFIGURACIÓN DEL SITIO ADMIN

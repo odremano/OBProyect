@@ -1,28 +1,52 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno
+from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno, Negocio
 
 
 # =============================================================================
 # SERIALIZERS DE AUTENTICACIÓN
 # =============================================================================
 
-class UsuarioSerializer(serializers.ModelSerializer):
-    """
-    Serializer principal para el modelo Usuario.
-    Convierte el modelo Usuario a JSON y viceversa.
-    """
-    password = serializers.CharField(write_only=True)  # Password solo para escritura
+class NegocioSerializer(serializers.ModelSerializer):
+    logo_url = serializers.SerializerMethodField()
     
+    class Meta:
+        model = Negocio
+        fields = ['id', 'nombre', 'logo_url', 'theme_colors']
+    
+    def get_logo_url(self, obj):
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
+
+class UsuarioSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    negocio = NegocioSerializer(read_only=True, context={'request': None})
+
     class Meta:
         model = Usuario
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'phone_number', 'role', 'is_active', 'date_joined', 'password'
+            'phone_number', 'role', 'is_active', 'date_joined', 'password',
+            'negocio'
         ]
         extra_kwargs = {
-            'password': {'write_only': True},  # El password nunca se devuelve en GET
+            'password': {'write_only': True},
         }
+    
+    def to_representation(self, instance):
+        """Pasar el contexto de la request al serializer del negocio"""
+        representation = super().to_representation(instance)
+        if instance.negocio:
+            negocio_serializer = NegocioSerializer(
+                instance.negocio, 
+                context=self.context
+            )
+            representation['negocio'] = negocio_serializer.data
+        return representation
     
     def create(self, validated_data):
         """Crear un nuevo usuario con password encriptado"""
@@ -68,25 +92,20 @@ class RegistroSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     """
     Serializer para login de usuarios.
-    Valida credenciales y devuelve el usuario autenticado.
+    Valida que los campos requeridos estén presentes.
     """
     username = serializers.CharField()
     password = serializers.CharField()
     
     def validate(self, data):
-        """Validar credenciales de usuario"""
+        """Validar que los campos requeridos estén presentes"""
         username = data.get('username')
         password = data.get('password')
         
-        if username and password:
-            user = authenticate(username=username, password=password)
-            if not user:
-                raise serializers.ValidationError('Credenciales inválidas')
-            if not user.is_active:
-                raise serializers.ValidationError('Cuenta desactivada')
-            data['user'] = user
-        else:
-            raise serializers.ValidationError('Username y password son requeridos')
+        if not username:
+            raise serializers.ValidationError({'username': 'Username es requerido'})
+        if not password:
+            raise serializers.ValidationError({'password': 'Password es requerido'})
         
         return data
 
@@ -103,7 +122,14 @@ class ServicioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Servicio
-        fields = ['id', 'name', 'description', 'duration_minutes', 'price', 'is_active']
+        fields = ['id', 'name', 'description', 'duration_minutes', 'price', 'is_active', 'negocio']
+        read_only_fields = ['negocio']  # Solo superuser puede modificarlo
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and not request.user.is_superuser:
+            validated_data['negocio'] = request.user.negocio
+        return super().create(validated_data)
 
 
 # =============================================================================
@@ -162,16 +188,38 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
         model = Turno
         fields = ['profesional', 'servicio', 'start_datetime', 'notes']
     
+    def create(self, validated_data):
+        validated_data['status'] = 'confirmado'  # O 'pendiente', según lo que desees
+        return super().create(validated_data)
+
     def validate(self, data):
         """
         Validaciones personalizadas para crear turnos:
         1. Verificar que el profesional esté disponible
         2. Verificar que no haya turnos superpuestos
         3. Verificar horarios de trabajo del profesional
+        4. Verificar que profesional y servicio pertenezcan al mismo negocio del usuario
         """
         profesional = data.get('profesional')
         servicio = data.get('servicio')
         start_datetime = data.get('start_datetime')
+        
+        # Obtener el usuario y negocio del contexto de la request
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user_negocio = request.user.negocio
+            
+            # Verificar que el profesional pertenezca al negocio del usuario
+            if profesional.negocio != user_negocio:
+                raise serializers.ValidationError({
+                    'profesional': 'El profesional seleccionado no pertenece a tu negocio'
+                })
+            
+            # Verificar que el servicio pertenezca al negocio del usuario
+            if servicio.negocio != user_negocio:
+                raise serializers.ValidationError({
+                    'servicio': 'El servicio seleccionado no pertenece a tu negocio'
+                })
         
         # 1. Verificar que el profesional esté disponible
         if not profesional.is_available:
@@ -190,11 +238,12 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
         end_datetime = start_datetime + timedelta(minutes=servicio.duration_minutes)
         data['end_datetime'] = end_datetime
         
-        # 4. Verificar que no haya turnos superpuestos
+        # 4. Verificar que no haya turnos superpuestos (solo del mismo negocio)
         turnos_existentes = Turno.objects.filter(
             profesional=profesional,
             start_datetime__date=start_datetime.date(),
-            status__in=['pendiente', 'confirmado']
+            status__in=['pendiente', 'confirmado'],
+            negocio=profesional.negocio
         ).exclude(
             # Excluir turnos que no se superponen
             end_datetime__lte=start_datetime
@@ -212,7 +261,8 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
         dia_semana = start_datetime.weekday()  # 0=Lunes, 6=Domingo
         horarios_disponibles = HorarioDisponibilidad.objects.filter(
             profesional=profesional,
-            day_of_week=dia_semana
+            day_of_week=dia_semana,
+            negocio=profesional.negocio
         )
         
         if not horarios_disponibles.exists():
@@ -240,10 +290,11 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
                 'start_datetime': f'Horario fuera del rango de trabajo. Horarios disponibles: {horarios_texto}'
             })
         
-        # 6. Verificar bloqueos de horario
+        # 6. Verificar bloqueos de horario (solo del mismo negocio)
         bloqueos = BloqueoHorario.objects.filter(
             profesional=profesional,
-            start_datetime__date=start_datetime.date()
+            start_datetime__date=start_datetime.date(),
+            negocio=profesional.negocio
         ).exclude(
             end_datetime__lte=start_datetime
         ).exclude(
@@ -263,6 +314,7 @@ class DisponibilidadConsultaSerializer(serializers.Serializer):
     """
     Serializer para consultar disponibilidad de horarios.
     Usado en el endpoint de disponibilidad.
+    Las validaciones específicas de negocio se realizan en la vista.
     """
     profesional_id = serializers.IntegerField()
     fecha = serializers.DateField()
@@ -270,18 +322,14 @@ class DisponibilidadConsultaSerializer(serializers.Serializer):
     
     def validate_profesional_id(self, value):
         """Validar que el profesional exista y esté disponible"""
-        try:
-            profesional = Profesional.objects.get(pk=value, is_available=True)
-        except Profesional.DoesNotExist:
-            raise serializers.ValidationError('Profesional no encontrado o no disponible')
+        if value <= 0:
+            raise serializers.ValidationError('ID de profesional inválido')
         return value
     
     def validate_servicio_id(self, value):
         """Validar que el servicio exista y esté activo"""
-        try:
-            servicio = Servicio.objects.get(id=value, is_active=True)
-        except Servicio.DoesNotExist:
-            raise serializers.ValidationError('Servicio no encontrado o no activo')
+        if value <= 0:
+            raise serializers.ValidationError('ID de servicio inválido')
         return value
     
     def validate_fecha(self, value):
@@ -341,7 +389,8 @@ class MisTurnosSerializer(serializers.ModelSerializer):
     
     def get_puede_cancelar(self, obj):
         """Determinar si el turno se puede cancelar"""
-        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from datetime import timedelta
         
         # Solo se puede cancelar si:
         # 1. El turno está pendiente o confirmado
@@ -349,5 +398,5 @@ class MisTurnosSerializer(serializers.ModelSerializer):
         if obj.status not in ['pendiente', 'confirmado']:
             return False
         
-        tiempo_restante = obj.start_datetime - datetime.now()
+        tiempo_restante = obj.start_datetime - timezone.now()
         return tiempo_restante > timedelta(hours=2) 

@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { AuthContext } from '../context/AuthContext';
 
 const SettingsScreen: React.FC = () => {
+  const { colors: themeColors, mode, setMode } = useTheme();
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext);
+  const isAuthenticated = !!user;
   const [selectedLanguage, setSelectedLanguage] = useState('es');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [themeModalVisible, setThemeModalVisible] = useState(false);
+
+  // Usar colores del contexto siempre
+  const screenColors = themeColors;
 
   const languages = [
     { code: 'es', name: 'Español', flag: '🇪🇸' },
@@ -32,39 +40,44 @@ const SettingsScreen: React.FC = () => {
     );
   };
 
+  const handleSelectTheme = (selectedMode: 'light' | 'dark' | 'auto') => {
+    setMode(selectedMode);
+    setThemeModalVisible(false);
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenColors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: screenColors.primaryDark }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color={colors.white} />
+          <Icon name="arrow-back" size={24} color={screenColors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Configuración</Text>
+        <Text style={[styles.headerTitle, { color: screenColors.white }]}>Configuración</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Sección de Idioma */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Idioma</Text>
-          <Text style={styles.sectionDescription}>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Idioma</Text>
+          <Text style={[styles.sectionDescription, { color: screenColors.dark3 }]}>
             Selecciona el idioma de la aplicación
           </Text>
           
           {languages.map((language) => (
             <TouchableOpacity
               key={language.code}
-              style={styles.languageItem}
+              style={[styles.languageItem, { backgroundColor: screenColors.dark2 }]}
               onPress={() => handleLanguageSelect(language.code)}
             >
               <View style={styles.languageLeft}>
                 <Text style={styles.languageFlag}>{language.flag}</Text>
-                <Text style={styles.languageName}>{language.name}</Text>
+                <Text style={[styles.languageName, { color: screenColors.light2 }]}>{language.name}</Text>
               </View>
               {selectedLanguage === language.code && (
-                <Icon name="checkmark-circle" size={24} color={colors.primary} />
+                <Icon name="checkmark-circle" size={24} color={screenColors.primary} />
               )}
             </TouchableOpacity>
           ))}
@@ -72,64 +85,101 @@ const SettingsScreen: React.FC = () => {
 
         {/* Sección de Notificaciones */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notificaciones</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Notificaciones</Text>
           <TouchableOpacity
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => showComingSoon('Notificaciones')}
           >
             <View style={styles.settingLeft}>
-              <Icon name="notifications" size={24} color={colors.primary} />
+              <Icon name="notifications" size={24} color={screenColors.primary} />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Notificaciones Push</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={[styles.settingTitle, { color: screenColors.light2 }]}>Notificaciones Push</Text>
+                <Text style={[styles.settingDescription, { color: screenColors.light3 }]}>
                   Recibir notificaciones de citas y promociones
                 </Text>
               </View>
             </View>
-            <Icon name="chevron-forward" size={20} color={colors.dark3} />
+            <Icon name="chevron-forward" size={20} color={screenColors.dark3} />
           </TouchableOpacity>
         </View>
 
         {/* Sección de Apariencia */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Apariencia</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Apariencia</Text>
           <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => showComingSoon('Tema')}
+            style={[styles.settingItem, { backgroundColor: screenColors.dark2 }]}
+            onPress={() => setThemeModalVisible(true)}
           >
             <View style={styles.settingLeft}>
-              <Icon name="color-palette" size={24} color={colors.primary} />
+              <Icon name="color-palette" size={24} color={screenColors.primary} />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Tema</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={[styles.settingTitle, { color: screenColors.light2 }]}>Tema</Text>
+                <Text style={[styles.settingDescription, { color: screenColors.light3 }]}>
                   Claro, oscuro o automático
                 </Text>
               </View>
             </View>
-            <Icon name="chevron-forward" size={20} color={colors.dark3} />
+            <Icon name="chevron-forward" size={20} color={screenColors.dark3} />
           </TouchableOpacity>
         </View>
 
         {/* Sección de Privacidad */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacidad</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Privacidad</Text>
           <TouchableOpacity
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => showComingSoon('Privacidad')}
           >
             <View style={styles.settingLeft}>
-              <Icon name="shield-checkmark" size={24} color={colors.primary} />
+              <Icon name="shield-checkmark" size={24} color={screenColors.primary} />
               <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Política de Privacidad</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={[styles.settingTitle, { color: screenColors.light2 }]}>Política de Privacidad</Text>
+                <Text style={[styles.settingDescription, { color: screenColors.light3 }]}>
                   Ver términos y condiciones
                 </Text>
               </View>
             </View>
-            <Icon name="chevron-forward" size={20} color={colors.dark3} />
+            <Icon name="chevron-forward" size={20} color={screenColors.dark3} />
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={themeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setThemeModalVisible(false)}
+      >
+        <View style={modalStyles.overlay}>
+          <View style={[modalStyles.container, { backgroundColor: screenColors.light3 }]}>
+            <Text style={[modalStyles.title, { color: screenColors.primary }]}>Selecciona el tema</Text>
+            <TouchableOpacity
+              style={modalStyles.option}
+              onPress={() => handleSelectTheme('light')}
+            >
+              <Text style={{ color: mode === 'light' ? screenColors.primaryDark : screenColors.black }}>Claro</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={modalStyles.option}
+              onPress={() => handleSelectTheme('dark')}
+            >
+              <Text style={{ color: mode === 'dark' ? screenColors.primaryDark : screenColors.black }}>Oscuro</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={modalStyles.option}
+              onPress={() => handleSelectTheme('auto')}
+            >
+              <Text style={{ color: mode === 'auto' ? screenColors.primaryDark : screenColors.black }}>Automático</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={modalStyles.cancel}
+              onPress={() => setThemeModalVisible(false)}
+            >
+              <Text style={{ color: screenColors.error }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -137,12 +187,10 @@ const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryDark,
     paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -154,7 +202,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.white,
   },
   content: {
     flex: 1,
@@ -166,19 +213,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    color: colors.dark3,
     marginBottom: 16,
   },
   languageItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dark2,
     padding: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -199,13 +243,11 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.light2,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dark2,
     padding: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -227,12 +269,39 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.light2,
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 14,
-    color: colors.light3,
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    width: 300,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'stretch',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  option: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancel: {
+    marginTop: 12,
+    alignItems: 'center',
   },
 });
 

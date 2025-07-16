@@ -3,6 +3,77 @@ from django.contrib.auth.models import AbstractUser # Para el Custom User Model
 from django.conf import settings # Para referenciar el AUTH_USER_MODEL
 from django.core.validators import MinValueValidator, MaxValueValidator # Para validaciones de valores mínimos
 from datetime import timedelta
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+# =====================================================
+# 0. PALETA DE COLORES Y MODELO NEGOCIO (MULTI-TENANT)
+# =====================================================
+
+# Paleta de colores por defecto para Odreman
+DEFAULT_THEME = {
+    'primary': '#178232',
+    'primaryDark': '#116225',
+    'background': '#17361E',
+    'dark2': '#2D5336',
+    'dark3': '#476B50',
+    'light2': '#F4FAF6',
+    'light3': '#DEEDE2'
+}
+
+def get_default_theme():
+    return {
+        "light": {
+            "background": "#F4FAF6",
+            "primary": "#444072",
+            "primaryDark": "#6a67a5",
+            "dark2": "#302D53",
+            "dark3": "#4A476B",
+            "light2": "#FFFFFF",
+            "light3": "#cccccc",
+            "white": "#FFFFFF",
+            "error": "#D32F2F",
+            "black": "#000000"
+        },
+        "dark": {
+            "background": "#181818",
+            "primary": "#444072",
+            "primaryDark": "#2a2857",
+            "dark2": "#302D53",
+            "dark3": "#4A476B",
+            "light2": "#F4FAF6",
+            "light3": "#cccccc",
+            "white": "#FFFFFF",
+            "error": "#D32F2F",
+            "black": "#000000"
+        }
+    }
+
+class Negocio(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    logo = models.ImageField(upload_to='negocio_logos/', null=True, blank=True)
+    propietario = models.ForeignKey(
+        'Usuario', # Referencia al modelo Usuario custom
+        related_name='negocios_propios',
+        on_delete=models.CASCADE
+    )
+    theme_colors = models.JSONField(default=get_default_theme)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'negocio'
+        verbose_name = 'Negocio'
+        verbose_name_plural = 'Negocios'
+
+    def __str__(self):
+        return self.nombre
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.propietario.negocio != self:
+            self.propietario.negocio = self
+            self.propietario.save()
+
 # =====================================================
 # 1. MODELO USUARIO (Custom User Model)
 # =====================================================
@@ -29,6 +100,9 @@ class Usuario(AbstractUser):
     # Añadimos los campos de timestamp que tienes en tu SQL
     created_at = models.DateTimeField(auto_now_add=True) # Se establece automáticamente en la creación
     updated_at = models.DateTimeField(auto_now=True)    # Se actualiza automáticamente en cada guardado
+    
+    # Campo para multi-tenant (vinculación al negocio)
+    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         # Esto le dice a Django que este modelo se mapea a la tabla 'usuario' en tu base de datos
@@ -53,6 +127,9 @@ class Servicio(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Campo para multi-tenant
+    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'servicio'
@@ -66,11 +143,7 @@ class Servicio(models.Model):
 # 3. MODELO PROFESIONAL (Professional)
 # =====================================================
 class Profesional(models.Model):
-    # Campo ID autoincremental como PK (coincide con la BD)
-    id = models.AutoField(primary_key=True)
-    
     # Relación uno a uno con nuestro Custom User Model (Usuario)
-    # Sin primary_key=True para que coincida con la estructura real
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, # Referencia al modelo de usuario configurado en settings.py
         on_delete=models.CASCADE,
@@ -81,6 +154,9 @@ class Profesional(models.Model):
     is_available = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Campo para multi-tenant
+    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'profesional'
@@ -113,6 +189,9 @@ class HorarioDisponibilidad(models.Model):
     end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Campo para multi-tenant
+    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'horario_disponibilidad'
@@ -143,6 +222,9 @@ class BloqueoHorario(models.Model):
     reason = models.CharField(max_length=200, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Campo para multi-tenant
+    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'bloqueo_horario'
@@ -184,6 +266,9 @@ class Turno(models.Model):
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Campo para multi-tenant
+    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'turno'
@@ -203,3 +288,11 @@ class Turno(models.Model):
 
     def __str__(self):
         return f"Turno de {self.cliente.username} con {self.profesional.user.username} para {self.servicio.name} el {self.start_datetime.strftime('%Y-%m-%d %H:%M')}"
+
+
+@receiver(post_save, sender=Negocio)
+def asignar_negocio_a_propietario(sender, instance, created, **kwargs):
+    propietario = instance.propietario
+    if propietario.negocio != instance:
+        propietario.negocio = instance
+        propietario.save()

@@ -29,8 +29,8 @@ interface ProfesionalesResponse {
   profesionales: Profesional[];
 }
 
-export async function fetchProfesionales(tokens: Tokens): Promise<Profesional[]> {
-  const response = await axios.get<ProfesionalesResponse>(`${API_URL}/profesionales-disponibles/`, {
+export async function fetchProfesionales(tokens: Tokens, negocioId: number): Promise<Profesional[]> {
+  const response = await axios.get<ProfesionalesResponse>(`${API_URL}/profesionales-disponibles/?negocio_id=${negocioId}`, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
     },

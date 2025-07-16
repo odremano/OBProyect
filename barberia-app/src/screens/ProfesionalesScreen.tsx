@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { fetchProfesionales, Profesional } from '../api/profesionales';
 import { fetchServicios, Servicio } from '../api/servicios';
 import { obtenerHorariosDisponibles } from '../api/turnos';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profesionales'>;
 
@@ -18,7 +18,8 @@ interface ProfesionalConDisponibilidad extends Profesional {
 }
 
 export default function ProfesionalesScreen({ route, navigation }: Props) {
-  const { tokens } = useContext(AuthContext);
+  const { tokens, negocioId } = useContext(AuthContext);
+  const { colors } = useTheme();
   const [profesionales, setProfesionales] = useState<ProfesionalConDisponibilidad[]>([]);
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
 
   // Función para obtener la próxima disponibilidad (ahora usa servicios dinámicos)
   const obtenerProximaDisponibilidad = async (profesional: Profesional, serviciosDisponibles: Servicio[]): Promise<string> => {
-    if (!tokens) return 'Bio no disponible';
+    if (!tokens || negocioId == null) return 'Bio no disponible';
 
     try {
       // Generar próximos 7 días
@@ -67,7 +68,8 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
               tokens, 
               profesional.id,
               fechaStr, 
-              servicioId
+              servicioId,
+              negocioId as number
             );
 
             const response = await Promise.race([apiCall, timeoutPromise]);
@@ -127,13 +129,14 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
   };
 
   useEffect(() => {
-    if (!tokens) return;
+    if (!tokens || negocioId == null) return;
 
     // Cargar servicios y profesionales en paralelo
     Promise.all([
-      fetchProfesionales(tokens),
-      fetchServicios(tokens)
+      fetchProfesionales(tokens, negocioId),
+      fetchServicios(tokens, negocioId)
     ]).then(async ([profData, servData]) => {
+      console.log('Servicios y profesionales recibidos:', profData, servData);
       // Guardar servicios en estado
       setServicios(servData);
       
@@ -187,16 +190,18 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }).catch((error) => {
+      console.log('Error al cargar servicios/profesionales:', error);
       setProfesionales([]);
       setServicios([]);
     }).finally(() => {
+      console.log('Finalizó la carga');
       setLoading(false);
     });
   }, [tokens]);
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -205,16 +210,16 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
           <Icon name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profesionales</Text>
+        <Text style={[styles.headerTitle, { color: colors.white }]}>Profesionales</Text>
         <View style={{ width: 24 }} />
       </View>
       
@@ -225,7 +230,7 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.profesionalCard}
+            style={[styles.profesionalCard, { backgroundColor: colors.dark2 }]}
             onPress={() => {
               if (onSelect) {
                 onSelect(item);
@@ -242,21 +247,21 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
                     style={styles.foto}
                   />
                 ) : (
-                  <View style={styles.avatarContainer}>
+                  <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
                     <Icon name="person" size={24} color={colors.white} />
                   </View>
                 )}
                 <View style={styles.textInfo}>
-                  <Text style={styles.profesionalName}>
+                  <Text style={[styles.profesionalName, { color: colors.white }]}>
                     {item.user_details.first_name} {item.user_details.last_name}
                   </Text>
-                  <Text style={styles.profesionalBio}>
+                  <Text style={[styles.profesionalBio, { color: colors.light3 }]}>
                     {mostrarBioProfesional(item)}
                   </Text>
                   {mostrarEstadoDisponibilidad(item) && (
                     <View style={styles.disponibilidadContainer}>
                       <Icon name="time" size={12} color={colors.primary} />
-                      <Text style={styles.disponibilidadText}>
+                      <Text style={[styles.disponibilidadText, { color: colors.primary }]}>
                         {mostrarEstadoDisponibilidad(item)}
                       </Text>
                     </View>
@@ -274,8 +279,7 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { 
-    flex: 1, 
-    backgroundColor: colors.background 
+    flex: 1
   },
   loadingContainer: {
     flex: 1,
@@ -287,7 +291,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 56,
-    backgroundColor: colors.primaryDark,
     paddingHorizontal: 20
   },
   backButton: {
@@ -296,7 +299,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 20
   },
   listContainer: {
@@ -304,7 +306,6 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   profesionalCard: {
-    backgroundColor: colors.dark2,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -324,7 +325,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -335,18 +335,15 @@ const styles = StyleSheet.create({
   profesionalName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 4,
   },
   profesionalBio: {
     fontSize: 12,
-    color: colors.light3,
     lineHeight: 16,
     marginBottom: 4,
   },
   disponibilidadText: {
     fontSize: 11,
-    color: colors.primary,
     marginLeft: 4,
     fontWeight: '500',
   },

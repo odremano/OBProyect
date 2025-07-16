@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
 
-from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario
+from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio
 from .serializers import (
     UsuarioSerializer, RegistroSerializer, LoginSerializer,
     ServicioSerializer, ProfesionalSerializer, TurnoBasicoSerializer,
@@ -62,31 +62,53 @@ class LoginView(APIView):
     
     POST /api/v1/auth/login/
     
-    Autentica usuario y devuelve tokens JWT.
+    Autentica usuario y devuelve tokens JWT junto con datos del negocio.
     """
     permission_classes = [permissions.AllowAny]  # Público
     
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.validated_data['user']
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
             
-            # Generar tokens JWT
-            refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                'success': True,
-                'message': 'Login exitoso',
-                'user': UsuarioSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
+            # Autenticar usuario
+            user = authenticate(username=username, password=password)
+            if user:
+                # Generar tokens JWT
+                refresh = RefreshToken.for_user(user)
+                
+                # Preparar respuesta base
+                response_data = {
+                    'success': True,
+                    'message': 'Login exitoso',
+                    'user': UsuarioSerializer(user, context={'request': request}).data,
+                    'tokens': {
+                        'refresh': str(refresh),
+                        'access': str(refresh.access_token),
+                    }
                 }
-            })
+                
+                # Añadir datos del negocio si el usuario tiene uno asignado
+                if user.negocio:
+                    negocio = user.negocio
+                    response_data['negocio'] = {
+                        'id': negocio.id,
+                        'nombre': negocio.nombre,
+                        'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
+                        'theme_colors': negocio.theme_colors
+                    }
+                
+                return Response(response_data, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Credenciales inválidas'
+                }, status=status.HTTP_401_UNAUTHORIZED)
         
         return Response({
             'success': False,
-            'message': 'Credenciales inválidas',
+            'message': 'Datos inválidos',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -181,18 +203,25 @@ class PerfilView(APIView):
 @permission_classes([permissions.AllowAny])
 def servicios_publicos(request):
     """
-    API pública para obtener servicios activos.
+    API pública para obtener servicios activos de un negocio específico.
     
-    GET /api/v1/servicios-publicos/
+    GET /api/v1/servicios-publicos/?negocio_id=1
     
     Devuelve todos los servicios activos para mostrar en la app.
     """
-    servicios = Servicio.objects.filter(is_active=True)
+    negocio_id = request.query_params.get('negocio_id')
+    
+    if not negocio_id:
+        return Response({
+            'success': False,
+            'message': 'Se requiere el parámetro negocio_id'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    servicios = Servicio.objects.filter(is_active=True, negocio_id=negocio_id)
     serializer = ServicioSerializer(servicios, many=True)
     
     return Response({
         'success': True,
-        'count': servicios.count(),
         'servicios': serializer.data
     })
 
@@ -201,18 +230,25 @@ def servicios_publicos(request):
 @permission_classes([permissions.AllowAny])
 def profesionales_disponibles(request):
     """
-    API pública para obtener profesionales disponibles.
+    API pública para obtener profesionales disponibles de un negocio específico.
     
-    GET /api/v1/profesionales-disponibles/
+    GET /api/v1/profesionales-disponibles/?negocio_id=1
     
     Devuelve profesionales activos para mostrar en la app.
     """
-    profesionales = Profesional.objects.filter(is_available=True)
+    negocio_id = request.query_params.get('negocio_id')
+    
+    if not negocio_id:
+        return Response({
+            'success': False,
+            'message': 'Se requiere el parámetro negocio_id'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    profesionales = Profesional.objects.filter(is_available=True, negocio_id=negocio_id)
     serializer = ProfesionalSerializer(profesionales, many=True)
     
     return Response({
         'success': True,
-        'count': profesionales.count(),
         'profesionales': serializer.data
     })
 
@@ -221,21 +257,38 @@ def profesionales_disponibles(request):
 @permission_classes([permissions.AllowAny])
 def resumen_barberia(request):
     """
-    API pública con información general de la barbería.
+    API pública con información general de un negocio específico.
     
-    GET /api/v1/resumen-barberia/
+    GET /api/v1/resumen-barberia/?negocio_id=1
     
     Devuelve estadísticas básicas para mostrar en la app.
     """
+    negocio_id = request.query_params.get('negocio_id')
+    
+    if not negocio_id:
+        return Response({
+            'success': False,
+            'message': 'Se requiere el parámetro negocio_id'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        negocio = Negocio.objects.get(id=negocio_id)
+    except Negocio.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Negocio no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
     return Response({
         'success': True,
         'barberia': {
-            'nombre': 'OdremanBarber',
-            'total_servicios': Servicio.objects.filter(is_active=True).count(),
-            'total_profesionales': Profesional.objects.filter(is_available=True).count(),
+            'nombre': negocio.nombre,
+            'total_servicios': Servicio.objects.filter(is_active=True, negocio_id=negocio_id).count(),
+            'total_profesionales': Profesional.objects.filter(is_available=True, negocio_id=negocio_id).count(),
             'turnos_hoy': Turno.objects.filter(
                 start_datetime__date__gte=timezone.now().date(),
-                status__in=['pendiente', 'confirmado']
+                status__in=['pendiente', 'confirmado'],
+                negocio_id=negocio_id
             ).count() if 'timezone' in globals() else 0,
         }
     })
@@ -261,26 +314,31 @@ class CrearTurnoView(APIView):
         if request.user.role != 'cliente':
             return Response({
                 'success': False,
-                'message': 'Solo los clientes pueden crear reservas'
+                'message': 'Solo los clientes pueden crear turnos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = CrearTurnoSerializer(data=request.data)
+        # Verificar que el usuario tenga negocio asignado
+        if not request.user.negocio:
+            return Response({
+                'success': False,
+                'message': 'Usuario no tiene negocio asignado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = CrearTurnoSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            # Crear el turno asignando automáticamente el cliente
-            turno = serializer.save(cliente=request.user)
+            # Crear el turno asignando automáticamente el cliente y el negocio
+            turno = serializer.save(cliente=request.user, negocio=request.user.negocio)
             
             # Devolver información completa del turno creado
-            turno_completo = MisTurnosSerializer(turno)
-            
             return Response({
                 'success': True,
-                'message': 'Reserva creada exitosamente',
-                'turno': turno_completo.data
+                'message': 'Turno creado exitosamente',
+                'turno': MisTurnosSerializer(turno).data
             }, status=status.HTTP_201_CREATED)
         
         return Response({
             'success': False,
-            'message': 'Error al crear la reserva',
+            'message': 'Datos inválidos',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -300,41 +358,41 @@ class MisTurnosView(APIView):
         if request.user.role != 'cliente':
             return Response({
                 'success': False,
-                'message': 'Solo los clientes pueden ver sus reservas'
+                'message': 'Solo los clientes pueden ver sus turnos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Obtener turnos del usuario ordenados por fecha (más recientes primero)
+        # Verificar que el usuario tenga negocio asignado
+        if not request.user.negocio:
+            return Response({
+                'success': False,
+                'message': 'Usuario no tiene negocio asignado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener turnos del usuario del mismo negocio ordenados por fecha (más recientes primero)
         turnos = Turno.objects.filter(
-            cliente=request.user
+            cliente=request.user,
+            negocio=request.user.negocio
         ).order_by('-start_datetime')
         
-        # Separar en diferentes categorías
-        turnos_proximos = turnos.filter(
-            start_datetime__gte=timezone.now(),
-            status__in=['pendiente', 'confirmado']
-        )
+        # Separar turnos por estado
+        turnos_proximos = []
+        turnos_historial = []
         
-        turnos_pasados = turnos.filter(
-            start_datetime__lt=timezone.now()
-        )
-        
-        turnos_cancelados = turnos.filter(
-            status='cancelado'
-        )
+        for turno in turnos:
+            turno_data = MisTurnosSerializer(turno).data
+            
+            # Si está confirmado y es futuro -> próximo
+            if turno.status == 'pendiente' and turno.start_datetime > timezone.now():
+                turnos_proximos.append(turno_data)
+            # Si está completado, cancelado, o ya pasó -> historial
+            else:
+                turnos_historial.append(turno_data)
         
         return Response({
             'success': True,
-            'resumen': {
-                'total_turnos': turnos.count(),
-                'proximos': turnos_proximos.count(),
-                'pasados': turnos_pasados.count(),
-                'cancelados': turnos_cancelados.count(),
-            },
-            'turnos': {
-                'proximos': MisTurnosSerializer(turnos_proximos, many=True).data,
-                'pasados': MisTurnosSerializer(turnos_pasados[:5], many=True).data,  # Últimos 5
-                'cancelados': MisTurnosSerializer(turnos_cancelados[:3], many=True).data,  # Últimos 3
-            }
+            'turnos_proximos': turnos_proximos,
+            'turnos_historial': turnos_historial,
+            'total_turnos': len(turnos_proximos) + len(turnos_historial)
         })
 
 
@@ -349,11 +407,19 @@ class CancelarTurnoView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, turno_id):
+        # Verificar que el usuario tenga negocio asignado
+        if not request.user.negocio:
+            return Response({
+                'success': False,
+                'message': 'Usuario no tiene negocio asignado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
-            # Verificar que el turno existe y pertenece al usuario
+            # Verificar que el turno existe, pertenece al usuario y al mismo negocio
             turno = Turno.objects.get(
                 id=turno_id,
-                cliente=request.user
+                cliente=request.user,
+                negocio=request.user.negocio
             )
         except Turno.DoesNotExist:
             return Response({
@@ -361,20 +427,19 @@ class CancelarTurnoView(APIView):
                 'message': 'Turno no encontrado'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Verificar que se puede cancelar
-        from datetime import datetime, timedelta
+        # Verificar que el turno se puede cancelar (más de 2 horas de anticipación)
+        tiempo_restante = turno.start_datetime - timezone.now()
+        if tiempo_restante.total_seconds() < 7200:  # 2 horas = 7200 segundos
+            return Response({
+                'success': False,
+                'message': 'No se puede cancelar un turno con menos de 2 horas de anticipación'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Verificar que el turno esté en estado válido para cancelar
         if turno.status not in ['pendiente', 'confirmado']:
             return Response({
                 'success': False,
-                'message': 'Este turno no se puede cancelar'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        tiempo_restante = turno.start_datetime - datetime.now()
-        if tiempo_restante <= timedelta(hours=2):
-            return Response({
-                'success': False,
-                'message': 'No se puede cancelar con menos de 2 horas de anticipación'
+                'message': f'No se puede cancelar un turno en estado: {turno.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Cancelar el turno
@@ -392,14 +457,13 @@ class CancelarTurnoView(APIView):
 @permission_classes([permissions.AllowAny])
 def consultar_disponibilidad(request):
     """
-    API para consultar horarios disponibles de un profesional.
+    API para consultar horarios disponibles de un profesional de un negocio específico.
     
-    GET /api/v1/reservas/disponibilidad/?profesional_id=1&fecha=2024-01-15&servicio_id=1
+    GET /api/v1/reservas/disponibilidad/?profesional_id=1&fecha=2024-01-15&servicio_id=1&negocio_id=1
     
     Devuelve todos los horarios disponibles para hacer una reserva.
     """
     serializer = DisponibilidadConsultaSerializer(data=request.query_params)
-    
     if not serializer.is_valid():
         return Response({
             'success': False,
@@ -410,14 +474,21 @@ def consultar_disponibilidad(request):
     profesional_id = serializer.validated_data['profesional_id']
     fecha = serializer.validated_data['fecha']
     servicio_id = serializer.validated_data['servicio_id']
+    negocio_id = request.query_params.get('negocio_id')
+    
+    if not negocio_id:
+        return Response({
+            'success': False,
+            'message': 'Se requiere el parámetro negocio_id'
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        profesional = Profesional.objects.get(pk=profesional_id)
-        servicio = Servicio.objects.get(id=servicio_id)
+        profesional = Profesional.objects.get(pk=profesional_id, negocio_id=negocio_id)
+        servicio = Servicio.objects.get(id=servicio_id, negocio_id=negocio_id)
     except (Profesional.DoesNotExist, Servicio.DoesNotExist):
         return Response({
             'success': False,
-            'message': 'Profesional o servicio no encontrado'
+            'message': 'Profesional o servicio no encontrado en este negocio'
         }, status=status.HTTP_404_NOT_FOUND)
     
     # Obtener día de la semana (0=Lunes, 6=Domingo)
@@ -426,86 +497,75 @@ def consultar_disponibilidad(request):
     # Obtener horarios de trabajo del profesional para ese día
     horarios_trabajo = HorarioDisponibilidad.objects.filter(
         profesional=profesional,
-        day_of_week=dia_semana
+        day_of_week=dia_semana,
+        negocio_id=negocio_id
     )
     
     if not horarios_trabajo.exists():
         return Response({
             'success': True,
-            'profesional': profesional.user.get_full_name(),
-            'fecha': fecha.strftime('%d/%m/%Y'),
-            'servicio': servicio.name,
             'horarios_disponibles': [],
-            'mensaje': 'El profesional no trabaja este día'
+            'message': 'El profesional no trabaja este día'
         })
     
-    # Obtener turnos ya reservados para esa fecha
-    turnos_ocupados = Turno.objects.filter(
+    # Obtener turnos existentes para esa fecha
+    turnos_existentes = Turno.objects.filter(
         profesional=profesional,
         start_datetime__date=fecha,
-        status__in=['pendiente', 'confirmado']
+        status__in=['pendiente', 'confirmado'],
+        negocio_id=negocio_id
     )
     
     # Obtener bloqueos para esa fecha
     bloqueos = BloqueoHorario.objects.filter(
         profesional=profesional,
-        start_datetime__date=fecha
+        start_datetime__date=fecha,
+        negocio_id=negocio_id
     )
     
-    # Generar slots de tiempo disponibles
-    from datetime import datetime, timedelta
-    slots_disponibles = []
+    # Generar horarios disponibles
+    horarios_disponibles = []
+    duracion_servicio = servicio.duration_minutes
     
-    for horario_trabajo in horarios_trabajo:
-        hora_inicio = horario_trabajo.start_time
-        hora_fin = horario_trabajo.end_time
+    for horario in horarios_trabajo:
+        # Generar slots de tiempo cada 30 minutos
+        hora_actual = timezone.datetime.combine(fecha, horario.start_time)
+        hora_fin = timezone.datetime.combine(fecha, horario.end_time)
         
-        # Generar slots cada 30 minutos
-        slot_duration = timedelta(minutes=30)
-        current_time = datetime.combine(fecha, hora_inicio)
-        end_time = datetime.combine(fecha, hora_fin)
-        
-        while current_time + timedelta(minutes=servicio.duration_minutes) <= end_time:
-            slot_start = current_time.time()
-            slot_end = (current_time + timedelta(minutes=servicio.duration_minutes)).time()
-            slot_start_datetime = datetime.combine(fecha, slot_start)
-            slot_end_datetime = datetime.combine(fecha, slot_end)
+        while hora_actual + timezone.timedelta(minutes=duracion_servicio) <= hora_fin:
+            # Verificar si hay conflicto con turnos existentes
+            hay_conflicto = False
             
-            # Verificar si el slot está ocupado
-            slot_disponible = True
-            
-            # Verificar turnos existentes
-            for turno in turnos_ocupados:
-                if not (slot_end_datetime <= turno.start_datetime or 
-                       slot_start_datetime >= turno.end_datetime):
-                    slot_disponible = False
+            for turno in turnos_existentes:
+                if (hora_actual < turno.end_datetime and 
+                    hora_actual + timezone.timedelta(minutes=duracion_servicio) > turno.start_datetime):
+                    hay_conflicto = True
                     break
             
-            # Verificar bloqueos
-            if slot_disponible:
+            # Verificar si hay conflicto con bloqueos
+            if not hay_conflicto:
                 for bloqueo in bloqueos:
-                    if not (slot_end_datetime <= bloqueo.start_datetime or 
-                           slot_start_datetime >= bloqueo.end_datetime):
-                        slot_disponible = False
+                    if (hora_actual < bloqueo.end_datetime and 
+                        hora_actual + timezone.timedelta(minutes=duracion_servicio) > bloqueo.start_datetime):
+                        hay_conflicto = True
                         break
             
-            if slot_disponible:
-                slots_disponibles.append({
-                    'hora_inicio': slot_start.strftime('%H:%M'),
-                    'hora_fin': slot_end.strftime('%H:%M'),
-                    'datetime_inicio': slot_start_datetime.isoformat(),
+            # Si no hay conflicto, es un horario disponible
+            if not hay_conflicto:
+                horarios_disponibles.append({
+                    'hora_inicio': hora_actual.time().strftime('%H:%M'),
+                    'hora_fin': (hora_actual + timezone.timedelta(minutes=duracion_servicio)).time().strftime('%H:%M'),
                     'disponible': True
                 })
             
-            current_time += slot_duration
+            # Avanzar al siguiente slot (cada 30 minutos)
+            hora_actual += timezone.timedelta(minutes=30)
     
     return Response({
         'success': True,
-        'profesional': profesional.user.get_full_name(),
-        'fecha': fecha.strftime('%d/%m/%Y'),
-        'servicio': servicio.name,
-        'duracion_servicio': servicio.duration_minutes,
-        'precio_servicio': float(servicio.price),
-        'total_slots': len(slots_disponibles),
-        'horarios_disponibles': slots_disponibles
+        'fecha': fecha.strftime('%Y-%m-%d'),
+        'profesional': ProfesionalSerializer(profesional).data,
+        'servicio': ServicioSerializer(servicio).data,
+        'horarios_disponibles': horarios_disponibles,
+        'total_disponibles': len(horarios_disponibles)
     })

@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AuthContext } from '../context/AuthContext';
 
@@ -15,12 +15,15 @@ interface MenuItem {
   onPress: () => void;
 }
 
-
 const MoreScreen: React.FC = () => {
+  const { colors: themeColors } = useTheme();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, logout } = useContext(AuthContext);
   const isAuthenticated = !!user;
   const userName = user?.first_name || user?.username || 'Usuario';
+
+  // Usar colores del contexto siempre
+  const screenColors = themeColors;
 
   // Función para mostrar pantallas que aún no están implementadas
   const showComingSoon = (feature: string) => {
@@ -91,13 +94,13 @@ const MoreScreen: React.FC = () => {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenColors.background }]}>
       {/* Header fijo */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>
+      <View style={[styles.header, { backgroundColor: screenColors.primaryDark }]}>
+        <Text style={[styles.headerTitle, { color: screenColors.white }]}>
           {isAuthenticated ? `Hola, ${userName}` : 'Menú Principal'}
         </Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerSubtitle, { color: screenColors.light3 }]}>
           {isAuthenticated 
             ? 'Gestiona tu cuenta y preferencias'
             : 'Configura la aplicación a tu gusto'
@@ -114,33 +117,33 @@ const MoreScreen: React.FC = () => {
         {/* Sección de Perfil primero */}
         {isAuthenticated && perfilItems.length > 0 && (
           <View style={styles.menuContainer}>
-            <Text style={styles.sectionTitle}>Perfil</Text>
+            <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Perfil</Text>
             {perfilItems.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                style={styles.menuItem}
+                style={[styles.menuItem, { backgroundColor: screenColors.dark2 }]}
                 onPress={item.onPress}
                 activeOpacity={0.7}
               >
                 <View style={styles.menuItemLeft}>
-                  <View style={styles.iconContainer}>
+                  <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
                     <Icon
                       name={item.icon}
                       size={24}
-                      color={colors.white}
+                      color={screenColors.white}
                     />
                   </View>
                   <View style={styles.textContainer}>
-                    <Text style={styles.menuTitle}>{item.title}</Text>
+                    <Text style={[styles.menuTitle, { color: screenColors.white }]}>{item.title}</Text>
                     {item.description && (
-                      <Text style={styles.menuDescription}>{item.description}</Text>
+                      <Text style={[styles.menuDescription, { color: screenColors.light3 }]}>{item.description}</Text>
                     )}
                   </View>
                 </View>
                 <Icon
                   name="chevron-forward"
                   size={20}
-                  color={colors.dark3}
+                  color={screenColors.dark3}
                 />
               </TouchableOpacity>
             ))}
@@ -149,41 +152,41 @@ const MoreScreen: React.FC = () => {
 
         {/* Sección de Configuración después */}
         <View style={styles.menuContainer}>
-          <Text style={styles.sectionTitle}>Configuración</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Configuración</Text>
           {menuItems.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.menuItem}
+              style={[styles.menuItem, { backgroundColor: screenColors.dark2 }]}
               onPress={item.onPress}
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
-                <View style={styles.iconContainer}>
+                <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
                   <Icon
                     name={item.icon}
                     size={24}
-                    color={colors.white}
+                    color={screenColors.white}
                   />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  <Text style={[styles.menuTitle, { color: screenColors.white }]}>{item.title}</Text>
                   {item.description && (
-                    <Text style={styles.menuDescription}>{item.description}</Text>
+                    <Text style={[styles.menuDescription, { color: screenColors.light3 }]}>{item.description}</Text>
                   )}
                 </View>
               </View>
               <Icon
                 name="chevron-forward"
                 size={20}
-                color={colors.dark3}
+                color={screenColors.dark3}
               />
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>OdremanBarber v1.0.0</Text>
-          <Text style={styles.footerText}>
+          <Text style={[styles.versionText, { color: screenColors.primary }]}>Ordema v1.0.0</Text>
+          <Text style={[styles.footerText, { color: screenColors.dark3 }]}>
             Desarrollado con ❤️ para la mejor experiencia
           </Text>
         </View>
@@ -195,22 +198,18 @@ const MoreScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     padding: 24,
     paddingTop: 56,
-    backgroundColor: colors.primaryDark,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.white,
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: colors.light3,
     opacity: 0.9,
   },
   scrollContent: {
@@ -225,7 +224,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginTop: 24,
     marginBottom: 12,
     marginLeft: 4,
@@ -234,7 +232,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dark2,
     padding: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -253,7 +250,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -264,12 +260,10 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 2,
   },
   menuDescription: {
     fontSize: 14,
-    color: colors.light3,
   },
   footer: {
     padding: 24,
@@ -279,12 +273,10 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary,
     marginBottom: 4,
   },
   footerText: {
     fontSize: 12,
-    color: colors.dark3,
     textAlign: 'center',
   },
 });

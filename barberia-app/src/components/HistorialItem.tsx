@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 interface HistorialItemProps {
   turno: {
@@ -10,28 +11,33 @@ interface HistorialItemProps {
     servicio: string;
     estado: 'confirmado' | 'completado' | 'cancelado';
     precio: string;
+    fechaObj?: Date | null;
   };
 }
 
 export default function HistorialItem({ turno }: HistorialItemProps) {
-  const formatFecha = (fechaISO: string) => {
-    const fecha = new Date(fechaISO);
-    const dia = fecha.getDate().toString().padStart(2, '0');
-    const meses = ['jan', 'feb', 'mar', 'abr', 'may', 'jun', 
-                  'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    const mes = meses[fecha.getMonth()];
-    return `${dia} ${mes}`;
+  const { colors } = useTheme();
+  const formatFecha = (fechaObj?: Date | null, fechaStr?: string) => {
+    if (fechaObj instanceof Date && !isNaN(fechaObj.getTime())) {
+      const dia = fechaObj.getDate().toString().padStart(2, '0');
+      const meses = ['jan', 'feb', 'mar', 'abr', 'may', 'jun', 
+                    'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      const mes = meses[fechaObj.getMonth()];
+      return `${dia} ${mes}`;
+    }
+    if (fechaStr) return fechaStr;
+    return '';
   };
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'completado':
-        return '#4CAF50'; // Verde
+        return colors.primary; // Verde
       case 'cancelado':
-        return '#A0A0A0'; // Gris
+        return colors.error; // Rojo o color de error
       case 'confirmado':
       default:
-        return '#FFFFFF'; // Blanco
+        return colors.white; // Blanco
     }
   };
 
@@ -49,14 +55,14 @@ export default function HistorialItem({ turno }: HistorialItemProps) {
   };
 
   return (
-    <View style={styles.item}>
+    <View style={[styles.item, { backgroundColor: colors.dark2 }]}> 
       <View style={styles.fechaContainer}>
-        <Text style={styles.fecha}>{formatFecha(turno.fecha)}</Text>
-        <Text style={styles.profesionalNombre}>{turno.profesional}</Text>
+        <Text style={[styles.fecha, { color: colors.light3 }]}>{formatFecha(turno.fechaObj, turno.fecha)}</Text>
+        <Text style={[styles.profesionalNombre, { color: colors.white }]}>{turno.profesional}</Text>
       </View>
       
       <View style={styles.detallesContainer}>
-        <Text style={styles.servicio}>{turno.servicio}</Text>
+        <Text style={[styles.servicio, { color: colors.light2 }]}>{turno.servicio}</Text>
         <Text 
           style={[styles.estado, { color: getEstadoColor(turno.estado) }]}
         >
@@ -69,7 +75,6 @@ export default function HistorialItem({ turno }: HistorialItemProps) {
 
 const styles = StyleSheet.create({
   item: {
-    backgroundColor: '#2D5336',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -82,13 +87,11 @@ const styles = StyleSheet.create({
   },
   fecha: {
     fontSize: 14,
-    color: '#B8D8BA',
     fontWeight: '300',
     marginBottom: 2,
   },
   profesionalNombre: {
     fontSize: 16,
-    color: '#FFFFFF',
     fontWeight: '500',
   },
   detallesContainer: {
@@ -97,7 +100,6 @@ const styles = StyleSheet.create({
   },
   servicio: {
     fontSize: 14,
-    color: '#E8F5E8',
     marginBottom: 2,
     textAlign: 'right',
   },

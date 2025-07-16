@@ -67,7 +67,7 @@ export interface HorariosResponse {
 }
 
 // Obtener horarios disponibles para un profesional en una fecha específica con un servicio
-export async function obtenerHorariosDisponibles(tokens: Tokens, profesionalId: number, fecha: string, servicioId: number): Promise<HorariosResponse> {
+export async function obtenerHorariosDisponibles(tokens: Tokens, profesionalId: number, fecha: string, servicioId: number, negocioId: number): Promise<HorariosResponse> {
   try {
     const response = await axios.get(`${API_URL}/reservas/disponibilidad/`, {
       headers: {
@@ -76,7 +76,8 @@ export async function obtenerHorariosDisponibles(tokens: Tokens, profesionalId: 
       params: {
         profesional_id: profesionalId,
         fecha: fecha,
-        servicio_id: servicioId
+        servicio_id: servicioId,
+        negocio_id: negocioId
       }
     });
     

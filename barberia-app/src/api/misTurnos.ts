@@ -32,12 +32,9 @@ export interface ResumenTurnos {
 
 export interface MisTurnosResponse {
   success: boolean;
-  resumen: ResumenTurnos;
-  turnos: {
-    proximos: Turno[];
-    pasados: Turno[];
-    cancelados: Turno[];
-  };
+  turnos_proximos: any[];
+  turnos_historial: any[];
+  total_turnos: number;
 }
 
 export async function fetchMisTurnos(tokens: Tokens): Promise<MisTurnosResponse> {

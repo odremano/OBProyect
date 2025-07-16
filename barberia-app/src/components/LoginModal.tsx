@@ -18,7 +18,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -31,6 +31,7 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, loading, error }) => {
+  const { colors } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [touched, setTouched] = useState({ username: false, password: false });
@@ -199,6 +200,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
         <Animated.View
           style={[
             styles.modalContainer,
+            { backgroundColor: colors.light2 },
             {
               transform: [
                 { translateX: pan.x },
@@ -208,13 +210,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
           ]}
           {...panResponder.panHandlers}
         >
-          <View style={styles.handle} />
-          <Text style={styles.modalTitle}>Iniciar sesión</Text>
+          <View style={[styles.handle, { backgroundColor: colors.light3 }]} />
+          <Text style={[styles.modalTitle, { color: colors.primaryDark }]}>Iniciar sesión</Text>
           
           <TextInput
             style={[
               styles.input,
-              touched.username && !username ? styles.inputError : null,
+              { 
+                backgroundColor: colors.light3,
+                borderColor: colors.dark3,
+                color: colors.black
+              },
+              touched.username && !username ? { borderColor: colors.error } : null,
             ]}
             placeholder="Usuario *"
             placeholderTextColor={colors.dark3}
@@ -228,7 +235,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
             <TextInput
               style={[
                 styles.passwordInput,
-                touched.password && !password ? styles.inputError : null,
+                { 
+                  backgroundColor: colors.light3,
+                  borderColor: colors.dark3,
+                  color: colors.black
+                },
+                touched.password && !password ? { borderColor: colors.error } : null,
               ]}
               placeholder="Contraseña *"
               placeholderTextColor={colors.dark3}
@@ -251,7 +263,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
           
           {/* Switch de Recordar Usuario */}
           <View style={styles.rememberContainer}>
-            <Text style={styles.rememberText}>Recordar usuario</Text>
+            <Text style={[styles.rememberText, { color: colors.primaryDark }]}>Recordar usuario</Text>
             <Switch
               value={rememberUser}
               onValueChange={handleRememberUser}
@@ -261,23 +273,23 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
           </View>
           
           {(localError || error) && (
-            <Text style={styles.errorText}>{localError || error}</Text>
+            <Text style={[styles.errorText, { color: colors.error }]}>{localError || error}</Text>
           )}
           
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, { backgroundColor: colors.primary }]}
             onPress={handleLogin}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={styles.buttonText}>Ingresar</Text>
+              <Text style={[styles.buttonText, { color: colors.white }]}>Ingresar</Text>
             )}
           </TouchableOpacity>
           
                      <TouchableOpacity onPress={closeModalAnimation} style={styles.closeButton}>
-             <Text style={styles.closeButtonText}>Cancelar</Text>
+             <Text style={[styles.closeButtonText, { color: colors.primaryDark }]}>Cancelar</Text>
            </TouchableOpacity>
          </Animated.View>
        </KeyboardAvoidingView>
@@ -288,7 +300,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(23, 54, 30, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Cambiado de verde a negro transparente
     justifyContent: 'flex-end',
   },
   overlayTouchable: {
@@ -299,7 +311,6 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   modalContainer: {
-    backgroundColor: colors.light2,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     paddingHorizontal: 24,
@@ -316,26 +327,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.light3,
     marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.primaryDark,
     marginBottom: 30,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: colors.light3,
     borderRadius: 12,
     padding: 18,
     marginBottom: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: colors.dark3,
     fontSize: 16,
-    color: colors.background,
   },
   passwordContainer: {
     position: 'relative',
@@ -343,14 +349,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   passwordInput: {
-    backgroundColor: colors.light3,
     borderRadius: 12,
     padding: 18,
     paddingRight: 50, // Espacio para el botón del ojo
     borderWidth: 1,
-    borderColor: colors.dark3,
     fontSize: 16,
-    color: colors.background,
   },
   eyeButton: {
     position: 'absolute',
@@ -370,20 +373,17 @@ const styles = StyleSheet.create({
   },
   rememberText: {
     fontSize: 16,
-    color: colors.primaryDark,
     fontWeight: '500',
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: '#D32F2F',
   },
   errorText: {
-    color: colors.error,
     marginBottom: 8,
     textAlign: 'center',
     fontSize: 14,
   },
   button: {
-    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -391,7 +391,6 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   buttonText: {
-    color: colors.white,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -400,7 +399,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   closeButtonText: {
-    color: colors.primaryDark,
     fontSize: 15,
   },
 });

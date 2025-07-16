@@ -1,15 +1,16 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, SafeAreaView } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
 import { reservarTurno } from '../api/turnos';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmacionTurno'>;
 
 export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
   const { tokens } = useContext(AuthContext);
   const { profesional, servicio, fecha, hora } = route.params;
   const [loading, setLoading] = useState(false);
@@ -70,16 +71,16 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header fijo */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
           <Icon name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirmación</Text>
+        <Text style={[styles.headerTitle, { color: colors.white }]}>Confirmación</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -94,17 +95,15 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
           <View style={styles.checkIconContainer}>
             <Icon name="checkmark-circle" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.confirmationTitle}>Confirma tu turno</Text>
-          <Text style={styles.confirmationSubtitle}>
-            Revisa los detalles de tu reserva antes de confirmar
-          </Text>
+          <Text style={[styles.confirmationTitle, { color: colors.white }]}>Confirma tu turno</Text>
+          <Text style={[styles.confirmationSubtitle, { color: colors.light3 }]}>Revisa los detalles de tu reserva antes de confirmar</Text>
         </View>
 
         {/* Información del turno */}
-        <View style={styles.appointmentCard}>
+        <View style={[styles.appointmentCard, { backgroundColor: colors.dark2 }]}>
           {/* Profesional */}
           <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Profesional</Text>
+            <Text style={[styles.sectionTitle, { color: colors.light3 }]}>Profesional</Text>
             <View style={styles.professionalInfo}>
               {profesional.profile_picture_url ? (
                 <Image
@@ -112,15 +111,15 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
                   style={styles.professionalPhoto}
                 />
               ) : (
-                <View style={styles.professionalAvatar}>
+                <View style={[styles.professionalAvatar, { backgroundColor: colors.primary }]}>
                   <Icon name="person" size={24} color={colors.white} />
                 </View>
               )}
               <View style={styles.professionalDetails}>
-                <Text style={styles.professionalName}>
+                <Text style={[styles.professionalName, { color: colors.white }]}>
                   {profesional.user_details.first_name} {profesional.user_details.last_name}
                 </Text>
-                <Text style={styles.professionalBio}>
+                <Text style={[styles.professionalBio, { color: colors.light3 }]}>
                   {profesional.bio || 'Especialista en cortes modernos y clásicos'}
                 </Text>
               </View>
@@ -129,14 +128,14 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
 
           {/* Servicio */}
           <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Servicio</Text>
+            <Text style={[styles.sectionTitle, { color: colors.light3 }]}>Servicio</Text>
             <View style={styles.serviceInfo}>
-              <View style={styles.serviceIconContainer}>
-                <Icon name="cut" size={20} color={colors.white} />
+              <View style={[styles.serviceIconContainer, { backgroundColor: colors.primary }]}>
+                <Icon name="cut" size={24} color={colors.white} />
               </View>
               <View style={styles.serviceDetails}>
-                <Text style={styles.serviceName}>{servicio.name}</Text>
-                <Text style={styles.serviceDescription}>
+                <Text style={[styles.serviceName, { color: colors.white }]}>{servicio.name}</Text>
+                <Text style={[styles.serviceDescription, { color: colors.light3 }]}>
                   {servicio.description || 'Servicio profesional de barbería'}
                 </Text>
               </View>
@@ -145,48 +144,50 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
 
           {/* Fecha y hora */}
           <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Fecha y hora</Text>
+            <Text style={[styles.sectionTitle, { color: colors.light3 }]}>Fecha y hora</Text>
             <View style={styles.dateTimeInfo}>
               <View style={styles.dateTimeItem}>
                 <Icon name="calendar" size={20} color={colors.primary} />
-                <Text style={styles.dateTimeText}>{formatDate(fecha)}</Text>
+                <Text style={[styles.dateTimeText, { color: colors.white }]}>{formatDate(fecha)}</Text>
               </View>
               <View style={styles.dateTimeItem}>
                 <Icon name="time" size={20} color={colors.primary} />
-                <Text style={styles.dateTimeText}>{hora} hs</Text>
+                <Text style={[styles.dateTimeText, { color: colors.white }]}>{hora} hs</Text>
               </View>
             </View>
           </View>
 
           {/* Resumen */}
-          <View style={styles.summarySection}>
+          <View style={[styles.summarySection, { borderTopColor: colors.dark3 }]}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Duración estimada:</Text>
-              <Text style={styles.summaryValue}>{servicio.duration_minutes} minutos</Text>
+              <Text style={[styles.summaryLabel, { color: colors.light3 }]}>Duración estimada:</Text>
+              <Text style={[styles.summaryValue, { color: colors.white }]}>{servicio.duration_minutes} minutos</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Precio:</Text>
-              <Text style={styles.summaryValue}>${servicio.price}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.light3 }]}>Precio:</Text>
+              <Text style={[styles.summaryValue, { color: colors.white }]}>${servicio.price}</Text>
             </View>
           </View>
         </View>
 
         {/* Nota informativa */}
-        <View style={styles.noteContainer}>
+        <View style={[styles.noteContainer, { backgroundColor: colors.dark2 }]}>
           <Icon name="information-circle" size={16} color={colors.light3} />
-          <Text style={styles.noteText}>
-            Puedes cancelar tu turno hasta 2 horas antes del horario programado
-          </Text>
+          <Text style={[styles.noteText, { color: colors.light3 }]}>Puedes cancelar tu turno hasta 2 horas antes del horario programado</Text>
         </View>
 
         {/* Botón de confirmación */}
         <View style={styles.bottomContainer}>
           <TouchableOpacity
-            style={[styles.confirmButton, loading && styles.confirmButtonDisabled]}
+            style={[
+              styles.confirmButton,
+              { backgroundColor: colors.primary },
+              loading && { backgroundColor: colors.dark2, opacity: 0.7 }
+            ]}
             disabled={loading}
             onPress={handleConfirmarReserva}
           >
-            <Text style={styles.confirmButtonText}>
+            <Text style={[styles.confirmButtonText, { color: colors.white }]}>
               {loading ? 'Reservando...' : 'Reservar turno'}
             </Text>
           </TouchableOpacity>
@@ -199,14 +200,12 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 56,
-    backgroundColor: colors.primaryDark,
     paddingHorizontal: 20,
   },
   backButton: {
@@ -215,7 +214,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 20,
   },
   scrollContent: {
@@ -236,17 +234,14 @@ const styles = StyleSheet.create({
   confirmationTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.white,
     marginBottom: 8,
   },
   confirmationSubtitle: {
     fontSize: 14,
-    color: colors.light3,
     textAlign: 'center',
     lineHeight: 20,
   },
   appointmentCard: {
-    backgroundColor: colors.dark2,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -257,7 +252,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.light3,
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -276,7 +270,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -288,12 +281,10 @@ const styles = StyleSheet.create({
   professionalName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 4,
   },
   professionalBio: {
     fontSize: 12,
-    color: colors.light3,
     lineHeight: 16,
   },
   serviceInfo: {
@@ -301,10 +292,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serviceIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -316,12 +306,10 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 4,
   },
   serviceDescription: {
     fontSize: 12,
-    color: colors.light3,
     marginBottom: 8,
   },
   serviceSpecs: {
@@ -335,7 +323,6 @@ const styles = StyleSheet.create({
   },
   serviceSpecText: {
     fontSize: 12,
-    color: colors.light3,
     marginLeft: 4,
   },
   dateTimeInfo: {
@@ -349,12 +336,10 @@ const styles = StyleSheet.create({
   dateTimeText: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.white,
     marginLeft: 12,
   },
   summarySection: {
     borderTopWidth: 1,
-    borderTopColor: colors.dark3,
     paddingTop: 16,
     marginTop: 2,
   },
@@ -366,24 +351,20 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: colors.light3,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
   },
   noteContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.dark2,
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
   },
   noteText: {
     fontSize: 12,
-    color: colors.light3,
     marginLeft: 8,
     flex: 1,
     lineHeight: 16,
@@ -392,18 +373,12 @@ const styles = StyleSheet.create({
     // Sin padding adicional ya que está en contentContainerStyle
   },
   confirmButton: {
-    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  confirmButtonDisabled: {
-    backgroundColor: colors.dark2,
-    opacity: 0.7,
-  },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
   },
 }); 

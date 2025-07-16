@@ -1,24 +1,25 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { fetchServicios, Servicio } from '../api/servicios';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Servicios'>;
 
 export default function ServiciosScreen({ route, navigation }: Props) {
-  const { tokens } = useContext(AuthContext);
+  const { tokens, negocioId } = useContext(AuthContext);
+  const { colors } = useTheme();
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const onSelect = route.params?.onSelect;
   const isModal = route.params?.modal || false;
 
   useEffect(() => {
-    if (!tokens) return;
-    fetchServicios(tokens)
+    if (!tokens || negocioId == null) return;
+    fetchServicios(tokens, negocioId)
       .then(setServicios)
       .catch(() => setServicios([]))
       .finally(() => setLoading(false));
@@ -26,7 +27,7 @@ export default function ServiciosScreen({ route, navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -35,16 +36,16 @@ export default function ServiciosScreen({ route, navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           style={isModal ? styles.closeButton : styles.backButton}
         >
           <Icon name={isModal ? "close" : "arrow-back"} size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Servicios</Text>
+        <Text style={[styles.headerTitle, { color: colors.white }]}>Servicios</Text>
         <View style={{ width: isModal ? 20 : 24 }} />
       </View>
       
@@ -55,7 +56,7 @@ export default function ServiciosScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.servicioCard}
+            style={[styles.servicioCard, { backgroundColor: colors.dark2 }]}
             onPress={() => {
               if (onSelect) {
                 onSelect(item);
@@ -65,26 +66,26 @@ export default function ServiciosScreen({ route, navigation }: Props) {
           >
             <View style={styles.cardContent}>
               <View style={styles.servicioInfo}>
-                <View style={styles.iconContainer}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
                   <Icon name="cut" size={24} color={colors.white} />
                 </View>
                 <View style={styles.textInfo}>
-                  <Text style={styles.servicioName}>
+                  <Text style={[styles.servicioName, { color: colors.white }]}>
                     {item.name}
                   </Text>
-                  <Text style={styles.servicioDescription}>
+                  <Text style={[styles.servicioDescription, { color: colors.light3 }]}>
                     {item.description || 'Servicio profesional de barbería'}
                   </Text>
                   <View style={styles.servicioDetails}>
                     <View style={styles.detailItem}>
                       <Icon name="time" size={12} color={colors.light3} />
-                      <Text style={styles.detailText}>
+                      <Text style={[styles.detailText, { color: colors.light3 }]}>
                         {item.duration_minutes} min
                       </Text>
                     </View>
                     <View style={styles.detailItem}>
                       <Icon name="cash" size={12} color={colors.light3} />
-                      <Text style={styles.detailText}>
+                      <Text style={[styles.detailText, { color: colors.light3 }]}>
                         ${item.price}
                       </Text>
                     </View>
@@ -104,8 +105,7 @@ export default function ServiciosScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { 
-    flex: 1, 
-    backgroundColor: colors.background 
+    flex: 1
   },
   loadingContainer: {
     flex: 1,
@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 15,
-    backgroundColor: colors.primaryDark,
   },
   backButton: {
     padding: 4,
@@ -131,7 +130,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 15,
   },
   title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
@@ -140,7 +138,6 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   servicioCard: {
-    backgroundColor: colors.dark2,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -158,7 +155,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
-    backgroundColor: colors.primary,
     borderRadius: 26,
     width: 52,
     height: 52,
@@ -172,12 +168,10 @@ const styles = StyleSheet.create({
   servicioName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 4,
   },
   servicioDescription: {
     fontSize: 12,
-    color: colors.light3,
     lineHeight: 16,
     marginBottom: 4,
   },
@@ -192,7 +186,6 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: colors.light3,
     marginLeft: 4,
   },
 });

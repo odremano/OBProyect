@@ -5,7 +5,7 @@ import MoreScreen from '../screens/MoreScreen';
 import LoginScreen from '../screens/LoginScreen';
 import UbicanosScreen from '../screens/UbicanosScreen';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import HandleTabBar from '../components/HandleTabBar';
 import { View, Text } from 'react-native';
@@ -13,9 +13,13 @@ import { View, Text } from 'react-native';
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
+  const { colors: themeColors } = useTheme();
   const { user, logout } = useContext(AuthContext);
   const isAuthenticated = !!user;
   const userName = user?.first_name || user?.username || 'Usuario';
+
+  // Usar colores del contexto siempre
+  const tabColors = themeColors;
 
   return (
     <Tab.Navigator
@@ -26,7 +30,7 @@ export default function TabNavigator() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: colors.primaryDark,
+          backgroundColor: tabColors.primaryDark,
           height: 85,
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,
@@ -37,8 +41,8 @@ export default function TabNavigator() {
           shadowOpacity: 0.2,
           shadowRadius: 12,
         },
-        tabBarActiveTintColor: colors.white,
-        tabBarInactiveTintColor: colors.light3,
+        tabBarActiveTintColor: tabColors.white,
+        tabBarInactiveTintColor: tabColors.light3,
         tabBarIcon: ({ color, size, focused }) => {
           let iconName = '';
           if (route.name === 'Inicio') iconName = 'home';

@@ -11,10 +11,10 @@ import {
   RefreshControl 
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import TurnoCard from '../components/TurnoCard';
 import HistorialItem from '../components/HistorialItem';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { fetchMisTurnos, cancelarTurno, Turno as TurnoAPI, MisTurnosResponse } from '../api/misTurnos';
@@ -31,6 +31,15 @@ interface Turno {
   estado: 'confirmado' | 'completado' | 'cancelado';
   precio: string;
   avatar: string; // url de imagen
+  fechaObj: Date | null; // Nuevo campo para la fecha completa
+}
+
+// Función para parsear fecha y hora en formato 'DD/MM/YYYY HH:mm' a Date
+function parseFechaHora(fechaHora: string): Date | null {
+  const match = fechaHora.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, dd, mm, yyyy, hh, min] = match;
+  return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
 }
 
 // Función para mapear datos de la API a nuestra estructura
@@ -48,43 +57,31 @@ const mapearTurnosAPI = (turnosResponse: MisTurnosResponse): Turno[] => {
     return hora.includes('hs') ? hora : `${hora}hs`;
   };
   
-  // Mapear turnos próximos (confirmados)
-  turnosResponse.turnos.proximos.forEach(turno => {
+  // Mapear turnos próximos
+  (turnosResponse.turnos_proximos ?? []).forEach((turno: any) => {
     turnos.push({
       id: turno.id.toString(),
       fecha: turno.start_datetime,
+      fechaObj: parseFechaHora(turno.start_datetime),
       hora: formatearHora(turno.hora_inicio),
       profesional: turno.profesional_name || 'Profesional no asignado',
       servicio: turno.servicio_name || 'Servicio no especificado',
-      estado: 'confirmado',
+      estado: turno.status || 'confirmado',
       precio: formatearPrecio(turno.servicio_price),
       avatar: turno.profesional_photo || ''
     });
   });
   
-  // Mapear turnos pasados (completados)
-  turnosResponse.turnos.pasados.forEach(turno => {
+  // Mapear turnos historial
+  (turnosResponse.turnos_historial ?? []).forEach((turno: any) => {
     turnos.push({
       id: turno.id.toString(),
       fecha: turno.start_datetime,
+      fechaObj: parseFechaHora(turno.start_datetime),
       hora: formatearHora(turno.hora_inicio),
       profesional: turno.profesional_name || 'Profesional no asignado',
       servicio: turno.servicio_name || 'Servicio no especificado',
-      estado: 'completado',
-      precio: formatearPrecio(turno.servicio_price),
-      avatar: turno.profesional_photo || ''
-    });
-  });
-  
-  // Mapear turnos cancelados
-  turnosResponse.turnos.cancelados.forEach(turno => {
-    turnos.push({
-      id: turno.id.toString(),
-      fecha: turno.start_datetime,
-      hora: formatearHora(turno.hora_inicio),
-      profesional: turno.profesional_name || 'Profesional no asignado',
-      servicio: turno.servicio_name || 'Servicio no especificado',
-      estado: 'cancelado',
+      estado: turno.status || 'completado',
       precio: formatearPrecio(turno.servicio_price),
       avatar: turno.profesional_photo || ''
     });
@@ -95,6 +92,7 @@ const mapearTurnosAPI = (turnosResponse: MisTurnosResponse): Turno[] => {
 
 export default function MisTurnosScreen({ navigation }: Props) {
   const { tokens } = useContext(AuthContext);
+  const { colors } = useTheme();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -173,8 +171,8 @@ export default function MisTurnosScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#178232" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -185,16 +183,16 @@ export default function MisTurnosScreen({ navigation }: Props) {
   const historial = turnos.filter(turno => turno.estado !== 'confirmado');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header fijo */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           style={styles.closeButton}
         >
           <Icon name="close" size={24} color={colors.white}  />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mis turnos</Text>
+        <Text style={[styles.headerTitle, { color: colors.white }]}>Mis turnos</Text>
         <View style={{ width: 20 }} />
       </View>
 
@@ -215,7 +213,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
         {/* Próximo turno */}
         {proximoTurno ? (
           <View style={styles.seccion}>
-            <Text style={styles.subtitulo}>Próximo turno</Text>
+            <Text style={[styles.subtitulo, { color: colors.white }]}>Próximo turno</Text>
             <TurnoCard 
               turno={proximoTurno} 
               onCancelar={handleCancelarTurno}
@@ -224,15 +222,15 @@ export default function MisTurnosScreen({ navigation }: Props) {
           </View>
         ) : (
           <View style={styles.seccionVacia}>
-            <Text style={styles.subtitulo}>Próximo turno</Text>
-            <Text style={styles.mensajeVacio}>
+            <Text style={[styles.subtitulo, { color: colors.white }]}>Próximo turno</Text>
+            <Text style={[styles.mensajeVacio, { color: colors.light3 }]}>
               Todavía no tienes turnos.{'\n'}¿Querés agendar uno ahora?
             </Text>
             <TouchableOpacity 
-              style={styles.botonReservar}
+              style={[styles.botonReservar, { backgroundColor: colors.background }]}
               onPress={handleReservarTurno}
             >
-              <Text style={styles.textoReservar}>Reservar turno</Text>
+              <Text style={[styles.textoReservar, { color: colors.white }]}>Reservar turno</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -240,7 +238,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
         {/* Historial */}
         {historial.length > 0 && (
           <View style={styles.seccion}>
-            <Text style={styles.subtitulo}>Historial</Text>
+            <Text style={[styles.subtitulo, { color: colors.white }]}>Historial</Text>
             <FlatList
               data={historial}
               keyExtractor={item => item.id}
@@ -257,11 +255,9 @@ export default function MisTurnosScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -270,7 +266,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 56,
-    backgroundColor: colors.primaryDark,
     paddingHorizontal: 20,
   },
   closeButton: {
@@ -279,7 +274,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 20,
   },
   scrollContent: {
@@ -293,7 +287,6 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.white,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -307,25 +300,21 @@ const styles = StyleSheet.create({
   subtitulo: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
     marginBottom: 16,
   },
   mensajeVacio: {
     fontSize: 16,
-    color: colors.light3,
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 22,
   },
   botonReservar: {
-    backgroundColor: colors.background,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   textoReservar: {
-    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -1,13 +1,10 @@
-const colors = {
-  primary: '#178232',
-  primaryDark: '#116225',
-  background: '#17361E',
-  dark2: '#2D5336',
-  dark3: '#476B50',
-  light2: '#F4FAF6',
-  light3: '#DEEDE2',
-  white: '#FFFFFF',
-  error: '#D32F2F',
+import { useTheme } from '../context/ThemeContext';
+
+export const useColors = () => {
+  const { colors } = useTheme();
+  return colors;
 };
 
-export default colors;
+import { defaultColors } from '../context/ThemeContext';
+export default defaultColors;
+

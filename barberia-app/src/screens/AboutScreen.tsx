@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { AuthContext } from '../context/AuthContext';
 
 const AboutScreen: React.FC = () => {
+  const { colors: themeColors } = useTheme();
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext);
+  const isAuthenticated = !!user;
+
+  // Usar colores del contexto siempre
+  const screenColors = themeColors;
 
   const openLink = async (url: string, label: string) => {
     try {
@@ -29,74 +36,74 @@ const AboutScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenColors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: screenColors.primaryDark }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color={colors.white} />
+          <Icon name="arrow-back" size={24} color={screenColors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Acerca de</Text>
+        <Text style={[styles.headerTitle, { color: screenColors.white }]}>Acerca de</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Logo y nombre de la app */}
         <View style={styles.appSection}>
-          <View style={styles.logoContainer}>
-            <Icon name="cut" size={48} color={colors.light2} />
+          <View style={[styles.logoContainer, { backgroundColor: screenColors.primary }]}>
+            <Icon name="calendar" size={38} color={screenColors.light2} />
           </View>
-          <Text style={styles.appName}>OdremanBarber</Text>
-          <Text style={styles.appVersion}>Versión 1.0.0</Text>
-          <Text style={styles.appDescription}>
-            Tu barbería de confianza, ahora en tu dispositivo móvil. 
-            Proyecto personal del que me siento muy orgulloso, tu feedback me ayuda a mejorar.
+          <Text style={[styles.appName, { color: screenColors.text }]}>ORDEMA</Text>
+          <Text style={[styles.appVersion, { color: screenColors.dark3 }]}>Versión 1.0.0</Text>
+          <Text style={[styles.appDescription, { color: screenColors.dark3 }]}>
+            La evolución de un proyecto personal hecho con dedicación.
+            Lo que comenzó como una solución para un sector, hoy se expande para ofrecer una gestión de turnos versátil y unificada. Me enorgullece enormemente este proyecto y tu feedback es fundamental para seguir mejorando.
           </Text>
         </View>
 
         {/* Información de la app */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información de la Aplicación</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Información de la Aplicación</Text>
           
-          <View style={styles.infoItem}>
-            <Icon name="calendar" size={20} color={colors.primary} />
+          <View style={[styles.infoItem, { backgroundColor: screenColors.dark2 }]}>
+            <Icon name="calendar" size={20} color={screenColors.primary} />
             <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Fecha de lanzamiento</Text>
-              <Text style={styles.infoValue}>Junio 2025</Text>
+              <Text style={[styles.infoLabel, { color: screenColors.light2 }]}>Fecha de lanzamiento</Text>
+              <Text style={[styles.infoValue, { color: screenColors.light3 }]}>Junio 2025</Text>
             </View>
           </View>
 
-          <View style={styles.infoItem}>
-            <Icon name="code-slash" size={20} color={colors.primary} />
+          <View style={[styles.infoItem, { backgroundColor: screenColors.dark2 }]}>
+            <Icon name="code-slash" size={20} color={screenColors.primary} />
             <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Tecnología</Text>
-              <Text style={styles.infoValue}>React Native + Django</Text>
+              <Text style={[styles.infoLabel, { color: screenColors.light2 }]}>Tecnología</Text>
+              <Text style={[styles.infoValue, { color: screenColors.light3 }]}>React Native + Django</Text>
             </View>
           </View>
 
-          <View style={styles.infoItem}>
-            <Icon name="shield-checkmark" size={20} color={colors.primary} />
+          <View style={[styles.infoItem, { backgroundColor: screenColors.dark2 }]}>
+            <Icon name="shield-checkmark" size={20} color={screenColors.primary} />
             <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Última actualización</Text>
-              <Text style={styles.infoValue}>Julio 2025</Text>
+              <Text style={[styles.infoLabel, { color: screenColors.light2 }]}>Última actualización</Text>
+              <Text style={[styles.infoValue, { color: screenColors.light3 }]}>Julio 2025</Text>
             </View>
           </View>
         </View>
 
         {/* Información del desarrollador */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Desarrollador</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Desarrollador</Text>
           
-          <View style={styles.developerCard}>
+          <View style={[styles.developerCard, { backgroundColor: screenColors.dark2 }]}>
             <View style={styles.developerInfo}>
-              <View style={styles.developerAvatar}>
-                <Icon name="person" size={32} color={colors.light2} />
+              <View style={[styles.developerAvatar, { backgroundColor: screenColors.primary }]}>
+                <Icon name="person" size={32} color={screenColors.light2} />
               </View>
               <View style={styles.developerText}>
-                <Text style={styles.developerName}>Jesús Odreman</Text>
-                <Text style={styles.developerTitle}>Tester QA & Dev</Text>
-                <Text style={styles.developerDescription}>
+                <Text style={[styles.developerName, { color: screenColors.white }]}>Jesús Odreman</Text>
+                <Text style={[styles.developerTitle, { color: screenColors.light2 }]}>Tester QA & Dev</Text>
+                <Text style={[styles.developerDescription, { color: screenColors.dark3 }]}>
                   Especializado en pruebas de software y estudiante de programación.
                 </Text>
               </View>
@@ -106,52 +113,52 @@ const AboutScreen: React.FC = () => {
 
         {/* Contacto */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contacto</Text>
+          <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Contacto</Text>
           
           <TouchableOpacity
-            style={styles.contactItem}
+            style={[styles.contactItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => handleContact('email')}
           >
-            <Icon name="mail" size={24} color={colors.primary} />
+            <Icon name="mail" size={24} color={screenColors.primary} />
             <View style={styles.contactText}>
-              <Text style={styles.contactLabel}>Email</Text>
-              <Text style={styles.contactValue}>jaosodreman@gmail.com</Text>
+              <Text style={[styles.contactLabel, { color: screenColors.white }]}>Email</Text>
+              <Text style={[styles.contactValue, { color: screenColors.light3 }]}>jaosodreman@gmail.com</Text>
             </View>
-            <Icon name="chevron-forward" size={20} color={colors.dark3} />
+            <Icon name="chevron-forward" size={20} color={screenColors.dark3} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.contactItem}
+            style={[styles.contactItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => handleContact('WhatsApp')}
           >
-            <Icon name="logo-whatsapp" size={24} color={colors.primary} />
+            <Icon name="logo-whatsapp" size={24} color={screenColors.primary} />
             <View style={styles.contactText}>
-              <Text style={styles.contactLabel}>WhatsApp</Text>
-              <Text style={styles.contactValue}>+1 (234) 567-8900</Text>
+              <Text style={[styles.contactLabel, { color: screenColors.white }]}>WhatsApp</Text>
+              <Text style={[styles.contactValue, { color: screenColors.light3 }]}>+1 (234) 000-0000</Text>
             </View>
-            <Icon name="chevron-forward" size={20} color={colors.dark3} />
+            <Icon name="chevron-forward" size={20} color={screenColors.dark3} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.contactItem}
+            style={[styles.contactItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => handleContact('LinkedIn')}
           >
-            <Icon name="logo-linkedin" size={24} color={colors.primary} />
+            <Icon name="logo-linkedin" size={24} color={screenColors.primary} />
             <View style={styles.contactText}>
-              <Text style={styles.contactLabel}>LinkedIn</Text>
-              <Text style={styles.contactValue}>linkedin.com/in/jesus-odreman</Text>
+              <Text style={[styles.contactLabel, { color: screenColors.white }]}>LinkedIn</Text>
+              <Text style={[styles.contactValue, { color: screenColors.light3 }]}>linkedin.com/in/jesus-odreman</Text>
             </View>
-            <Icon name="chevron-forward" size={20} color={colors.dark3} />
+            <Icon name="chevron-forward" size={20} color={screenColors.dark3} />
           </TouchableOpacity>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Desarrollado con ❤️ para OdremanBarber
+          <Text style={[styles.footerText, { color: screenColors.primaryDark }]}>
+            Desarrollado con ❤️ por Jesús Odreman.
           </Text>
-          <Text style={styles.copyrightText}>
-            © 2025 OdremanBarber. Todos los derechos reservados.
+          <Text style={[styles.copyrightText, { color: screenColors.dark3 }]}>
+            © 2025 Ordema. Todos los derechos reservados.
           </Text>
         </View>
       </ScrollView>
@@ -162,12 +169,10 @@ const AboutScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryDark,
     paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -179,7 +184,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.white,
   },
   content: {
     flex: 1,
@@ -194,7 +198,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -202,17 +205,14 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.white,
     marginBottom: 4,
   },
   appVersion: {
     fontSize: 16,
-    color: colors.light2,
     marginBottom: 16,
   },
   appDescription: {
     fontSize: 16,
-    color: colors.dark3,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -222,13 +222,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.light2,
     marginBottom: 16,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.dark2,
     padding: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -244,16 +242,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: colors.light2,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.light3,
   },
   developerCard: {
-    backgroundColor: colors.dark2,
     borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
@@ -270,7 +265,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -281,23 +275,19 @@ const styles = StyleSheet.create({
   developerName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.white,
     marginBottom: 4,
   },
   developerTitle: {
     fontSize: 14,
-    color: colors.light2,
     marginBottom: 8,
   },
   developerDescription: {
     fontSize: 14,
-    color: colors.dark3,
     lineHeight: 20,
   },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.dark2,
     padding: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -313,13 +303,11 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 16,
-    color: colors.white,
     marginBottom: 2,
   },
   contactValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.light3,
   },
   footer: {
     alignItems: 'center',
@@ -328,13 +316,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.primaryDark,
     marginBottom: 8,
     textAlign: 'center',
   },
   copyrightText: {
     fontSize: 12,
-    color: colors.dark3,
     textAlign: 'center',
   },
 });
