@@ -211,7 +211,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
           {...panResponder.panHandlers}
         >
           <View style={[styles.handle, { backgroundColor: colors.light3 }]} />
-          <Text style={[styles.modalTitle, { color: colors.primaryDark }]}>Iniciar sesión</Text>
+          <Text style={[styles.modalTitle, { color: colors.primary }]}>Iniciar sesión</Text>
           
           <TextInput
             style={[

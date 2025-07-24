@@ -95,15 +95,15 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
           <View style={styles.checkIconContainer}>
             <Icon name="checkmark-circle" size={48} color={colors.primary} />
           </View>
-          <Text style={[styles.confirmationTitle, { color: colors.white }]}>Confirma tu turno</Text>
-          <Text style={[styles.confirmationSubtitle, { color: colors.light3 }]}>Revisa los detalles de tu reserva antes de confirmar</Text>
+          <Text style={[styles.confirmationTitle, { color: colors.text }]}>Confirma tu turno</Text>
+          <Text style={[styles.confirmationSubtitle, { color: colors.textSecondary }]}>Revisa los detalles de tu reserva antes de confirmar</Text>
         </View>
 
         {/* Información del turno */}
         <View style={[styles.appointmentCard, { backgroundColor: colors.dark2 }]}>
           {/* Profesional */}
           <View style={styles.infoSection}>
-            <Text style={[styles.sectionTitle, { color: colors.light3 }]}>Profesional</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Profesional</Text>
             <View style={styles.professionalInfo}>
               {profesional.profile_picture_url ? (
                 <Image
@@ -116,10 +116,10 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
                 </View>
               )}
               <View style={styles.professionalDetails}>
-                <Text style={[styles.professionalName, { color: colors.white }]}>
+                <Text style={[styles.professionalName, { color: colors.text }]}>
                   {profesional.user_details.first_name} {profesional.user_details.last_name}
                 </Text>
-                <Text style={[styles.professionalBio, { color: colors.light3 }]}>
+                <Text style={[styles.professionalBio, { color: colors.textSecondary }]}>
                   {profesional.bio || 'Especialista en cortes modernos y clásicos'}
                 </Text>
               </View>
@@ -128,14 +128,14 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
 
           {/* Servicio */}
           <View style={styles.infoSection}>
-            <Text style={[styles.sectionTitle, { color: colors.light3 }]}>Servicio</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Servicio</Text>
             <View style={styles.serviceInfo}>
               <View style={[styles.serviceIconContainer, { backgroundColor: colors.primary }]}>
                 <Icon name="cut" size={24} color={colors.white} />
               </View>
               <View style={styles.serviceDetails}>
-                <Text style={[styles.serviceName, { color: colors.white }]}>{servicio.name}</Text>
-                <Text style={[styles.serviceDescription, { color: colors.light3 }]}>
+                <Text style={[styles.serviceName, { color: colors.text }]}>{servicio.name}</Text>
+                <Text style={[styles.serviceDescription, { color: colors.textSecondary }]}>
                   {servicio.description || 'Servicio profesional de barbería'}
                 </Text>
               </View>
@@ -144,15 +144,15 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
 
           {/* Fecha y hora */}
           <View style={styles.infoSection}>
-            <Text style={[styles.sectionTitle, { color: colors.light3 }]}>Fecha y hora</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Fecha y hora</Text>
             <View style={styles.dateTimeInfo}>
               <View style={styles.dateTimeItem}>
                 <Icon name="calendar" size={20} color={colors.primary} />
-                <Text style={[styles.dateTimeText, { color: colors.white }]}>{formatDate(fecha)}</Text>
+                <Text style={[styles.dateTimeText, { color: colors.text }]}>{formatDate(fecha)}</Text>
               </View>
               <View style={styles.dateTimeItem}>
                 <Icon name="time" size={20} color={colors.primary} />
-                <Text style={[styles.dateTimeText, { color: colors.white }]}>{hora} hs</Text>
+                <Text style={[styles.dateTimeText, { color: colors.text }]}>{hora} hs</Text>
               </View>
             </View>
           </View>
@@ -160,20 +160,20 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
           {/* Resumen */}
           <View style={[styles.summarySection, { borderTopColor: colors.dark3 }]}>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.light3 }]}>Duración estimada:</Text>
-              <Text style={[styles.summaryValue, { color: colors.white }]}>{servicio.duration_minutes} minutos</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Duración estimada:</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>{servicio.duration_minutes} minutos</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.light3 }]}>Precio:</Text>
-              <Text style={[styles.summaryValue, { color: colors.white }]}>${servicio.price}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Precio:</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>${servicio.price}</Text>
             </View>
           </View>
         </View>
 
         {/* Nota informativa */}
         <View style={[styles.noteContainer, { backgroundColor: colors.dark2 }]}>
-          <Icon name="information-circle" size={16} color={colors.light3} />
-          <Text style={[styles.noteText, { color: colors.light3 }]}>Puedes cancelar tu turno hasta 2 horas antes del horario programado</Text>
+          <Icon name="information-circle" size={16} color={colors.primaryDark} />
+          <Text style={[styles.noteText, { color: colors.text }]}>Puedes cancelar tu turno hasta 2 horas antes del horario programado</Text>
         </View>
 
         {/* Botón de confirmación */}

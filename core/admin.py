@@ -139,6 +139,10 @@ class ProfesionalAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
             obj.negocio = request.user.negocio
+        # Asignar rol profesional
+        if obj.user.role != 'profesional':
+            obj.user.role = 'profesional'
+            obj.user.save()
         obj.save()
 
     def get_fields(self, request, obj=None):

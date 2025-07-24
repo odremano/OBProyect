@@ -13,6 +13,9 @@ import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
 import TabNavigator from './TabNavigator';
 import ConfirmacionTurnoScreen from '../screens/ConfirmacionTurnoScreen';
+import MiDisponibilidadScreen from '../screens/MiDisponibilidadScreen';
+import GananciasScreen from '../screens/GananciasScreen';
+import VerAgendaScreen from '../screens/VerAgendaScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -30,6 +33,9 @@ export type RootStackParamList = {
   More: { isAuthenticated?: boolean; userName?: string } | undefined;
   Settings: undefined;
   About: undefined;
+  MiDisponibilidad: undefined;
+  Ganancias: undefined;
+  VerAgenda: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -76,6 +82,9 @@ export default function AppNavigator() {
         <Stack.Screen name="About" component={AboutScreen} options={{headerShown: false }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{headerShown: false }} />
         <Stack.Screen name="ConfirmacionTurno" component={ConfirmacionTurnoScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="MiDisponibilidad" component={MiDisponibilidadScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Ganancias" component={GananciasScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="VerAgenda" component={VerAgendaScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

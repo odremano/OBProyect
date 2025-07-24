@@ -118,3 +118,114 @@ export async function obtenerHorariosDisponibles(tokens: Tokens, profesionalId: 
     };
   }
 }
+
+// Interfaz específica para turnos del profesional (incluye datos del cliente)
+export interface TurnoProfesional {
+  id: number;
+  start_datetime: string;
+  end_datetime: string;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  cliente_name: string;
+  cliente_phone: string | null;
+  servicio_name: string;
+  servicio_description: string;
+  servicio_price: string;
+  servicio_duration: number;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  puede_cancelar: boolean;
+}
+
+// Función para obtener turnos del profesional por fecha (para la agenda)
+export async function obtenerTurnosProfesional(tokens: Tokens, fecha: string): Promise<TurnoProfesional[]> {
+  try {
+    const response = await axios.get(`${API_URL}/reservas/agenda-profesional/`, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+      },
+      params: {
+        fecha: fecha, // YYYY-MM-DD
+      }
+    });
+    return response.data.turnos || [];
+  } catch (error: any) {
+    console.error('Error obteniendo turnos del profesional:', error);
+    return [];
+  }
+}
+
+// Función para marcar un turno como completado
+export async function marcarTurnoCompletado(tokens: Tokens, turnoId: number) {
+  try {
+    const response = await axios.post(`${API_URL}/reservas/completar/${turnoId}/`, {}, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.log('Error al completar turno:', error.response.data);
+    }
+    throw error;
+  }
+}
+
+// Función para cancelar un turno
+export async function cancelarTurno(tokens: Tokens, turnoId: number) {
+  try {
+    const response = await axios.post(`${API_URL}/reservas/cancelar/${turnoId}/`, {}, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.log('Respuesta del backend:', error.response.data);
+    }
+    throw error;
+  }
+}
+
+// Función para cancelar un turno (profesional)
+export async function cancelarTurnoProfesional(tokens: Tokens, turnoId: number) {
+  try {
+    const response = await axios.post(`${API_URL}/reservas/cancelar-profesional/${turnoId}/`, {}, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.log('Respuesta del backend:', error.response.data);
+    }
+    throw error;
+  }
+}
+
+// Función para obtener días con turnos en un mes específico
+export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: number): Promise<number[]> {
+  try {
+    const response = await axios.get(`${API_URL}/reservas/dias-con-turnos/`, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+      },
+      params: {
+        año: año,
+        mes: mes + 1, // Mes en formato 1-12
+      }
+    });
+    return response.data.dias || [];
+  } catch (error: any) {
+    console.error('Error obteniendo días con turnos:', error);
+    return [];
+  }
+}

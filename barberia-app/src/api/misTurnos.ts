@@ -48,11 +48,19 @@ export async function fetchMisTurnos(tokens: Tokens): Promise<MisTurnosResponse>
 }
 
 export async function cancelarTurno(tokens: Tokens, turnoId: number) {
-  const response = await axios.post(`${API_URL}/reservas/cancelar/${turnoId}/`, {}, {
-    headers: {
-      Authorization: `Bearer ${tokens.access}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  return response.data;
+  console.log('Cancelando turno con ID:', turnoId, 'y tokens:', tokens);
+  try {
+    const response = await axios.post(`${API_URL}/reservas/cancelar/${turnoId}/`, {}, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.log('Respuesta del backend:', error.response.data);
+    }
+    throw error; // Re-throw the error to be caught by the caller
+  }
 }

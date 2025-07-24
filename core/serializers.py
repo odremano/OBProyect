@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.utils import timezone
+from datetime import timedelta
 from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno, Negocio
 
 
@@ -234,7 +236,6 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
             })
         
         # 3. Calcular end_datetime basado en la duración del servicio
-        from datetime import timedelta
         end_datetime = start_datetime + timedelta(minutes=servicio.duration_minutes)
         data['end_datetime'] = end_datetime
         
@@ -389,9 +390,6 @@ class MisTurnosSerializer(serializers.ModelSerializer):
     
     def get_puede_cancelar(self, obj):
         """Determinar si el turno se puede cancelar"""
-        from django.utils import timezone
-        from datetime import timedelta
-        
         # Solo se puede cancelar si:
         # 1. El turno está pendiente o confirmado
         # 2. Faltan más de 2 horas para el turno
@@ -400,3 +398,75 @@ class MisTurnosSerializer(serializers.ModelSerializer):
         
         tiempo_restante = obj.start_datetime - timezone.now()
         return tiempo_restante > timedelta(hours=2) 
+
+
+# =============================================================================
+# SERIALIZERS DE PROFESIONALES (SISTEMA COMPLETO)
+# =============================================================================        
+class HorarioDisponibilidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HorarioDisponibilidad
+        fields = ['id', 'day_of_week', 'start_time', 'end_time', 'is_recurring', 'profesional']
+        read_only_fields = ['profesional']
+
+    def create(self, validated_data):
+        profesional = self.context.get('profesional')
+        negocio = profesional.negocio  # Asume que el profesional tiene un campo negocio
+        return HorarioDisponibilidad.objects.create(
+            profesional=profesional,
+            negocio=negocio,
+            **validated_data
+        ) 
+
+class AgendaProfesionalSerializer(serializers.ModelSerializer):
+    """
+    Serializer para mostrar los turnos de un profesional en su agenda.
+    Incluye información del cliente en lugar del profesional.
+    """
+    cliente_name = serializers.CharField(source='cliente.get_full_name', read_only=True)
+    cliente_phone = serializers.CharField(source='cliente.phone_number', read_only=True)
+    
+    servicio_name = serializers.CharField(source='servicio.name', read_only=True)
+    servicio_description = serializers.CharField(source='servicio.description', read_only=True)
+    servicio_price = serializers.DecimalField(source='servicio.price', max_digits=10, decimal_places=2, read_only=True)
+    servicio_duration = serializers.IntegerField(source='servicio.duration_minutes', read_only=True)
+    
+    # Campos calculados
+    fecha = serializers.SerializerMethodField()
+    hora_inicio = serializers.SerializerMethodField()
+    hora_fin = serializers.SerializerMethodField()
+    puede_cancelar = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Turno
+        fields = [
+            'id', 'start_datetime', 'end_datetime', 'status', 'notes', 'created_at',
+            'cliente_name', 'cliente_phone',
+            'servicio_name', 'servicio_description', 'servicio_price', 'servicio_duration',
+            'fecha', 'hora_inicio', 'hora_fin', 'puede_cancelar'
+        ]
+    
+    def get_fecha(self, obj):
+        """Devolver fecha en formato legible"""
+        if obj.start_datetime:
+            return obj.start_datetime.strftime('%d/%m/%Y')
+        return None
+    
+    def get_hora_inicio(self, obj):
+        """Devolver hora de inicio en formato legible"""
+        if obj.start_datetime:
+            return obj.start_datetime.strftime('%H:%M')
+        return None
+    
+    def get_hora_fin(self, obj):
+        """Devolver hora de fin en formato legible"""
+        if obj.end_datetime:
+            return obj.end_datetime.strftime('%H:%M')
+        return None
+    
+    def get_puede_cancelar(self, obj):
+        """Determinar si el turno se puede cancelar (2 horas antes)"""
+        if obj.start_datetime:
+            tiempo_limite = obj.start_datetime - timedelta(hours=2)
+            return timezone.now() < tiempo_limite and obj.status in ['pendiente', 'confirmado']
+        return False 

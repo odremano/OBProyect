@@ -24,6 +24,13 @@ const MoreScreen: React.FC = () => {
 
   // Usar colores del contexto siempre
   const screenColors = themeColors;
+  
+  // Debug: verificar qué color se está usando
+  console.log('=== MoreScreen Debug ===');
+  console.log('themeColors.textSecondary:', themeColors.textSecondary);
+  console.log('screenColors.textSecondary:', screenColors.textSecondary);
+  console.log('themeColors === screenColors:', themeColors === screenColors);
+  console.log('themeColors object:', JSON.stringify(themeColors, null, 2));
 
   // Función para mostrar pantallas que aún no están implementadas
   const showComingSoon = (feature: string) => {
@@ -100,7 +107,7 @@ const MoreScreen: React.FC = () => {
         <Text style={[styles.headerTitle, { color: screenColors.white }]}>
           {isAuthenticated ? `Hola, ${userName}` : 'Menú Principal'}
         </Text>
-        <Text style={[styles.headerSubtitle, { color: screenColors.light3 }]}>
+        <Text style={[styles.headerSubtitle, { color: screenColors.light2 }]}>
           {isAuthenticated 
             ? 'Gestiona tu cuenta y preferencias'
             : 'Configura la aplicación a tu gusto'
@@ -134,9 +141,9 @@ const MoreScreen: React.FC = () => {
                     />
                   </View>
                   <View style={styles.textContainer}>
-                    <Text style={[styles.menuTitle, { color: screenColors.white }]}>{item.title}</Text>
+                    <Text style={[styles.menuTitle, { color: screenColors.text }]}>{item.title}</Text>
                     {item.description && (
-                      <Text style={[styles.menuDescription, { color: screenColors.light3 }]}>{item.description}</Text>
+                      <Text style={[styles.menuDescription, { color: screenColors.textSecondary }]}>{item.description}</Text>
                     )}
                   </View>
                 </View>
@@ -169,9 +176,14 @@ const MoreScreen: React.FC = () => {
                   />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={[styles.menuTitle, { color: screenColors.white }]}>{item.title}</Text>
+                  <Text style={[styles.menuTitle, { color: screenColors.text }]}>{item.title}</Text>
                   {item.description && (
-                    <Text style={[styles.menuDescription, { color: screenColors.light3 }]}>{item.description}</Text>
+                    <Text style={[styles.menuDescription, { color: screenColors.textSecondary }]}>
+                      {(() => {
+                        console.log('Aplicando color textSecondary:', screenColors.textSecondary, 'para item:', item.title);
+                        return item.description;
+                      })()}
+                    </Text>
                   )}
                 </View>
               </View>

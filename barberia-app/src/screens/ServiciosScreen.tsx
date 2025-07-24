@@ -6,6 +6,7 @@ import { fetchServicios, Servicio } from '../api/servicios';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { formatearPrecio } from './VerAgendaScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Servicios'>;
 
@@ -70,23 +71,23 @@ export default function ServiciosScreen({ route, navigation }: Props) {
                   <Icon name="cut" size={24} color={colors.white} />
                 </View>
                 <View style={styles.textInfo}>
-                  <Text style={[styles.servicioName, { color: colors.white }]}>
+                  <Text style={[styles.servicioName, { color: colors.text }]}>
                     {item.name}
                   </Text>
-                  <Text style={[styles.servicioDescription, { color: colors.light3 }]}>
+                  <Text style={[styles.servicioDescription, { color: colors.textSecondary }]}>
                     {item.description || 'Servicio profesional de barbería'}
                   </Text>
                   <View style={styles.servicioDetails}>
                     <View style={styles.detailItem}>
-                      <Icon name="time" size={12} color={colors.light3} />
-                      <Text style={[styles.detailText, { color: colors.light3 }]}>
+                      <Icon name="time" size={12} color={colors.textSecondary} />
+                      <Text style={[styles.detailText, { color: colors.textSecondary }]}>
                         {item.duration_minutes} min
                       </Text>
                     </View>
                     <View style={styles.detailItem}>
-                      <Icon name="cash" size={12} color={colors.light3} />
-                      <Text style={[styles.detailText, { color: colors.light3 }]}>
-                        ${item.price}
+                      <Icon name="cash" size={12} color={colors.textSecondary} />
+                      <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                        {formatearPrecio(item.price)}
                       </Text>
                     </View>
                   </View>

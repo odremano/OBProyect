@@ -9,6 +9,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { reservarTurno, obtenerHorariosDisponibles, HorariosResponse } from '../api/turnos';
+import { formatearPrecio } from './VerAgendaScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReservaTurno'>;
 
@@ -68,10 +69,18 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const isStep2Complete = isStep1Complete && !!selectedServicio;
   const isStep3Complete = isStep2Complete && !!selectedDate && !!selectedTime;
 
+  // Función para convertir fecha a string local sin problemas de zona horaria
+  const formatDateForAPI = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Cargar horarios disponibles cuando se selecciona una fecha
   useEffect(() => {
     if (selectedProfesional && selectedServicio && selectedDate && tokens && negocioId) {
-      const fechaStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const fechaStr = formatDateForAPI(selectedDate); // Usar función local
       
       setLoadingHorarios(true);
       // Resetear estados anteriores
@@ -153,7 +162,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: colors.white }]}>Cargando...</Text>
+          <Text style={[styles.loadingText, { color: colors.text }]}>Cargando...</Text>
         </View>
       </SafeAreaView>
     );
@@ -181,7 +190,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
       >
         {/* Step 1: Seleccionar Profesional */}
         <View style={styles.stepContainer}>
-          <Text style={[styles.stepTitle, { color: colors.white }]}>Selecciona el profesional</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Selecciona el profesional</Text>
           <TouchableOpacity
             style={[
               styles.inputContainer,
@@ -211,10 +220,10 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
                    </View>
                  )}
                   <View>
-                    <Text style={[styles.selectedName, { color: colors.white }]}>
+                    <Text style={[styles.selectedName, { color: colors.text }]}>
                       {selectedProfesional.user_details.first_name} {selectedProfesional.user_details.last_name}
                     </Text>
-                    <Text style={[styles.selectedDescription, { color: colors.light3 }]}>
+                    <Text style={[styles.selectedDescription, { color: colors.textSecondary }]}>
                       {selectedProfesional.bio || 'Especialista en cortes modernos y clásicos con 6 años de experiencia'}
                     </Text>
                   </View>
@@ -223,8 +232,8 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               </View>
             ) : (
               <View style={styles.inputContent}>
-                <Text style={[styles.inputPlaceholder, { color: colors.light2 }]}>¿Con quién quieres atenderte?</Text>
-                <Icon name="chevron-forward" size={20} color={colors.light2} />
+                <Text style={[styles.inputPlaceholder, { color: colors.textSecondary }]}>¿Con quién quieres atenderte?</Text>
+                <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
               </View>
             )}
           </TouchableOpacity>
@@ -232,7 +241,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
         {/* Step 2: Seleccionar Servicio */}
         <View style={[styles.stepContainer, !isStep1Complete && styles.stepDisabled]}>
-          <Text style={[styles.stepTitle, { color: colors.white }, !isStep1Complete && { color: colors.dark3 }]}>Selecciona servicio</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }, !isStep1Complete && { color: colors.dark3 }]}>Selecciona servicio</Text>
           <TouchableOpacity
             style={[
               styles.inputContainer,
@@ -259,24 +268,22 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
                     <Icon name="cut" size={24} color={colors.white} />
                   </View>
                   <View style={styles.selectedServiceTextInfo}>
-                    <Text style={[styles.selectedServiceName, { color: colors.white }]}>
+                    <Text style={[styles.selectedServiceName, { color: colors.text }]}>
                       {selectedServicio.name}
                     </Text>
-                    <Text style={[styles.selectedServiceDescription, { color: colors.light3 }]}>
+                    <Text style={[styles.selectedServiceDescription, { color: colors.textSecondary }]}>
                       {selectedServicio.description || 'Servicio profesional de barbería'}
                     </Text>
                     <View style={styles.selectedServiceDetails}>
                       <View style={styles.selectedServiceDetailItem}>
-                        <Icon name="time" size={12} color={colors.light3} />
-                        <Text style={[styles.selectedServiceDetailText, { color: colors.light3 }]}>
+                        <Icon name="time" size={12} color={colors.textSecondary} />
+                        <Text style={[styles.selectedServiceDetailText, { color: colors.textSecondary }]}>
                           {selectedServicio.duration_minutes} min
                         </Text>
                       </View>
                       <View style={styles.selectedServiceDetailItem}>
-                        <Icon name="cash" size={12} color={colors.light3} />
-                        <Text style={[styles.selectedServiceDetailText, { color: colors.light3 }]}>
-                          ${selectedServicio.price}
-                        </Text>
+                        <Icon name="cash" size={12} color={colors.textSecondary} />
+                        <Text style={[styles.selectedServiceDetailText, { color: colors.textSecondary }]}>{formatearPrecio(selectedServicio.price)}</Text>
                       </View>
                     </View>
                   </View>
@@ -287,15 +294,15 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               <View style={styles.inputContent}>
                 <Text style={[
                   styles.inputPlaceholder,
-                  { color: colors.light2 },
-                  !isStep1Complete && { color: colors.light3, opacity: 0.7 }
+                  { color: colors.textSecondary },
+                  !isStep1Complete && { color: colors.textSecondary, opacity: 0.7 }
                 ]}>
                   ¿Qué servicio vas a realizarte?
                 </Text>
                 <Icon 
                   name="chevron-forward" 
                   size={20} 
-                  color={!isStep1Complete ? colors.dark3 : colors.light3} 
+                  color={!isStep1Complete ? colors.textSecondary : colors.textSecondary} 
                 />
               </View>
             )}
@@ -304,7 +311,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
         {/* Step 3: Seleccionar Horario */}
         <View style={[styles.stepContainer, !isStep2Complete && styles.stepDisabled]}>
-          <Text style={[styles.stepTitle, { color: colors.white }, !isStep2Complete && { color: colors.dark3 }]}>Selecciona horario</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }, !isStep2Complete && { color: colors.dark3 }]}>Selecciona horario</Text>
           
           {/* Información del turno */}
           <View style={[
@@ -313,7 +320,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             !isStep2Complete && { opacity: 0.7 },
             selectedTime && { borderWidth: 1, borderColor: colors.primary }
           ]}>
-            <Text style={[styles.appointmentDate, { color: colors.light3 }, !isStep2Complete && { opacity: 0.7 }]}>
+            <Text style={[styles.appointmentDate, { color: colors.text }, !isStep2Complete && { opacity: 0.7 }]}>
               Tu turno será el día:
             </Text>
             <TouchableOpacity
@@ -323,7 +330,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             >
               <Text style={[
                 styles.appointmentDateValue, 
-                { color: colors.white },
+                { color: colors.text },
                 !isStep2Complete && { opacity: 0.7 },
                 isStep2Complete && !selectedDate && { color: colors.primary, textDecorationLine: 'underline' }
               ]}>
@@ -339,7 +346,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               )}
             </TouchableOpacity>
             
-            <Text style={[styles.appointmentTime, { color: colors.light3 }, !isStep2Complete && { opacity: 0.7 }]}>
+            <Text style={[styles.appointmentTime, { color: colors.text }, !isStep2Complete && { opacity: 0.7 }]}>
               Horarios disponibles:
             </Text>
             <TouchableOpacity
@@ -349,20 +356,20 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             >
               <Text style={[
                 styles.appointmentTimeValue, 
-                { color: colors.white },
+                { color: colors.text },
                 !selectedDate && { opacity: 0.7 },
                 selectedDate && !selectedTime && { color: colors.primary, textDecorationLine: 'underline' }
               ]}>
                 {loadingHorarios ? 'Cargando horarios...' :
-                 selectedTime ? selectedTime :
+                 selectedTime ? `${selectedTime} hs` :
                  selectedDate ? 'Seleccionar hora' : 'Seleccionar hora'}
               </Text>
-              {selectedDate && horariosDisponibles.length > 0 && (
+              {selectedDate && horariosDisponibles.length > 0 && !selectedTime && (
                 <Icon 
                   name="time" 
                   size={16} 
-                  color={selectedTime ? colors.white : colors.primary} 
-                  style={{ marginLeft: 8 }}
+                  color={colors.primary} 
+                  style={{ marginLeft: 6 }}
                 />
               )}
               {selectedDate && (
@@ -432,9 +439,9 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             {/* Header */}
             <View style={styles.timePickerHeader}>
               <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.closeButton}>
-                <Icon name="close" size={24} color={colors.white} />
+                <Icon name="close" size={24} color={colors.text} />
               </TouchableOpacity>
-              <Text style={[styles.timePickerTitle, { color: colors.white }]}>Seleccionar hora</Text>
+              <Text style={[styles.timePickerTitle, { color: colors.text }]}>Seleccionar hora</Text>
               <View style={{ width: 24 }} />
             </View>
 
@@ -442,21 +449,21 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             <ScrollView style={styles.timePickerContent} showsVerticalScrollIndicator={false}>
               {profesionalNoTrabaja ? (
                 <View style={styles.noWorkDayContainer}>
-                  <Icon name="calendar-outline" size={48} color={colors.light3} style={styles.noWorkDayIcon} />
-                  <Text style={[styles.noWorkDayMessage, { color: colors.white }]}>
+                  <Icon name="calendar-outline" size={48} color={colors.primary} style={styles.noWorkDayIcon} />
+                  <Text style={[styles.noWorkDayMessage, { color: colors.text }]}>
                     {mensajeHorarios || 'El profesional no trabaja este día'}
                   </Text>
-                  <Text style={[styles.noWorkDaySubMessage, { color: colors.light3 }]}>
+                  <Text style={[styles.noWorkDaySubMessage, { color: colors.primary }]}>
                     Por favor selecciona otra fecha
                   </Text>
                 </View>
               ) : horariosDisponibles.length === 0 && !loadingHorarios ? (
                 <View style={styles.noTimesContainer}>
                   <Icon name="time-outline" size={48} color={colors.light3} style={styles.noTimesIcon} />
-                  <Text style={[styles.noTimesMessage, { color: colors.white }]}>
+                  <Text style={[styles.noTimesMessage, { color: colors.text }]}>
                     No hay horarios disponibles para esta fecha
                   </Text>
-                  <Text style={[styles.noTimesSubMessage, { color: colors.light3 }]}>
+                  <Text style={[styles.noTimesSubMessage, { color: colors.primary }]}>
                     Intenta con otra fecha
                   </Text>
                 </View>
@@ -477,8 +484,8 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
                     >
                       <Text style={[
                         styles.timeSlotText,
-                        { color: colors.white },
-                        selectedTime === horario && { color: colors.white }
+                        { color: colors.text },
+                        selectedTime === horario && { color: colors.text }
                       ]}>
                         {horario}
                       </Text>

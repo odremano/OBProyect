@@ -62,7 +62,7 @@ const SettingsScreen: React.FC = () => {
         {/* Sección de Idioma */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Idioma</Text>
-          <Text style={[styles.sectionDescription, { color: screenColors.dark3 }]}>
+          <Text style={[styles.sectionDescription, { color: screenColors.textSecondary }]}>
             Selecciona el idioma de la aplicación
           </Text>
           
@@ -74,7 +74,7 @@ const SettingsScreen: React.FC = () => {
             >
               <View style={styles.languageLeft}>
                 <Text style={styles.languageFlag}>{language.flag}</Text>
-                <Text style={[styles.languageName, { color: screenColors.light2 }]}>{language.name}</Text>
+                <Text style={[styles.languageName, { color: screenColors.text }]}>{language.name}</Text>
               </View>
               {selectedLanguage === language.code && (
                 <Icon name="checkmark-circle" size={24} color={screenColors.primary} />
@@ -93,8 +93,8 @@ const SettingsScreen: React.FC = () => {
             <View style={styles.settingLeft}>
               <Icon name="notifications" size={24} color={screenColors.primary} />
               <View style={styles.settingText}>
-                <Text style={[styles.settingTitle, { color: screenColors.light2 }]}>Notificaciones Push</Text>
-                <Text style={[styles.settingDescription, { color: screenColors.light3 }]}>
+                <Text style={[styles.settingTitle, { color: screenColors.text }]}>Notificaciones Push</Text>
+                <Text style={[styles.settingDescription, { color: screenColors.textSecondary }]}>
                   Recibir notificaciones de citas y promociones
                 </Text>
               </View>
@@ -113,8 +113,8 @@ const SettingsScreen: React.FC = () => {
             <View style={styles.settingLeft}>
               <Icon name="color-palette" size={24} color={screenColors.primary} />
               <View style={styles.settingText}>
-                <Text style={[styles.settingTitle, { color: screenColors.light2 }]}>Tema</Text>
-                <Text style={[styles.settingDescription, { color: screenColors.light3 }]}>
+                <Text style={[styles.settingTitle, { color: screenColors.text }]}>Tema</Text>
+                <Text style={[styles.settingDescription, { color: screenColors.textSecondary }]}>
                   Claro, oscuro o automático
                 </Text>
               </View>
@@ -133,8 +133,8 @@ const SettingsScreen: React.FC = () => {
             <View style={styles.settingLeft}>
               <Icon name="shield-checkmark" size={24} color={screenColors.primary} />
               <View style={styles.settingText}>
-                <Text style={[styles.settingTitle, { color: screenColors.light2 }]}>Política de Privacidad</Text>
-                <Text style={[styles.settingDescription, { color: screenColors.light3 }]}>
+                <Text style={[styles.settingTitle, { color: screenColors.text }]}>Política de Privacidad</Text>
+                <Text style={[styles.settingDescription, { color: screenColors.textSecondary }]}>
                   Ver términos y condiciones
                 </Text>
               </View>
@@ -151,25 +151,25 @@ const SettingsScreen: React.FC = () => {
         onRequestClose={() => setThemeModalVisible(false)}
       >
         <View style={modalStyles.overlay}>
-          <View style={[modalStyles.container, { backgroundColor: screenColors.light3 }]}>
+          <View style={[modalStyles.container, { backgroundColor: screenColors.background }]}>
             <Text style={[modalStyles.title, { color: screenColors.primary }]}>Selecciona el tema</Text>
             <TouchableOpacity
               style={modalStyles.option}
               onPress={() => handleSelectTheme('light')}
             >
-              <Text style={{ color: mode === 'light' ? screenColors.primaryDark : screenColors.black }}>Claro</Text>
+              <Text style={{ color: mode === 'light' ? screenColors.primaryDark : screenColors.text }}>Claro</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={modalStyles.option}
               onPress={() => handleSelectTheme('dark')}
             >
-              <Text style={{ color: mode === 'dark' ? screenColors.primaryDark : screenColors.black }}>Oscuro</Text>
+              <Text style={{ color: mode === 'dark' ? screenColors.primaryDark : screenColors.text }}>Oscuro</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={modalStyles.option}
               onPress={() => handleSelectTheme('auto')}
             >
-              <Text style={{ color: mode === 'auto' ? screenColors.primaryDark : screenColors.black }}>Automático</Text>
+              <Text style={{ color: mode === 'auto' ? screenColors.primaryDark : screenColors.text }}>Automático</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={modalStyles.cancel}

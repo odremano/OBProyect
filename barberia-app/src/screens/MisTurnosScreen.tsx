@@ -156,8 +156,15 @@ export default function MisTurnosScreen({ navigation }: Props) {
               
               Alert.alert('Turno cancelado', 'El turno ha sido cancelado correctamente.');
             } catch (error: any) {
-              console.error('Error cancelando turno:', error);
-              Alert.alert('Error', 'No se pudo cancelar el turno.');
+              if (error.response && error.response.status === 400) {
+                Alert.alert(
+                  '⏰ Ya no puedes cancelar este turno',
+                  'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitás ayuda, comunicate con el negocio.'
+                );
+              } else {
+                console.error('Error cancelando turno:', error);
+                Alert.alert('Error', 'No se pudo cancelar el turno.');
+              }
             }
           }
         }
@@ -213,7 +220,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
         {/* Próximo turno */}
         {proximoTurno ? (
           <View style={styles.seccion}>
-            <Text style={[styles.subtitulo, { color: colors.white }]}>Próximo turno</Text>
+            <Text style={[styles.subtitulo, { color: colors.text }]}>Próximo turno</Text>
             <TurnoCard 
               turno={proximoTurno} 
               onCancelar={handleCancelarTurno}
@@ -222,12 +229,12 @@ export default function MisTurnosScreen({ navigation }: Props) {
           </View>
         ) : (
           <View style={styles.seccionVacia}>
-            <Text style={[styles.subtitulo, { color: colors.white }]}>Próximo turno</Text>
-            <Text style={[styles.mensajeVacio, { color: colors.light3 }]}>
+            <Text style={[styles.subtitulo, { color: colors.text }]}>Próximo turno</Text>
+            <Text style={[styles.mensajeVacio, { color: colors.textSecondary }]}>
               Todavía no tienes turnos.{'\n'}¿Querés agendar uno ahora?
             </Text>
             <TouchableOpacity 
-              style={[styles.botonReservar, { backgroundColor: colors.background }]}
+              style={[styles.botonReservar, { backgroundColor: colors.primary }]}
               onPress={handleReservarTurno}
             >
               <Text style={[styles.textoReservar, { color: colors.white }]}>Reservar turno</Text>
@@ -238,7 +245,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
         {/* Historial */}
         {historial.length > 0 && (
           <View style={styles.seccion}>
-            <Text style={[styles.subtitulo, { color: colors.white }]}>Historial</Text>
+            <Text style={[styles.subtitulo, { color: colors.text }]}>Historial</Text>
             <FlatList
               data={historial}
               keyExtractor={item => item.id}
@@ -295,7 +302,6 @@ const styles = StyleSheet.create({
   },
   seccionVacia: {
     marginBottom: 24,
-    alignItems: 'center',
   },
   subtitulo: {
     fontSize: 18,
@@ -312,6 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
+    marginHorizontal: 32,
     alignItems: 'center',
   },
   textoReservar: {

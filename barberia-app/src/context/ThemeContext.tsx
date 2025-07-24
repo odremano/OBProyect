@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Appearance } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Interfaz para los colores del tema
 export interface ThemeColors {
@@ -30,15 +31,15 @@ export const defaultColors: ThemeColors = {
   error: '#D32F2F',
   black: '#000000',
   text: "#181818",
-  textSecondary: "#444072"
+  textSecondary: "#cccccc"
 };
 
 // En ThemeContext.tsx
 export const globalLightColors: ThemeColors = {
-  background: "#F4FAF6",
+/*  background: "#F4FAF6",
   primary: "#444072",
   primaryDark: "#6a67a5",
-  dark2: "#302D53",
+  dark2: "#FFFFFF",
   dark3: "#4A476B",
   light2: "#FFFFFF",
   light3: "#cccccc",
@@ -46,7 +47,19 @@ export const globalLightColors: ThemeColors = {
   error: "#D32F2F",
   black: "#000000",
   text: "#181818", // Negro o gris oscuro para modo claro
-  textSecondary: "#444072", // O el que prefieras
+  textSecondary: "#474747", // O el que prefieras// */
+  background: "#F4FAF6",
+  primary: "#2a2857",
+  primaryDark: "#2a2857",
+  dark2: "#FFFFFF",
+  dark3: "#4A476B",
+  light2: "#FFFFFF",
+  light3: "#cccccc",
+  white: "#FFFFFF",
+  error: "#D32F2F",
+  black: "#000000",
+  text: "#181818", // Negro o gris oscuro para modo claro
+  textSecondary: "#474747", // O el que prefieras
 };
 
 export const globalDarkColors: ThemeColors = {
@@ -100,12 +113,54 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [negocioThemeColors, setNegocioThemeColors] = useState<{ light: ThemeColors; dark: ThemeColors } | undefined>(undefined);
   const [colors, setColors] = useState<ThemeColors>(globalDarkColors);
 
+  // Función para agregar colores de texto dinámicos
+  const addTextColors = (theme: any, isDark: boolean) => ({
+    ...theme,
+    white: "#FFFFFF",
+    text: isDark ? "#FFFFFF" : "#181818",
+    textSecondary: isDark ? "#cccccc" : "#666666",
+  });
+
+  // Cargar configuración persistente al inicializar
   useEffect(() => {
-    console.log('=== ThemeProvider Debug ===');
-    console.log('mode:', mode);
-    console.log('negocioThemeColors:', negocioThemeColors ? 'existe' : 'no existe');
-    console.log('systemScheme:', Appearance.getColorScheme());
-    
+    const loadPersistedSettings = async () => {
+      try {
+        // Cargar modo de tema
+        const savedMode = await AsyncStorage.getItem('themeMode');
+        if (savedMode && ['light', 'dark', 'auto'].includes(savedMode)) {
+          setMode(savedMode as ThemeMode);
+        }
+
+        // Cargar colores del negocio
+        const negocioData = await AsyncStorage.getItem('negocio');
+        if (negocioData) {
+          const negocio = JSON.parse(negocioData);
+          if (negocio && negocio.theme_colors) {
+            setNegocioThemeColors({
+              light: addTextColors(negocio.theme_colors.light, false),
+              dark: addTextColors(negocio.theme_colors.dark, true),
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando configuración del tema:', error);
+      }
+    };
+
+    loadPersistedSettings();
+  }, []);
+
+  // Función para establecer y persistir el modo de tema
+  const setModeWithPersistence = async (newMode: ThemeMode) => {
+    setMode(newMode);
+    try {
+      await AsyncStorage.setItem('themeMode', newMode);
+    } catch (error) {
+      console.error('Error guardando modo de tema:', error);
+    }
+  };
+
+  useEffect(() => {
     let selectedColors = globalDarkColors;
     const systemScheme = Appearance.getColorScheme();
     if (negocioThemeColors) {
@@ -118,7 +173,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       else if (mode === 'auto') selectedColors = systemScheme === 'dark' ? globalDarkColors : globalLightColors;
     }
     
-    console.log('selectedColors.background:', selectedColors.background);
     setColors(selectedColors);
   }, [mode, negocioThemeColors]);
 
@@ -126,9 +180,31 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setColors(prev => ({ ...prev, ...newColors }));
   };
 
+  // Función para establecer y persistir los colores del negocio
+  const setNegocioThemeColorsWithPersistence = async (colors: { light: ThemeColors; dark: ThemeColors } | undefined) => {
+    setNegocioThemeColors(colors);
+    
+    // Si se están estableciendo colores, los guardamos en AsyncStorage
+    if (colors) {
+      try {
+        const existingNegocioData = await AsyncStorage.getItem('negocio');
+        let negocioData = existingNegocioData ? JSON.parse(existingNegocioData) : {};
+        
+        negocioData.theme_colors = {
+          light: colors.light,
+          dark: colors.dark
+        };
+        
+        await AsyncStorage.setItem('negocio', JSON.stringify(negocioData));
+      } catch (error) {
+        console.error('Error guardando colores del negocio:', error);
+      }
+    }
+  };
+
   return (
     <ThemeContext.Provider value={{
-      colors, mode, setMode, updateColors, negocioThemeColors, setNegocioThemeColors
+      colors, mode, setMode: setModeWithPersistence, updateColors, negocioThemeColors, setNegocioThemeColors: setNegocioThemeColorsWithPersistence
     }}>
       {children}
     </ThemeContext.Provider>

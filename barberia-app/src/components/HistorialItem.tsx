@@ -57,12 +57,15 @@ export default function HistorialItem({ turno }: HistorialItemProps) {
   return (
     <View style={[styles.item, { backgroundColor: colors.dark2 }]}> 
       <View style={styles.fechaContainer}>
-        <Text style={[styles.fecha, { color: colors.light3 }]}>{formatFecha(turno.fechaObj, turno.fecha)}</Text>
-        <Text style={[styles.profesionalNombre, { color: colors.white }]}>{turno.profesional}</Text>
+        <Text style={[styles.fecha, { color: colors.textSecondary }]}>
+          {formatFecha(turno.fechaObj, turno.fecha)}
+          {turno.hora ? ` - ${turno.hora}` : ''}
+        </Text>
+        <Text style={[styles.profesionalNombre, { color: colors.text }]}>{turno.profesional}</Text>
       </View>
       
       <View style={styles.detallesContainer}>
-        <Text style={[styles.servicio, { color: colors.light2 }]}>{turno.servicio}</Text>
+        <Text style={[styles.servicio, { color: colors.textSecondary }]}>{turno.servicio}</Text>
         <Text 
           style={[styles.estado, { color: getEstadoColor(turno.estado) }]}
         >

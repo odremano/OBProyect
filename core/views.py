@@ -2,16 +2,20 @@ from django.shortcuts import render
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from datetime import datetime, timedelta
+from rest_framework import serializers
 
 from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio
 from .serializers import (
     UsuarioSerializer, RegistroSerializer, LoginSerializer,
     ServicioSerializer, ProfesionalSerializer, TurnoBasicoSerializer,
-    CrearTurnoSerializer, DisponibilidadConsultaSerializer, MisTurnosSerializer
+    CrearTurnoSerializer, DisponibilidadConsultaSerializer, MisTurnosSerializer, HorarioDisponibilidadSerializer,
+    AgendaProfesionalSerializer
 )
 
 
@@ -533,6 +537,20 @@ def consultar_disponibilidad(request):
         hora_fin = timezone.datetime.combine(fecha, horario.end_time)
         
         while hora_actual + timezone.timedelta(minutes=duracion_servicio) <= hora_fin:
+            # Filtrar horarios pasados si la fecha es hoy
+            ahora = timezone.now()
+            # Asegúrate de que fecha es date, ahora es datetime
+            if isinstance(fecha, str):
+                from datetime import datetime as dt
+                fecha = dt.strptime(fecha, "%Y-%m-%d").date()
+            if fecha == ahora.date():
+                # Si quieres filtrar a partir de 1 hora después de la actual:
+                hora_limite = (ahora + timezone.timedelta(hours=1)).time()
+                # Asegúrate de que hora_actual es datetime
+                if hora_actual.time() < hora_limite:
+                    hora_actual += timezone.timedelta(minutes=30)
+                    continue
+
             # Verificar si hay conflicto con turnos existentes
             hay_conflicto = False
             
@@ -569,3 +587,299 @@ def consultar_disponibilidad(request):
         'horarios_disponibles': horarios_disponibles,
         'total_disponibles': len(horarios_disponibles)
     })
+# =============================================================================
+# SERIALIZERS DE DISPONIBILIDAD PROFESIONALES (SISTEMA COMPLETO)
+# ============================================================================= 
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def disponibilidad_profesional(request):
+    try:
+        profesional = Profesional.objects.get(user=request.user)
+    except Profesional.DoesNotExist:
+        return Response({'detail': 'No eres un profesional.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'GET':
+        horarios = HorarioDisponibilidad.objects.filter(profesional=profesional)
+        serializer = HorarioDisponibilidadSerializer(horarios, many=True)
+        return Response(serializer.data)
+
+    if request.method == 'PUT':
+        # El frontend debe enviar una lista de objetos con day_of_week, start_time, end_time
+        HorarioDisponibilidad.objects.filter(profesional=profesional).delete()
+        data = request.data if isinstance(request.data, list) else request.data.get('horarios', [])
+        for item in data:
+            item['profesional'] = profesional.id
+        serializer = HorarioDisponibilidadSerializer(data=data, many=True, context={'profesional': profesional})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============================================================================= 
+# ENDPOINTS PARA LA AGENDA DEL PROFESIONAL
+# =============================================================================
+
+class AgendaProfesionalView(APIView):
+    """
+    API para obtener los turnos de un profesional en una fecha específica.
+    
+    GET /api/v1/reservas/agenda-profesional/?fecha=YYYY-MM-DD
+    
+    Devuelve todos los turnos del profesional para la fecha especificada.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        # Solo profesionales pueden ver su agenda
+        if request.user.role != 'profesional':
+            return Response({
+                'success': False,
+                'message': 'Solo los profesionales pueden ver su agenda'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            profesional = Profesional.objects.get(user=request.user)
+        except Profesional.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Usuario profesional no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Obtener fecha del parámetro
+        fecha_str = request.GET.get('fecha')
+        if not fecha_str:
+            return Response({
+                'success': False,
+                'message': 'Parámetro fecha es requerido (formato: YYYY-MM-DD)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            from datetime import datetime
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'success': False,
+                'message': 'Formato de fecha inválido. Use YYYY-MM-DD'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener turnos del profesional para la fecha específica
+        turnos = Turno.objects.filter(
+            profesional=profesional,
+            start_datetime__date=fecha,
+            negocio=profesional.negocio
+        ).order_by('start_datetime')
+        
+        # Serializar los turnos
+        serializer = AgendaProfesionalSerializer(turnos, many=True)
+        
+        return Response({
+            'success': True,
+            'fecha': fecha_str,
+            'turnos': serializer.data,
+            'total_turnos': len(serializer.data)
+        })
+
+
+class DiasConTurnosView(APIView):
+    """
+    API para obtener los días que tienen turnos en un mes específico.
+    
+    GET /api/v1/reservas/dias-con-turnos/?año=2024&mes=7
+    
+    Devuelve una lista de números de días que tienen turnos programados.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        # Solo profesionales pueden ver su agenda
+        if request.user.role != 'profesional':
+            return Response({
+                'success': False,
+                'message': 'Solo los profesionales pueden ver su agenda'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            profesional = Profesional.objects.get(user=request.user)
+        except Profesional.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Usuario profesional no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Obtener parámetros año y mes
+        año_str = request.GET.get('año')
+        mes_str = request.GET.get('mes')
+        
+        if not año_str or not mes_str:
+            return Response({
+                'success': False,
+                'message': 'Parámetros año y mes son requeridos'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            año = int(año_str)
+            mes = int(mes_str)
+            if mes < 1 or mes > 12:
+                raise ValueError("Mes debe estar entre 1 y 12")
+        except ValueError:
+            return Response({
+                'success': False,
+                'message': 'Año y mes deben ser números válidos'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener turnos del profesional para el mes específico
+        turnos = Turno.objects.filter(
+            profesional=profesional,
+            start_datetime__year=año,
+            start_datetime__month=mes,
+            negocio=profesional.negocio,
+            status__in=['pendiente', 'confirmado']  # Solo turnos activos
+        ).values_list('start_datetime__day', flat=True).distinct()
+        
+        # Convertir a lista de enteros
+        dias_con_turnos = list(set(turnos))
+        dias_con_turnos.sort()
+        
+        return Response({
+            'success': True,
+            'año': año,
+            'mes': mes,
+            'dias': dias_con_turnos,
+            'total_dias': len(dias_con_turnos)
+        })
+
+
+class CompletarTurnoView(APIView):
+    """
+    API para marcar un turno como completado.
+    
+    POST /api/v1/reservas/completar/{turno_id}/
+    
+    Marca el turno especificado como completado.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, turno_id):
+        # Solo profesionales pueden completar turnos
+        if request.user.role != 'profesional':
+            return Response({
+                'success': False,
+                'message': 'Solo los profesionales pueden completar turnos'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            profesional = Profesional.objects.get(user=request.user)
+        except Profesional.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Usuario profesional no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            turno = Turno.objects.get(
+                id=turno_id,
+                profesional=profesional,
+                negocio=profesional.negocio
+            )
+        except Turno.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Turno no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar que el turno se pueda completar
+        if turno.status == 'completado':
+            return Response({
+                'success': False,
+                'message': 'El turno ya está marcado como completado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if turno.status == 'cancelado':
+            return Response({
+                'success': False,
+                'message': 'No se puede completar un turno cancelado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Marcar como completado
+        turno.status = 'completado'
+        turno.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Turno marcado como completado exitosamente',
+            'turno_id': turno.id,
+            'nuevo_status': turno.status
+        })
+
+
+class CancelarTurnoProfesionalView(APIView):
+    """
+    API para que un profesional cancele un turno de su agenda.
+    
+    POST /api/v1/reservas/cancelar-profesional/{turno_id}/
+    
+    Permite a los profesionales cancelar turnos de su agenda.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, turno_id):
+        # Solo profesionales pueden cancelar turnos de su agenda
+        if request.user.role != 'profesional':
+            return Response({
+                'success': False,
+                'message': 'Solo los profesionales pueden cancelar turnos de su agenda'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            profesional = Profesional.objects.get(user=request.user)
+        except Profesional.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Usuario profesional no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            # Verificar que el turno existe y pertenece al profesional
+            turno = Turno.objects.get(
+                id=turno_id,
+                profesional=profesional,
+                negocio=profesional.negocio
+            )
+        except Turno.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Turno no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar que el turno se puede cancelar
+        if turno.status == 'cancelado':
+            return Response({
+                'success': False,
+                'message': 'El turno ya está cancelado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if turno.status == 'completado':
+            return Response({
+                'success': False,
+                'message': 'No se puede cancelar un turno completado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar tiempo límite (2 horas de anticipación)
+        tiempo_restante = turno.start_datetime - timezone.now()
+        if tiempo_restante.total_seconds() < 7200:  # 2 horas = 7200 segundos
+            return Response({
+                'success': False,
+                'message': 'No se puede cancelar un turno con menos de 2 horas de anticipación'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cancelar el turno
+        turno.status = 'cancelado'
+        turno.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Turno cancelado exitosamente',
+            'turno_id': turno.id,
+            'nuevo_status': turno.status
+        })

@@ -32,50 +32,87 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
       <View style={styles.content}>
-        <Text style={[styles.greeting, { color: colors.text }]}>Hola, {user?.first_name || 'Usuario'}</Text>
-        <View style={styles.buttonsContainer}>
-          <View style={styles.topRow}>
-            <TouchableOpacity 
-              style={[styles.smallButton, { backgroundColor: colors.dark2 }]}
-              onPress={() => navigation.navigate('Servicios', { modal: true })}
+        <Text style={[styles.greeting, { color: colors.text }]}>
+          ¡Bienvenido, {user?.first_name ? `${user.first_name}!` : 'Usuario!'}
+        </Text>
+        {user?.role === 'profesional' ? (
+          <View style={styles.buttonsContainer}>
+            <View style={styles.topRow}>
+              <TouchableOpacity
+                style={[styles.smallButton, { backgroundColor: colors.dark2 }]}
+                onPress={() => navigation.navigate('MiDisponibilidad')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
+                  <Icon name="time-outline" size={30} color={colors.white} />
+                </View>
+                <Text style={[styles.buttonText, { color: colors.text }]}>Mi disponibilidad</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.smallButton, { backgroundColor: colors.dark2 }]}
+                onPress={() => navigation.navigate('Ganancias')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
+                  <Icon name="cash-outline" size={28} color={colors.white} />
+                </View>
+                <Text style={[styles.buttonText, { color: colors.text }]}>Ganancias</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.largeButton, { backgroundColor: colors.dark2 }]}
+              onPress={() => navigation.navigate('VerAgenda')}
               activeOpacity={0.8}
             >
-              <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
-                <Icon name="cut" size={30} color={colors.white} />
+              <View style={[styles.largeIconCircle, { backgroundColor: colors.primary }]}>
+                <Icon name="calendar-outline" size={32} color={colors.white} />
               </View>
-              <Text style={[styles.buttonText, { color: colors.light2 }]}>Ver servicios</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.smallButton, { backgroundColor: colors.dark2 }]}
-              onPress={() => navigation.navigate('MisTurnos')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
-                <Icon name="calendar" size={28} color={colors.white} />
-              </View>
-              <Text style={[styles.buttonText, { color: colors.light2 }]}>Mis turnos</Text>
+              <Text style={[styles.largeButtonText, { color: colors.text }]}>Ver agenda</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity 
-            style={[styles.largeButton, { backgroundColor: colors.dark2 }]}
-            onPress={() => navigation.navigate('ReservaTurno', {})}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.largeIconCircle, { backgroundColor: colors.primary }]}>
-              <Icon name="play" size={32} color={colors.white} />
+        ) : (
+          <View style={styles.buttonsContainer}>
+            <View style={styles.topRow}>
+              <TouchableOpacity
+                style={[styles.smallButton, { backgroundColor: colors.dark2 }]}
+                onPress={() => navigation.navigate('Servicios', { modal: true })}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
+                  <Icon name="cut" size={30} color={colors.white} />
+                </View>
+                <Text style={[styles.buttonText, { color: colors.text }]}>Ver servicios</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.smallButton, { backgroundColor: colors.dark2 }]}
+                onPress={() => navigation.navigate('MisTurnos')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
+                  <Icon name="calendar" size={28} color={colors.white} />
+                </View>
+                <Text style={[styles.buttonText, { color: colors.text }]}>Mis turnos</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.largeButtonText, { color: colors.light2 }]}>Reservar turno</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.largeButton, { backgroundColor: colors.dark2 }]}
+              onPress={() => navigation.navigate('ReservaTurno', {})}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.largeIconCircle, { backgroundColor: colors.primary }]}>
+                <Icon name="play" size={32} color={colors.white} />
+              </View>
+              <Text style={[styles.largeButtonText, { color: colors.text }]}>Reservar turno</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1
   },
   header: {
@@ -92,7 +129,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 160,
-    height: 160, 
+    height: 160,
     resizeMode: 'contain',
   },
   content: {

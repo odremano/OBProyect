@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useColors } from '../theme/colors';
+import { formatearPrecio } from '../screens/VerAgendaScreen';
 
 interface TurnoCardProps {
   turno: {
@@ -51,17 +52,17 @@ export default function TurnoCard({ turno, onCancelar, puedeCancel = true }: Tur
           </View>
         )}
         <View style={styles.info}>
-          <Text style={[styles.profesional, { color: colors.white }]}>{turno.profesional}</Text>
-          <Text style={[styles.servicio, { color: colors.light2 }]}>{turno.servicio}</Text>
+          <Text style={[styles.profesional, { color: colors.text }]}>{turno.profesional}</Text>
+          <Text style={[styles.servicio, { color: colors.textSecondary }]}>{turno.servicio}</Text>
         </View>
       </View>
       
       <View style={styles.detalles}>
         <View style={styles.rowFechaPrecio}>
-          <Text style={[styles.fecha, { color: colors.light3 }]}>{formatFecha(turno.fechaObj, turno.fecha)}</Text>
-          <Text style={[styles.precio, { color: colors.white }]}>{turno.precio}</Text>
+          <Text style={[styles.fecha, { color: colors.textSecondary }]}>{formatFecha(turno.fechaObj, turno.fecha)}</Text>
+          <Text style={[styles.precio, { color: colors.text }]}>{formatearPrecio(turno.precio)}</Text>
         </View>
-        <Text style={[styles.hora, { color: colors.white }]}>{turno.hora}</Text>
+        <Text style={[styles.hora, { color: colors.text }]}>{turno.hora}</Text>
       </View>
 
       {puedeCancel && (

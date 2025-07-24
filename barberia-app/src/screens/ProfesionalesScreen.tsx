@@ -252,10 +252,10 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
                   </View>
                 )}
                 <View style={styles.textInfo}>
-                  <Text style={[styles.profesionalName, { color: colors.white }]}>
+                  <Text style={[styles.profesionalName, { color: colors.text }]}>
                     {item.user_details.first_name} {item.user_details.last_name}
                   </Text>
-                  <Text style={[styles.profesionalBio, { color: colors.light3 }]}>
+                  <Text style={[styles.profesionalBio, { color: colors.textSecondary }]}>
                     {mostrarBioProfesional(item)}
                   </Text>
                   {mostrarEstadoDisponibilidad(item) && (
