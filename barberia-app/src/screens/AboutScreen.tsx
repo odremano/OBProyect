@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, I
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../context/ThemeContext';
+import DynamicLogo from '../components/DynamicLogo';
 
 const AboutScreen: React.FC = () => {
   const { colors: themeColors } = useTheme();
@@ -48,8 +49,7 @@ const AboutScreen: React.FC = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Logo y nombre de la app */}
         <View style={styles.appSection}>
-          <Image
-            source={require('../../assets/logo.png')}
+          <DynamicLogo
             style={styles.logo}
             resizeMode="contain"
           />
@@ -171,12 +171,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 52,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
   backButton: {
-    padding: 8,
+    padding: 4,
     marginRight: 8,
   },
   headerTitle: {

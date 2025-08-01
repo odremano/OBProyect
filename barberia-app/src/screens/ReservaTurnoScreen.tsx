@@ -7,11 +7,26 @@ import { fetchServicios, Servicio } from '../api/servicios';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { reservarTurno, obtenerHorariosDisponibles, HorariosResponse } from '../api/turnos';
 import { formatearPrecio } from './VerAgendaScreen';
 
+// Import condicional de react-native-date-picker
+let DatePicker: any = null;
+try {
+  DatePicker = require('react-native-date-picker').default;
+} catch (error) {
+  // react-native-date-picker no está disponible (Expo Go)
+  DatePicker = null;
+}
+
 type Props = NativeStackScreenProps<RootStackParamList, 'ReservaTurno'>;
+
+// Función para detectar si estamos en Expo Go
+const isExpoGo = () => {
+  return Constants.executionEnvironment === 'storeClient';
+};
 
 export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
@@ -178,7 +193,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         >
           <Icon name="close" size={24} color={colors.white}  />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.white }]}>Reservar turno</Text>
+        <Text style={[styles.headerTitle, { color: colors.white }]}>Reserva de turno</Text>
         <View style={{ width: 20 }} />
       </View>
 
@@ -190,7 +205,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
       >
         {/* Step 1: Seleccionar Profesional */}
         <View style={styles.stepContainer}>
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Selecciona el profesional</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Profesional</Text>
           <TouchableOpacity
             style={[
               styles.inputContainer,
@@ -232,7 +247,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               </View>
             ) : (
               <View style={styles.inputContent}>
-                <Text style={[styles.inputPlaceholder, { color: colors.textSecondary }]}>¿Con quién quieres atenderte?</Text>
+                <Text style={[styles.inputPlaceholder, { color: colors.textSecondary }]}>¿Con quién querés atenderte?</Text>
                 <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
               </View>
             )}
@@ -241,7 +256,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
         {/* Step 2: Seleccionar Servicio */}
         <View style={[styles.stepContainer, !isStep1Complete && styles.stepDisabled]}>
-          <Text style={[styles.stepTitle, { color: colors.text }, !isStep1Complete && { color: colors.dark3 }]}>Selecciona servicio</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }, !isStep1Complete && { color: colors.dark3 }]}>Servicio</Text>
           <TouchableOpacity
             style={[
               styles.inputContainer,
@@ -311,7 +326,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
         {/* Step 3: Seleccionar Horario */}
         <View style={[styles.stepContainer, !isStep2Complete && styles.stepDisabled]}>
-          <Text style={[styles.stepTitle, { color: colors.text }, !isStep2Complete && { color: colors.dark3 }]}>Selecciona horario</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }, !isStep2Complete && { color: colors.dark3 }]}>Fecha y horario</Text>
           
           {/* Información del turno */}
           <View style={[
@@ -415,21 +430,50 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         </View>
       </ScrollView>
 
-      {/* Date Picker Modal */}
+      {/* Date Picker Modal - Inteligente según entorno */}
       {showDatePicker && (
-        <View style={styles.datePickerOverlay}>
-          <View style={[styles.datePickerContainer, { backgroundColor: colors.background }]}>
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={selectedDate || new Date()}
+        <>
+          {isExpoGo() || !DatePicker ? (
+            // Expo Go: Usar @react-native-community/datetimepicker
+            <View style={styles.datePickerOverlay}>
+              <View style={[styles.datePickerContainer, { backgroundColor: colors.background }]}>
+                <DateTimePicker
+                  testID="dateTimePicker"
+                  value={selectedDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                  minimumDate={new Date()}
+                  maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
+                />
+              </View>
+            </View>
+          ) : (
+            // Development Build: Usar react-native-date-picker
+            <DatePicker
+              modal
+              open={showDatePicker}
+              date={selectedDate || new Date()}
               mode="date"
-              display="default"
-              onChange={handleDateChange}
-          minimumDate={new Date()}
-              maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)} // 30 días adelante
+              minimumDate={new Date()}
+              maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
+              onConfirm={(date: Date) => {
+                setShowDatePicker(false);
+                setSelectedDate(date);
+                setHorariosDisponibles([]);
+                setSelectedTime(null);
+                setLoadingHorarios(false);
+              }}
+              onCancel={() => {
+                setShowDatePicker(false);
+              }}
+              theme={colors.background === '#181818' ? 'dark' : 'light'}
+              title="Seleccionar fecha"
+              confirmText="Confirmar"
+              cancelText="Cancelar"
             />
-          </View>
-        </View>
+          )}
+        </>
       )}
 
       {/* Time Picker Modal */}

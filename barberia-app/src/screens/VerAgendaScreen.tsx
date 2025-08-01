@@ -364,7 +364,7 @@ const VerAgendaScreen = () => {
             >
               <View style={styles.turnoHeader}>
                 <Text style={[styles.turnoHora, { color: colors.text }]}>{turno.hora} hs</Text>
-                <Text style={[styles.turnoFecha, { color: colors.text }]}>
+                <Text style={[styles.turnoFecha, { color: colors.textSecondary }]}>
                   {formatearFechaCompleta(selectedDate)}
                 </Text>
               </View>

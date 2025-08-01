@@ -15,7 +15,7 @@ from .serializers import (
     UsuarioSerializer, RegistroSerializer, LoginSerializer,
     ServicioSerializer, ProfesionalSerializer, TurnoBasicoSerializer,
     CrearTurnoSerializer, DisponibilidadConsultaSerializer, MisTurnosSerializer, HorarioDisponibilidadSerializer,
-    AgendaProfesionalSerializer
+    AgendaProfesionalSerializer, CambiarContrasenaSerializer
 )
 
 
@@ -82,11 +82,23 @@ class LoginView(APIView):
                 # Generar tokens JWT
                 refresh = RefreshToken.for_user(user)
                 
+                # Obtener datos del usuario
+                user_data = UsuarioSerializer(user, context={'request': request}).data
+                
+                # Si es un profesional, obtener su foto de perfil
+                if user.role == 'profesional':
+                    try:
+                        profesional = Profesional.objects.get(user=user)
+                        if profesional.profile_picture_url:
+                            user_data['profile_picture_url'] = profesional.profile_picture_url
+                    except Profesional.DoesNotExist:
+                        pass  # El usuario es profesional pero no tiene registro en Profesional
+                
                 # Preparar respuesta base
                 response_data = {
                     'success': True,
                     'message': 'Login exitoso',
-                    'user': UsuarioSerializer(user, context={'request': request}).data,
+                    'user': user_data,
                     'tokens': {
                         'refresh': str(refresh),
                         'access': str(refresh.access_token),
@@ -883,3 +895,48 @@ class CancelarTurnoProfesionalView(APIView):
             'turno_id': turno.id,
             'nuevo_status': turno.status
         })
+
+
+class CambiarContrasenaView(APIView):
+    """
+    API para cambiar contraseña del usuario autenticado.
+    
+    POST /api/v1/auth/cambiar-contrasena/
+    
+    Requiere:
+    - current_password: Contraseña actual
+    - new_password: Nueva contraseña  
+    - new_password_confirm: Confirmación de nueva contraseña
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        serializer = CambiarContrasenaSerializer(
+            data=request.data, 
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            # Cambiar la contraseña
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            
+            # Opcional: Invalidar todos los tokens JWT existentes
+            # para forzar re-login en todos los dispositivos
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'success': True,
+                'message': 'Contraseña cambiada exitosamente',
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'success': False,
+            'message': 'Error al cambiar contraseña',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)

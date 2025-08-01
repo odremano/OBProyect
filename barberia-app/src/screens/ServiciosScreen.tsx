@@ -118,20 +118,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
+    paddingTop: 56,
   },
   backButton: {
-    padding: 4,
+    marginBottom: 20,
   },
   closeButton: {
-    padding: 4,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
   listContainer: {

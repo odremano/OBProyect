@@ -1,102 +1,154 @@
+/*
+========================================
+ORDEMA ADMIN THEME
+========================================
+Sistema de colores personalizable para Django Admin
+Basado en variables CSS para fácil personalización por negocio
+*/
+
+/* Variables CSS para colores base de Ordema */
+:root {
+    /* Colores principales de Ordema */
+    --ordema-primary: #444072;
+    --ordema-primary-dark: #2a2857;
+    --ordema-dark2: #302D53;
+    --ordema-dark3: #4A476B;
+    --ordema-light2: #F4FAF6;
+    --ordema-light3: #cccccc;
+    --ordema-background-dark: #181818;
+    --ordema-background-light: #F4FAF6;
+    --ordema-white: #FFFFFF;
+    --ordema-black: #000000;
+    --ordema-error: #D32F2F;
+    --ordema-text-dark: #FFFFFF;
+    --ordema-text-light: #181818;
+    --ordema-text-secondary: #cccccc;
+    
+    /* Variables semánticas para fácil personalización */
+    --admin-primary: var(--ordema-primary);
+    --admin-primary-hover: var(--ordema-primary-dark);
+    --admin-background: var(--ordema-background-dark);
+    --admin-sidebar: var(--ordema-dark2);
+    --admin-content: var(--ordema-dark3);
+    --admin-text: var(--ordema-text-dark);
+    --admin-text-secondary: var(--ordema-light2);
+    --admin-input-bg: var(--ordema-light2);
+    --admin-input-text: var(--ordema-text-light);
+    --admin-error: var(--ordema-error);
+}
+
+/*
+========================================
+ESTILOS PRINCIPALES DEL ADMIN
+========================================
+*/
+
 /* Fondo general */
 body {
-    background-color: #17361E !important;
+    background-color: var(--admin-background) !important;
 }
 
 /* Header del admin */
 #header {
-    background-color: #116225 !important;
-    color: #FFFFFF !important;
+    background-color: var(--admin-primary) !important;
+    color: var(--ordema-white) !important;
 }
 
 /* Barra lateral de navegación */
 #nav-sidebar {
-    background-color: #2D5336 !important;
+    background-color: var(--admin-sidebar) !important;
 }
 
 /* Links principales */
 a {
-    color: #ffffff !important;
+    color: var(--admin-text) !important;
 }
 
 /* Links activos o seleccionados */
 #nav-sidebar .current-app .section, #nav-sidebar .current-model {
-    background-color: #116225 !important;
-    color: #FFFFFF !important;
+    background-color: var(--admin-primary) !important;
+    color: var(--ordema-white) !important;
 }
 
 /* Botones principales */
 .button, input[type="submit"], .submit-row input {
-    background-color: #178232 !important;
-    color: #FFFFFF !important;
+    background-color: var(--admin-primary) !important;
+    color: var(--ordema-white) !important;
     border: none !important;
 }
 
 .button:hover, input[type="submit"]:hover, .submit-row input:hover {
-    background-color: #116225 !important;
+    background-color: var(--admin-primary-hover) !important;
 }
 
 /* Tablas y cajas */
 .module, .grp-module, .change-form, .change-list {
-    background-color: #476B50 !important;
-    color: #FFFFFF !important;
+    background-color: var(--admin-content) !important;
+    color: var(--admin-text) !important;
 }
 
 /* Inputs y selects */
 input, select, textarea {
-    background-color: #DEEDE2 !important;
-    color: #17361E !important;
-    border: 1px solid #2D5336 !important;
+    background-color: var(--admin-input-bg) !important;
+    color: var(--admin-input-text) !important;
+    border: 1px solid var(--admin-sidebar) !important;
 }
 
 /* Mensajes de error */
 .errornote, .errorlist {
-    background-color: #D32F2F !important;
-    color: #FFFFFF !important;
+    background-color: var(--admin-error) !important;
+    color: var(--ordema-white) !important;
 }
 
 /* Cambia el color de fondo de los encabezados de sección */
 .module caption, .module .section {
-    background-color: #2D5336 !important; /* Usa aquí el color que prefieras */
-    color: #F4FAF6 !important;            /* Color del texto */
+    background-color: var(--admin-sidebar) !important;
+    color: var(--admin-text-secondary) !important;
 }
 
 /* Fondo del panel de acciones recientes */
-#recent-actions-module, .dashboard #content-related, .b readcrumbs {
-    background-color: #2D5336 !important;
-    color: #F4FAF6 !important;
+#recent-actions-module, .dashboard #content-related, .breadcrumbs {
+    background-color: var(--admin-sidebar) !important;
+    color: var(--admin-text-secondary) !important;
 }
 
 /* Título del panel */
 #recent-actions-module h2, .dashboard #content-related h2 {
-    color: #F4FAF6 !important;
+    color: var(--admin-text-secondary) !important;
 }
 
 /* Línea divisoria */
 #recent-actions-module hr, .dashboard #content-related hr {
-    border-color: #476B50 !important;
+    border-color: var(--admin-content) !important;
 }
 
 /* Texto de acciones */
 #recent-actions-module .actionlist li, .dashboard #content-related .actionlist li {
-    color: #F4FAF6 !important;
+    color: var(--admin-text-secondary) !important;
 }
 
-/* Ícono de edición (lápiz) */
+/* Íconos de acciones */
 #recent-actions-module .icon-edit, 
-.dashboard #content-related .icon-edit {
-    color: #178232 !important; /* primary */
-}
-
-/* Ícono de agregado (más) */
+.dashboard #content-related .icon-edit,
 #recent-actions-module .icon-addition, 
 .dashboard #content-related .icon-addition {
-    color: #178232 !important; /* primary */
+    color: var(--admin-primary) !important;
 }
 
-/* Ícono de eliminación (equis) */
 #recent-actions-module .icon-deletion, 
 .dashboard #content-related .icon-deletion {
-    color: #D32F2F !important; /* error */
+    color: var(--admin-error) !important;
+}
+
+/*
+========================================
+CLASES PARA PERSONALIZACIÓN FUTURA
+========================================
+Estas clases permiten sobreescribir fácilmente los colores por negocio
+*/
+
+/* Para personalización por negocio (futuro uso) */
+.business-theme {
+    /* Los colores se inyectarán dinámicamente aquí */
 }
 

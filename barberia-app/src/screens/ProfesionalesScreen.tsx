@@ -25,6 +25,14 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const onSelect = route.params?.onSelect;
 
+  // Función helper para convertir fecha a string local (sin UTC)
+  const fechaToLocalString = (fecha: Date): string => {
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Función para obtener la próxima disponibilidad (ahora usa servicios dinámicos)
   const obtenerProximaDisponibilidad = async (profesional: Profesional, serviciosDisponibles: Servicio[]): Promise<string> => {
     if (!tokens || negocioId == null) return 'Bio no disponible';
@@ -54,7 +62,7 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
       const serviciosAProbar = serviciosDisponibles.slice(0, 3).map(s => s.id);
 
       for (const { fecha, label } of fechas) {
-        const fechaStr = fecha.toISOString().split('T')[0];
+        const fechaStr = fechaToLocalString(fecha);
 
         // Intentar con diferentes servicios
         for (const servicioId of serviciosAProbar) {
@@ -121,7 +129,7 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
     }
     
     if (profesional.proximaDisponibilidad && profesional.proximaDisponibilidad !== 'Consultar disponibilidad') {
-      return `Próximo turno: ${profesional.proximaDisponibilidad}`;
+      return `Próximo turno: ${profesional.proximaDisponibilidad}hs`;
     }
     
     // No mostrar nada si no hay disponibilidad específica o si es "Consultar disponibilidad"

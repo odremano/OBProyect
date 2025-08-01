@@ -33,7 +33,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
             'phone_number', 'role', 'is_active', 'date_joined', 'password',
-            'negocio'
+            'profile_picture_url', 'negocio'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
@@ -470,3 +470,32 @@ class AgendaProfesionalSerializer(serializers.ModelSerializer):
             tiempo_limite = obj.start_datetime - timedelta(hours=2)
             return timezone.now() < tiempo_limite and obj.status in ['pendiente', 'confirmado']
         return False 
+
+class CambiarContrasenaSerializer(serializers.Serializer):
+    """Serializer para cambio de contraseña"""
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password_confirm = serializers.CharField(write_only=True)
+    
+    def validate(self, data):
+        """Validaciones personalizadas"""
+        # Verificar que las contraseñas nuevas coincidan
+        if data['new_password'] != data['new_password_confirm']:
+            raise serializers.ValidationError({
+                'new_password_confirm': 'Las contraseñas nuevas no coinciden'
+            })
+        
+        # Verificar que la contraseña actual sea correcta
+        user = self.context['request'].user
+        if not user.check_password(data['current_password']):
+            raise serializers.ValidationError({
+                'current_password': 'La contraseña actual es incorrecta'
+            })
+        
+        # Verificar que la nueva contraseña sea diferente
+        if data['current_password'] == data['new_password']:
+            raise serializers.ValidationError({
+                'new_password': 'La nueva contraseña debe ser diferente a la actual'
+            })
+        
+        return data 

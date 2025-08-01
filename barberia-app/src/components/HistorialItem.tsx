@@ -32,12 +32,12 @@ export default function HistorialItem({ turno }: HistorialItemProps) {
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'completado':
-        return colors.primary; // Verde
+        return '#28a745'; // Verde
       case 'cancelado':
         return colors.error; // Rojo o color de error
       case 'confirmado':
       default:
-        return colors.white; // Blanco
+        return colors.primary; // Color primario
     }
   };
 

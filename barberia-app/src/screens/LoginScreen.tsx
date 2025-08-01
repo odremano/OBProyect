@@ -35,9 +35,9 @@ const LoginScreen: React.FC = () => {
     try {
       const data = await login(username, password);
       if (data.success) {
-        // Guarda los tokens en AsyncStorage
-        await AsyncStorage.setItem('accessToken', data.tokens.access);
-        await AsyncStorage.setItem('refreshToken', data.tokens.refresh);
+        // Guarda los tokens en AsyncStorage (ya se hace en AuthContext, esto es redundante)
+        // await AsyncStorage.setItem('accessToken', data.tokens.access);
+        // await AsyncStorage.setItem('refreshToken', data.tokens.refresh);
         
         // Actualiza el AuthContext - esto triggereará la navegación automática
         // Pasar el objeto negocio para que se carguen los colores dinámicos
@@ -62,7 +62,7 @@ const LoginScreen: React.FC = () => {
         <Text style={[styles.title, { color: colors.text }]}>Bienvenido/a</Text>
         <Text style={[styles.subtitle, { color: colors.dark3 }]}>al Gestor de Turnos{"\n"}ORDEMA</Text>
         <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => setLoginVisible(true)}>
-          <Text style={[styles.buttonText, { color: colors.white }]}>Ingresar</Text>
+          <Text style={[styles.buttonText, { color: colors.white }]}>Ingresá a tu usuario</Text>
         </TouchableOpacity>
       </View>
       <LoginModal
@@ -96,9 +96,16 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 330,
-    height: 71,
-    marginBottom: 150,
+    height: 80,
+    marginBottom: 120,
     marginTop: 100,
+    marginLeft: 10
+  },
+  logo1: {
+    width: 330,
+    height: 250,
+    marginBottom: 12,
+    marginTop: 60,
     marginLeft: 10
   },
   title: {

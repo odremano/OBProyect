@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     # APIs de Autenticación
-    RegistroView, LoginView, LogoutView, PerfilView,
+    RegistroView, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
     
     # APIs Públicas
     servicios_publicos, profesionales_disponibles, resumen_barberia,
@@ -31,6 +31,7 @@ urlpatterns = [
     
     # Perfil de usuario
     path('auth/perfil/', PerfilView.as_view(), name='perfil'),
+    path('auth/cambiar-contrasena/', CambiarContrasenaView.as_view(), name='cambiar_contrasena'),
     
     # =============================================================================
     # RUTAS PÚBLICAS (SIN AUTENTICACIÓN)

@@ -50,8 +50,7 @@ const MoreScreen: React.FC = () => {
       description: 'Ver o editar tu perfil',
       requiresAuth: true,
       onPress: () => {
-        // Placeholder para futura navegación a perfil
-        Alert.alert('Próximamente', 'La función de perfil estará disponible pronto.');
+        navigation.navigate('MiPerfil');
       }
     });
     perfilItems.push({

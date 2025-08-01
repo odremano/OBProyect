@@ -6,6 +6,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { reservarTurno } from '../api/turnos';
+import { formatearPrecio } from './VerAgendaScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmacionTurno'>;
 
@@ -165,7 +166,7 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
             </View>
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Precio:</Text>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>${servicio.price}</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>{formatearPrecio(servicio.price)}</Text>
             </View>
           </View>
         </View>

@@ -24,6 +24,7 @@ export interface User {
   role: string;
   is_active: boolean;
   date_joined: string;
+  profile_picture_url?: string;
   negocio?: {
     id: number;
     nombre: string;

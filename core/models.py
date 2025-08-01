@@ -10,7 +10,7 @@ from django.dispatch import receiver
 # 0. PALETA DE COLORES Y MODELO NEGOCIO (MULTI-TENANT)
 # =====================================================
 
-# Paleta de colores por defecto para Odreman
+# Paleta de colores por defecto para Ordema
 DEFAULT_THEME = {
     'primary': '#178232',
     'primaryDark': '#116225',
@@ -83,6 +83,7 @@ class Usuario(AbstractUser):
     # Ya incluye: username, email, password, first_name, last_name, is_active, date_joined
     # Añadimos los campos que definimos en tu esquema SQL
     phone_number = models.CharField(max_length=20, null=True, blank=True)
+    profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
 
     # Definimos las opciones para el campo 'role'
     ROLE_CHOICES = (

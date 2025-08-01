@@ -102,7 +102,7 @@ export default function HomeScreen() {
               <View style={[styles.largeIconCircle, { backgroundColor: colors.primary }]}>
                 <Icon name="play" size={32} color={colors.white} />
               </View>
-              <Text style={[styles.largeButtonText, { color: colors.text }]}>Reservar turno</Text>
+              <Text style={[styles.largeButtonText, { color: colors.text }]}>Reservá turno</Text>
             </TouchableOpacity>
           </View>
         )}

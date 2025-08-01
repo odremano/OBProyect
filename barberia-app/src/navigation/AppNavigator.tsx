@@ -16,6 +16,7 @@ import ConfirmacionTurnoScreen from '../screens/ConfirmacionTurnoScreen';
 import MiDisponibilidadScreen from '../screens/MiDisponibilidadScreen';
 import GananciasScreen from '../screens/GananciasScreen';
 import VerAgendaScreen from '../screens/VerAgendaScreen';
+import MiPerfilScreen from '../screens/MiPerfilScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   MiDisponibilidad: undefined;
   Ganancias: undefined;
   VerAgenda: undefined;
+  MiPerfil: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -78,13 +80,54 @@ export default function AppNavigator() {
           })}
         />
         <Stack.Screen name="Profesionales" component={ProfesionalesScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="MisTurnos" component={MisTurnosScreen} options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="MisTurnos" 
+          component={MisTurnosScreen} 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            animationTypeForReplace: 'push',
+            animation: 'slide_from_bottom',
+            animationDuration: 300
+          }} 
+        />
         <Stack.Screen name="About" component={AboutScreen} options={{headerShown: false }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{headerShown: false }} />
         <Stack.Screen name="ConfirmacionTurno" component={ConfirmacionTurnoScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="MiDisponibilidad" component={MiDisponibilidadScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Ganancias" component={GananciasScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="VerAgenda" component={VerAgendaScreen} options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="MiDisponibilidad" 
+          component={MiDisponibilidadScreen} 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            animationTypeForReplace: 'push',
+            animation: 'slide_from_bottom',
+            animationDuration: 300
+          }} 
+        />
+        <Stack.Screen 
+          name="Ganancias" 
+          component={GananciasScreen} 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            animationTypeForReplace: 'push',
+            animation: 'slide_from_bottom',
+            animationDuration: 300
+          }} 
+        />
+        <Stack.Screen 
+          name="VerAgenda" 
+          component={VerAgendaScreen} 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            animationTypeForReplace: 'push',
+            animation: 'slide_from_bottom',
+            animationDuration: 300
+          }} 
+        />
+        <Stack.Screen name="MiPerfil" component={MiPerfilScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

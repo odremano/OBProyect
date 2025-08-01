@@ -36,7 +36,7 @@ export const defaultColors: ThemeColors = {
 
 // En ThemeContext.tsx
 export const globalLightColors: ThemeColors = {
-/*  background: "#F4FAF6",
+  /*  background: "#F4FAF6",
   primary: "#444072",
   primaryDark: "#6a67a5",
   dark2: "#FFFFFF",
