@@ -413,7 +413,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
                 navigation.navigate('ConfirmacionTurno', {
                   profesional: selectedProfesional,
                   servicio: selectedServicio,
-                  fecha: selectedDate,
+                  fecha: selectedDate.toISOString(),
                   hora: selectedTime,
                 });
               }

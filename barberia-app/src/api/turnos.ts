@@ -47,13 +47,22 @@ export interface ReservaError {
 export type ReservaResponse = ReservaSuccess | ReservaError;
 
 export async function reservarTurno(tokens: Tokens, payload: ReservaPayload): Promise<ReservaResponse> {
-  const response = await axios.post<ReservaResponse>(`${API_URL}/reservas/crear/`, payload, {
-    headers: {
-      Authorization: `Bearer ${tokens.access}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  return response.data;
+  console.log(' Enviando payload a la API:', payload); // ✅ Log del payload
+  
+  try {
+    const response = await axios.post<ReservaResponse>(`${API_URL}/reservas/crear/`, payload, {
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('✅ Respuesta exitosa:', response.data); // ✅ Log de respuesta exitosa
+    return response.data;
+  } catch (error: any) {
+    console.log('❌ Error en la petición:', error.response?.data); // ✅ Log de error
+    console.log('❌ Status code:', error.response?.status); // ✅ Log del status code
+    throw error;
+  }
 }
 
 // FUNCIÓN REMOVIDA: La API requiere profesional_id + servicio_id + fecha

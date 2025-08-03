@@ -52,6 +52,7 @@ const AboutScreen: React.FC = () => {
           <DynamicLogo
             style={styles.logo}
             resizeMode="contain"
+            forceDefault={true} // ✅ Forzar logo de Ordema
           />
           <Text style={[styles.appVersion, { color: screenColors.dark3 }]}>Versión 1.0.0</Text>
           <Text style={[styles.appDescription, { color: screenColors.textSecondary }]}>

@@ -1,21 +1,33 @@
-import React, { useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DynamicLogo from '../components/DynamicLogo';
-/*import BottomNavBar from '../components/BottomNavBar';*/
+import { useNotification } from '../context/NotificationContext';
+
+type HomeScreenRouteProp = RouteProp<{ HomeScreen: { showConfirmationBanner?: boolean } }, 'HomeScreen'>;
 
 export default function HomeScreen() {
   const { user, logout } = useContext(AuthContext);
   const { colors } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<HomeScreenRouteProp>();
+  
+  const { showBanner } = useNotification();
+
+  useEffect(() => {
+    if (route.params?.showConfirmationBanner) {
+      showBanner('success', '¡Turno reservado exitosamente!', 'Si querés revisar los detalles, podés ir a la pantalla Mis turnos.');
+    }
+  }, [route.params?.showConfirmationBanner]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      
       <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <DynamicLogo
           style={styles.logo}
@@ -208,5 +220,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  // Estilos del banner de éxito
+  successBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    borderWidth: 1,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingTop: 60, // Espacio para status bar
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  checkIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  bannerTextContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  closeButton: {
+    padding: 4,
+    marginTop: -2,
   },
 });

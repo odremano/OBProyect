@@ -42,15 +42,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const login = async (user: User, tokens: Tokens, negocio?: any) => {
-
     setUser(user);
     setTokens(tokens);
 
-    // Intentar configurar logo desde cualquier fuente disponible
     let logoToSave = null;
     let negocioDataToSave = null;
     
-    // Priorizar el negocio top-level si está disponible
     if (negocio && negocio.theme_colors) {
       setNegocioThemeColors({
         light: addTextColors(negocio.theme_colors.light, false),
@@ -71,26 +68,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       negocioDataToSave = user.negocio;
     }
 
-    // Configurar logo desde cualquier fuente disponible
     if (negocio && negocio.logo_url) {
       setNegocioLogo(negocio.logo_url);
       logoToSave = negocio.logo_url;
-      // Si no teníamos datos de negocio para guardar, crear objeto solo con logo
       if (!negocioDataToSave) {
         negocioDataToSave = { logo_url: negocio.logo_url };
       }
     } else if (user.negocio && user.negocio.logo_url) {
       setNegocioLogo(user.negocio.logo_url);
       logoToSave = user.negocio.logo_url;
-      // Si no teníamos datos de negocio para guardar, usar user.negocio
       if (!negocioDataToSave) {
         negocioDataToSave = user.negocio;
       }
     }
 
-    // Guardar datos del negocio en AsyncStorage si hay algo que guardar
     if (negocioDataToSave) {
       await AsyncStorage.setItem('negocio', JSON.stringify(negocioDataToSave));
+    }
+
+    if (logoToSave) {
+      await AsyncStorage.setItem('negocioLogo', logoToSave);
     }
 
     await AsyncStorage.setItem('user', JSON.stringify(user));
@@ -102,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userData = await AsyncStorage.getItem('user');
       const tokenData = await AsyncStorage.getItem('tokens');
       const negocioData = await AsyncStorage.getItem('negocio');
+      const negocioLogoData = await AsyncStorage.getItem('negocioLogo');
       
       if (userData && tokenData) {
         const user = JSON.parse(userData);
@@ -109,15 +107,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(user);
         setTokens(tokens);
         
-        // Cargar logo del negocio si está disponible
-        if (negocioData) {
+        if (negocioLogoData) {
+          setNegocioLogo(negocioLogoData);
+        } else if (negocioData) {
           const negocio = JSON.parse(negocioData);
           if (negocio && negocio.logo_url) {
             setNegocioLogo(negocio.logo_url);
           }
         }
         
-        // Cargar tema del negocio si está disponible
         if (
           user.negocio &&
           user.negocio.theme_colors &&
@@ -132,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (error) {
-      console.log('Error cargando sesión:', error);
+      // Error silencioso para evitar logs innecesarios
     } finally {
       setLoading(false);
     }
@@ -142,10 +140,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setTokens(null);
     setNegocioLogo(null);
-    setNegocioThemeColors(undefined); // Limpia el tema del negocio
+    setNegocioThemeColors(undefined);
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('tokens');
     await AsyncStorage.removeItem('negocio');
+    await AsyncStorage.removeItem('negocioLogo');
   };
 
   const negocioId = user?.negocio?.id ?? null;

@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,7 +13,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmacionTurno'>;
 export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   const { tokens } = useContext(AuthContext);
-  const { profesional, servicio, fecha, hora } = route.params;
+  const { profesional, servicio, fecha: fechaStr, hora } = route.params;
+  const fecha = new Date(fechaStr); 
   const [loading, setLoading] = useState(false);
 
   const formatDate = (date: Date) => {
@@ -38,6 +39,8 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
       const fechaStr = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
       const fechaHoraFormateada = `${fechaStr}T${hora}:00`;
       
+      console.log('📅 Fecha formateada para API:', fechaHoraFormateada); // ✅ Log del formato
+      
       const result = await reservarTurno(tokens, {
         profesional: profesional.id,
         servicio: servicio.id,
@@ -45,22 +48,20 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
       });
       
       if (result.success) {
-        Alert.alert(
-          'Turno confirmado',
-          'Tu turno ha sido reservado exitosamente',
-          [
-            {
-              text: 'Aceptar',
-              onPress: () => {
-                // Resetear el stack de navegación para evitar volver a la confirmación
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'MainTabs' }],
-                });
-              }
+        // Pequeña pausa para mostrar el spinner en el botón
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Resetear el stack de navegación y pasar parámetro para mostrar el toast
+        navigation.reset({
+          index: 0,
+          routes: [{ 
+            name: 'MainTabs', 
+            params: { 
+              screen: 'Inicio',
+              params: { showConfirmationBanner: true }
             }
-          ]
-        );
+          }],
+        });
       } else {
         Alert.alert('Error', result.message || 'No se pudo reservar el turno');
       }
@@ -78,6 +79,7 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           style={styles.backButton}
+          disabled={loading}
         >
           <Icon name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
@@ -188,9 +190,18 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
             disabled={loading}
             onPress={handleConfirmarReserva}
           >
-            <Text style={[styles.confirmButtonText, { color: colors.white }]}>
-              {loading ? 'Reservando...' : 'Reservar turno'}
-            </Text>
+            <View style={styles.buttonContent}>
+              {loading && (
+                <ActivityIndicator 
+                  size="small" 
+                  color={colors.white} 
+                  style={styles.spinner}
+                />
+              )}
+              <Text style={[styles.confirmButtonText, { color: colors.white }]}>
+                {loading ? 'Reservando...' : 'Reservar turno'}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -377,6 +388,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spinner: {
+    marginRight: 8,
   },
   confirmButtonText: {
     fontSize: 16,

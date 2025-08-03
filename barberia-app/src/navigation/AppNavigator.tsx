@@ -19,14 +19,14 @@ import VerAgendaScreen from '../screens/VerAgendaScreen';
 import MiPerfilScreen from '../screens/MiPerfilScreen';
 
 export type RootStackParamList = {
-  MainTabs: undefined;
+  MainTabs: { screen?: string; params?: { showConfirmationBanner?: boolean } } | undefined;
   Servicios: { onSelect?: (servicio: any) => void; modal?: boolean } | undefined;
   Profesionales: { onSelect?: (profesional: any) => void } | undefined;
   ReservaTurno: { profesionalId?: number };
   ConfirmacionTurno: {
     profesional: any;
     servicio: any;
-    fecha: Date;
+    fecha: string; // ✅ Cambiado de Date a string
     hora: string;
   };
   Login: undefined;

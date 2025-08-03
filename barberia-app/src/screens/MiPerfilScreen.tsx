@@ -8,7 +8,9 @@ import {
   Image, 
   Alert,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView, // ✅ Agregar import
+  Platform // ✅ Agregar import
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,6 +20,7 @@ import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { cambiarContrasena, CambiarContrasenaPayload, obtenerTokensDelStorage, guardarTokensEnStorage } from '../api/perfil';
 import { Tokens } from '../api/auth';
+import { useNotifications } from '../hooks/useNotifications';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,9 +50,9 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
   const { colors } = useTheme();
   
   return (
-    <View style={[styles.accordionContainer, { backgroundColor: colors.dark2 }]}>
+    <View style={styles.accordionContainer}>
       <TouchableOpacity
-        style={styles.accordionHeader}
+        style={[styles.accordionHeader, { backgroundColor: colors.dark2 }]}
         onPress={() => onToggle(id)}
         activeOpacity={0.7}
       >
@@ -66,13 +69,13 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
           <Icon 
             name={isExpanded ? "chevron-up" : "chevron-down"} 
             size={20} 
-            color={colors.textSecondary} 
+            color={colors.dark3} 
           />
         )}
       </TouchableOpacity>
       
       {isExpanded && expandable && (
-        <View style={[styles.accordionContent, { borderTopColor: colors.dark3 }]}>
+        <View style={[styles.accordionContent, { backgroundColor: colors.dark2, borderTopColor: colors.dark3 }]}>
           {children}
         </View>
       )}
@@ -84,7 +87,8 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
 const MiPerfilScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
+  const { showSuccess, showError } = useNotifications();
   
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
@@ -93,6 +97,11 @@ const MiPerfilScreen = () => {
     confirmPassword: ''
   });
   const [loadingPassword, setLoadingPassword] = useState(false);
+  
+  // ✅ Estados para mostrar/ocultar contraseñas
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const reloadUserData = () => {
     // Función para recargar datos del usuario
@@ -114,17 +123,17 @@ const MiPerfilScreen = () => {
     if (loadingPassword) return;
 
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      Alert.alert('Error', 'Todos los campos son obligatorios');
+      showError('Error', 'Todos los campos son obligatorios');
       return;
     }
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas nuevas no coinciden');
+      showError('Error', 'Las contraseñas nuevas no coinciden');
       return;
     }
     
     if (passwordData.newPassword.length < 8) {
-      Alert.alert('Error', 'La nueva contraseña debe tener al menos 8 caracteres');
+      showError('Error', 'La nueva contraseña debe tener al menos 8 caracteres');
       return;
     }
     
@@ -135,7 +144,7 @@ const MiPerfilScreen = () => {
       const tokens = await obtenerTokensDelStorage();
       
       if (!tokens) {
-        Alert.alert('Error', 'No se encontraron credenciales. Por favor, inicia sesión nuevamente.');
+        showError('Error', 'No se encontraron credenciales. Por favor, inicia sesión nuevamente.');
         setLoadingPassword(false);
         return;
       }
@@ -156,28 +165,32 @@ const MiPerfilScreen = () => {
         }
         
         setLoadingPassword(false);
-        Alert.alert(
-          'Éxito', 
-          'Contraseña cambiada correctamente',
-          [
-            {
-              text: 'Aceptar',
-              onPress: () => {
-                setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                setExpandedSection(null);
-                reloadUserData();
-              }
-            }
-          ]
-        );
+        
+        // Limpiar formulario
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setExpandedSection(null);
+        
+        // ✅ Redirección inmediata a Home
+        navigation.navigate('MainTabs' as any);
+        
+        // ✅ Logout después de un delay corto
+        setTimeout(async () => {
+          await logout();
+          
+          // ✅ Un solo banner con título y descripción
+          setTimeout(() => {
+            showSuccess('¡Contraseña actualizada!', 'Su sesión ha finalizado por seguridad.');
+          }, 500);
+        }, 1000);
+        
       } else {
         setLoadingPassword(false);
-        Alert.alert('Error', response.message);
+        showError('Error', response.message);
       }
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);
       setLoadingPassword(false);
-      Alert.alert('Error', 'Ocurrió un error inesperado. Intenta nuevamente.');
+      showError('Error', 'Ocurrió un error inesperado. Intenta nuevamente.');
     }
   };
 
@@ -191,12 +204,51 @@ const MiPerfilScreen = () => {
     </TouchableOpacity>
   );
 
+  // ✅ Componente para input de contraseña con ojo
+  const renderPasswordInput = (
+    label: string,
+    value: string,
+    onChangeText: (text: string) => void,
+    showPassword: boolean,
+    setShowPassword: (show: boolean) => void,
+    placeholder: string
+  ) => (
+    <View style={styles.inputGroup}>
+      <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <View style={styles.passwordInputContainer}>
+        <TextInput
+          style={[styles.passwordTextInput, { backgroundColor: colors.background, color: colors.text }]}
+          secureTextEntry={!showPassword}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setShowPassword(!showPassword)}
+          activeOpacity={0.7}
+        >
+          <Icon 
+            name={showPassword ? "eye-off" : "eye"} 
+            size={20} 
+            color={colors.textSecondary} 
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const userName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'Usuario';
   const userEmail = user?.email || 'correo@ejemplo.com';
   const userUsername = user?.username || 'usuario';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
@@ -213,6 +265,8 @@ const MiPerfilScreen = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled" // ✅ Permitir taps mientras el teclado está abierto
+        keyboardDismissMode="interactive" // ✅ Cerrar teclado al hacer scroll
       >
         {/* Avatar del usuario */}
         <View style={styles.avatarSection}>
@@ -269,41 +323,35 @@ const MiPerfilScreen = () => {
             onToggle={handleToggleSection}
           >
             <View style={styles.passwordSection}>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Contraseña actual</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
-                  secureTextEntry
-                  value={passwordData.currentPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, currentPassword: text }))}
-                  placeholder="Ingresa tu contraseña actual"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
+              {/* ✅ Contraseña actual con ojo */}
+              {renderPasswordInput(
+                'Contraseña actual',
+                passwordData.currentPassword,
+                (text) => setPasswordData(prev => ({ ...prev, currentPassword: text })),
+                showCurrentPassword,
+                setShowCurrentPassword,
+                'Ingresa tu contraseña actual'
+              )}
               
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Nueva contraseña</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
-                  secureTextEntry
-                  value={passwordData.newPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
-                  placeholder="Ingresa tu nueva contraseña"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
+              {/* ✅ Nueva contraseña con ojo */}
+              {renderPasswordInput(
+                'Nueva contraseña',
+                passwordData.newPassword,
+                (text) => setPasswordData(prev => ({ ...prev, newPassword: text })),
+                showNewPassword,
+                setShowNewPassword,
+                'Ingresa tu nueva contraseña'
+              )}
               
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Repetir nueva contraseña</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
-                  secureTextEntry
-                  value={passwordData.confirmPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
-                  placeholder="Repite tu nueva contraseña"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
+              {/* ✅ Confirmar contraseña con ojo */}
+              {renderPasswordInput(
+                'Repetir nueva contraseña',
+                passwordData.confirmPassword,
+                (text) => setPasswordData(prev => ({ ...prev, confirmPassword: text })),
+                showConfirmPassword,
+                setShowConfirmPassword,
+                'Repite tu nueva contraseña'
+              )}
               
               <TouchableOpacity
                 style={[
@@ -357,7 +405,7 @@ const MiPerfilScreen = () => {
           </AccordionItem>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -384,7 +432,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 100, // ✅ Aumentar padding bottom para espacio extra
   },
   avatarSection: {
     alignItems: 'center',
@@ -427,6 +475,12 @@ const styles = StyleSheet.create({
   accordionsContainer: {
     paddingHorizontal: 20,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 8,
   },
   accordionContainer: {
     borderRadius: 12,
@@ -469,6 +523,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
+  
+  // ✅ Actualizar estilos de campos editables para consistencia
   editableField: {
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -488,6 +544,29 @@ const styles = StyleSheet.create({
   fieldValue: {
     fontSize: 16,
     flex: 1,
+  },
+  
+  // ✅ Actualizar estilos de inputs de contraseña
+  passwordInputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordTextInput: {
+    flex: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingRight: 50,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    padding: 8,
+    borderRadius: 20,
   },
   passwordSection: {
     gap: 16,
