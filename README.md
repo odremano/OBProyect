@@ -1,4 +1,4 @@
-# 🪒 OdremanBarber — Sistema de Gestión para Barbería
+# 🪒 Ordema — Sistema de Gestión de Turnos
 
 [![Django](https://img.shields.io/badge/Django-4.2.7-green.svg)](https://www.djangoproject.com/)
 [![React Native](https://img.shields.io/badge/React%20Native-0.79.4-blue.svg)](https://reactnative.dev/)
@@ -6,7 +6,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)](https://www.mysql.com/)
 [![License](https://img.shields.io/badge/License-0BSD-blue.svg)](LICENSE)
 
-Sistema completo de gestión para barberías que incluye un backend robusto con Django REST Framework y una aplicación móvil nativa desarrollada con React Native y Expo.
+Sistema completo de gestión para negocios que incluye un backend robusto con Django REST Framework y una aplicación móvil nativa desarrollada con React Native y Expo.
 
 ## 📋 Tabla de Contenidos
 
@@ -30,7 +30,7 @@ Sistema completo de gestión para barberías que incluye un backend robusto con 
 
 ## 🎯 Descripción General
 
-OdremanBarber es una solución completa para la gestión de barberías que permite:
+Ordema es una solución completa para la gestión de negocios que permite:
 
 - **Gestión de reservas** en tiempo real con validación de disponibilidad
 - **Panel administrativo** personalizado para profesionales y administradores
@@ -41,7 +41,7 @@ OdremanBarber es una solución completa para la gestión de barberías que permi
 
 ### 🎯 Público Objetivo
 
-- **Barberías** que buscan digitalizar su gestión
+- **Negocios que presten servicios con agenda** que buscan digitalizar su gestión
 - **Profesionales** que necesitan administrar su agenda
 - **Clientes** que desean reservar servicios de forma sencilla
 
@@ -125,7 +125,7 @@ OdremanBarber/
 - **Estadísticas de rendimiento**
 
 ### 🎨 Panel Administrativo
-- **Interfaz personalizada** con Bootstrap
+- **Interfaz personalizada** con CSS
 - **Formularios dinámicos** con validación
 - **Filtros avanzados** y búsquedas
 - **Widgets de fecha/hora** optimizados
@@ -134,6 +134,7 @@ OdremanBarber/
 - **Diseño nativo** para iOS y Android
 - **Navegación intuitiva** con tabs
 - **Tema personalizable** (claro/oscuro)
+- **Negocios con personalización única**
 - **Notificaciones push** (en desarrollo)
 
 ---
@@ -790,8 +791,8 @@ Para reportar bugs, por favor incluye:
 ### 📧 Canales de Soporte
 
 - **Email**: jaosodreman@gmail.com
-- **Issues**: [GitHub Issues](https://github.com/jodreman/OdremanBarber/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jodreman/OdremanBarber/discussions)
+- **Issues**: [GitHub Issues](https://github.com/odremano/OBProyect/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/odremano/OBProyect/discussions)
 
 ### 📚 Recursos Adicionales
 
@@ -838,17 +839,3 @@ expo start --clear
 ## 📄 Licencia
 
 Este proyecto está bajo la licencia **0BSD**. Ver el archivo [LICENSE](LICENSE) para más detalles.
-
----
-
-## 🙏 Agradecimientos
-
-- **Django** por el excelente framework web
-- **React Native** por la plataforma móvil
-- **Expo** por las herramientas de desarrollo
-- **MySQL** por la base de datos robusta
-- **Comunidad open source** por las librerías utilizadas
-
----
-
-**⭐ Si este proyecto te resulta útil, considera darle una estrella en GitHub!** 
