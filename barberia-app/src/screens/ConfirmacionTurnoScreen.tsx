@@ -12,6 +12,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmacionTurno'>;
 
 export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
+  
+  // ✅ Debug temporal
+  console.log('🎨 Colors object:', colors);
+  console.log('🎨 Success color:', colors.success);
+  
   const { tokens } = useContext(AuthContext);
   const { profesional, servicio, fecha: fechaStr, hora } = route.params;
   const fecha = new Date(fechaStr); 
@@ -38,8 +43,7 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
       // Combinar fecha y hora seleccionadas
       const fechaStr = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
       const fechaHoraFormateada = `${fechaStr}T${hora}:00`;
-      
-      console.log('📅 Fecha formateada para API:', fechaHoraFormateada); // ✅ Log del formato
+
       
       const result = await reservarTurno(tokens, {
         profesional: profesional.id,
@@ -96,7 +100,7 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
         {/* Título de confirmación */}
         <View style={styles.confirmationHeader}>
           <View style={styles.checkIconContainer}>
-            <Icon name="checkmark-circle" size={48} color={colors.primary} />
+            <Icon name="checkmark-circle" size={48} color={colors.success} />
           </View>
           <Text style={[styles.confirmationTitle, { color: colors.text }]}>Confirma tu turno</Text>
           <Text style={[styles.confirmationSubtitle, { color: colors.textSecondary }]}>Revisa los detalles de tu reserva antes de confirmar</Text>
@@ -184,8 +188,8 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
           <TouchableOpacity
             style={[
               styles.confirmButton,
-              { backgroundColor: colors.primary },
-              loading && { backgroundColor: colors.dark2, opacity: 0.7 }
+              { backgroundColor: colors.success }, // ✅ Usar colors.success
+              loading && { backgroundColor: colors.success, opacity: 0.7 }
             ]}
             disabled={loading}
             onPress={handleConfirmarReserva}

@@ -219,7 +219,7 @@ python manage.py runserver
 
 ### 📱 Instalación de la App Móvil
 
-```bash
+  ```bash
 # 1. Navegar al directorio de la app
 cd barberia-app
 
@@ -378,7 +378,7 @@ Servicio (1) ←→ (N) Turno
 ### 📝 Ejemplos de Uso
 
 #### Login de Usuario
-```bash
+  ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login/ \
   -H "Content-Type: application/json" \
   -d '{
@@ -388,7 +388,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login/ \
 ```
 
 #### Crear Reserva
-```bash
+  ```bash
 curl -X POST http://localhost:8000/api/v1/reservas/crear/ \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
@@ -397,7 +397,7 @@ curl -X POST http://localhost:8000/api/v1/reservas/crear/ \
     "servicio_id": 2,
     "fecha_hora": "2024-01-15T14:30:00Z"
   }'
-```
+  ```
 
 ---
 
