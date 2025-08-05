@@ -169,7 +169,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Turno',
                 'verbose_name_plural': 'Turnos',
                 'db_table': 'turno',
-                'constraints': [models.CheckConstraint(check=models.Q(end_datetime__gt=models.F('start_datetime')), name='check_turno_datetime_valid')],
+                'constraints': [models.CheckConstraint(check=models.Q(end_datetime__gt=models.F('start_datetime')), name='check_turno_datetime_valid')
 ],
             },
         ),
