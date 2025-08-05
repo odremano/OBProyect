@@ -211,7 +211,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8080",
     "http://192.168.0.19:8000",  # Cambia por tu IP real y puerto del backend
     "http://192.168.0.19:19006", # Si usas Expo, agrega el puerto de Expo
-    "ordema-backend.onrender.com"
+    "http://ordema-backend.onrender.com"
+    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
