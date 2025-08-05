@@ -146,7 +146,8 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Bloqueo de Horario',
                 'verbose_name_plural': 'Bloqueos de Horario',
                 'db_table': 'bloqueo_horario',
-                'constraints': [models.CheckConstraint(condition=models.Q(('end_datetime__gt', models.F('start_datetime'))), name='check_datetime_valid')],
+                'constraints': [models.CheckConstraint(check=models.Q(end_datetime__gt=models.F('start_datetime')), name='check_datetime_valid')
+],
             },
         ),
         migrations.CreateModel(
