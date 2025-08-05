@@ -1,16 +1,13 @@
-databases:
-  - name: ordema-db
-    databaseId: dpg-d292k3k9c44c73d2cso0-a
 services:
   - type: web
     name: ordema-backend
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn barberia_project.wsgi:application"
-    pythonVersion: 3.11.9
     plan: free
     branch: feature/render-deployment
     repo: odremano/OBProyect
     envVars:
       - fromDatabase:
           name: DATABASE_URL
+          databaseId: dpg-d292k3k9c44c73d2cso0-a  # <--- este es correcto acá
