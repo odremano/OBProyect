@@ -31,7 +31,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "192.168.0.40",
     "192.168.1.18",
-    "ordema-backend.onrender.com"
+    "https://ordema-backend.onrender.com"
 ]
 
 
