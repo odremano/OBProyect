@@ -6,7 +6,7 @@ databases:
 envVarGroups:
   - name: ordema-env-group
     envVars:
-      - key: postgresql://ordema_postgresql_database_user:LvUEHXBIlVjPMurFTsXZeUml64pB13ez@dpg-d292k3k9c44c73d2cso0-a/ordema_postgresql_database
+      - key: DATABASE_URL
         fromDatabase:
           name: Ordema-PostgreSQL-Database
           property: connectionString
