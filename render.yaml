@@ -1,6 +1,6 @@
 databases:
   - name: ordema-db
-    databaseId: postgresql://ordema_postgresql_database_user:LvUEHXBIlVjPMurFTsXZeUml64pB13ez@dpg-d292k3k9c44c73d2cso0-a/ordema_postgresql_database
+    databaseId: dpg-d292k3k9c44c73d2cso0-a
 services:
   - type: web
     name: ordema-backend
