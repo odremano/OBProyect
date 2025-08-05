@@ -126,7 +126,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Horario de Disponibilidad',
                 'verbose_name_plural': 'Horarios de Disponibilidad',
                 'db_table': 'horario_disponibilidad',
-                'constraints': [models.CheckConstraint(condition=models.Q(('end_time__gt', models.F('start_time'))), name='check_time_valid')],
+                'constraints': [models.CheckConstraint(check=models.Q(end_time__gt=models.F('start_time')), name='check_time_valid')],
                 'unique_together': {('profesional', 'day_of_week', 'start_time', 'end_time', 'is_recurring', 'start_date', 'end_date')},
             },
         ),
