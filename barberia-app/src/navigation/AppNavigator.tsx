@@ -1,8 +1,9 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
+import CustomSplashScreen from '../screens/SplashScreen';
 import { AuthContext } from '../context/AuthContext';
 import ServiciosScreen from '../screens/ServiciosScreen';
 import ProfesionalesScreen from '../screens/ProfesionalesScreen';
@@ -44,9 +45,22 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   const { user, loading } = useContext(AuthContext);
+  const [appReady, setAppReady] = useState(false);
+  
+  // Simulación simple de inicialización
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Simular carga de configuraciones
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setAppReady(true);
+    };
+    
+    initializeApp();
+  }, []);
 
-  if (loading) {
-    return null;
+  // Mostrar splash screen mientras no esté listo o auth está cargando
+  if (!appReady || loading) {
+    return <CustomSplashScreen onFinish={() => setAppReady(true)} />;
   }
 
   console.log('Pantallas registradas en el stack: Home, Servicios, Profesionales, ReservaTurno, Login, MisTurnos');
