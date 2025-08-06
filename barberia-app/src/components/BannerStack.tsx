@@ -1,28 +1,7 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import NotificationBanner from './NotificationBanner';
 import { useNotification } from '../context/NotificationContext';
-
-// Componente individual memoizado para evitar re-renders innecesarios
-const MemoizedBanner = memo<{
-  banner: any;
-  index: number;
-  onClose: (id: string) => void;
-}>(({ banner, index, onClose }) => (
-  <NotificationBanner
-    key={banner.id}
-    visible={true}
-    type={banner.type}
-    title={banner.title}
-    message={banner.message}
-    onClose={() => onClose(banner.id)}
-    position="top"
-    style={{ 
-      top: 70 + (index * 85), // Espaciado más generoso: 100px entre banners
-      zIndex: 1000 - index, // El más reciente arriba
-    }}
-  />
-));
 
 const BannerStack: React.FC = () => {
   const { banners, hideBanner } = useNotification();
@@ -30,11 +9,15 @@ const BannerStack: React.FC = () => {
   return (
     <View style={styles.container}>
       {banners.map((banner, index) => (
-        <MemoizedBanner
+        <NotificationBanner
           key={banner.id}
-          banner={banner}
-          index={index}
-          onClose={hideBanner}
+          visible={true}
+          type={banner.type}
+          title={banner.title}
+          message={banner.message}
+          onClose={() => hideBanner(banner.id)}
+          position="top"
+          style={{ top: 80 + (index * 80) }} // Apilar banners con 80px de separación
         />
       ))}
     </View>
@@ -51,4 +34,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default memo(BannerStack); 
+export default BannerStack; 

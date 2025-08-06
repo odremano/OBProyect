@@ -6,6 +6,7 @@ import {
   TouchableOpacity, 
   ScrollView, 
   Image, 
+  Alert,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView, // ✅ Agregar import
@@ -87,7 +88,7 @@ const MiPerfilScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useContext(AuthContext);
-  const { showSuccess, showError, showInfo } = useNotifications();
+  const { showSuccess, showError } = useNotifications();
   
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
@@ -110,7 +111,7 @@ const MiPerfilScreen = () => {
 
   const handleToggleSection = (sectionId: string) => {
     if (sectionId === 'nuevo-negocio' || sectionId === 'eliminar-cuenta') {
-      showInfo('Próximamente', 'Esta funcionalidad estará disponible próximamente.');
+      Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente.');
       return;
     }
     
@@ -178,7 +179,7 @@ const MiPerfilScreen = () => {
           
           // ✅ Un solo banner con título y descripción
           setTimeout(() => {
-            showSuccess('Cambio de contraseña exitoso', 'Su sesión ha finalizado por seguridad.');
+            showSuccess('¡Contraseña actualizada!', 'Su sesión ha finalizado por seguridad.');
           }, 500);
         }, 1000);
         
@@ -296,19 +297,19 @@ const MiPerfilScreen = () => {
           <AccordionItem
             id="datos-personales"
             title="Datos personales"
-            subtitle="Gestioná tu información personal"
+            subtitle="Gestiona tu información personal"
             iconName="person"
             isExpanded={expandedSection === 'datos-personales'}
             onToggle={handleToggleSection}
           >
             {renderEditableField('Username', userUsername, () => 
-              showInfo('Próximamente', 'Edición de username próximamente')
+              Alert.alert('Próximamente', 'Edición de username próximamente')
             )}
             {renderEditableField('Nombre y apellido', userName, () =>
-              showInfo('Próximamente', 'Edición de nombre próximamente')
+              Alert.alert('Próximamente', 'Edición de nombre próximamente')
             )}
             {renderEditableField('Correo electrónico', userEmail, () =>
-              showInfo('Próximamente', 'Edición de email próximamente')
+              Alert.alert('Próximamente', 'Edición de email próximamente')
             )}
           </AccordionItem>
 
@@ -316,7 +317,7 @@ const MiPerfilScreen = () => {
           <AccordionItem
             id="contraseña"
             title="Contraseña"
-            subtitle="Cambiá tu contraseña"
+            subtitle="Cambia tu contraseña"
             iconName="lock-closed"
             isExpanded={expandedSection === 'contraseña'}
             onToggle={handleToggleSection}
@@ -329,7 +330,7 @@ const MiPerfilScreen = () => {
                 (text) => setPasswordData(prev => ({ ...prev, currentPassword: text })),
                 showCurrentPassword,
                 setShowCurrentPassword,
-                'Ingresá tu contraseña actual'
+                'Ingresa tu contraseña actual'
               )}
               
               {/* ✅ Nueva contraseña con ojo */}
@@ -339,7 +340,7 @@ const MiPerfilScreen = () => {
                 (text) => setPasswordData(prev => ({ ...prev, newPassword: text })),
                 showNewPassword,
                 setShowNewPassword,
-                'Ingresá tu nueva contraseña'
+                'Ingresa tu nueva contraseña'
               )}
               
               {/* ✅ Confirmar contraseña con ojo */}
@@ -356,7 +357,7 @@ const MiPerfilScreen = () => {
                 style={[
                   styles.saveButton, 
                   { 
-                    backgroundColor: loadingPassword ? colors.success : colors.success,
+                    backgroundColor: loadingPassword ? colors.textSecondary : colors.primary,
                     opacity: loadingPassword ? 0.7 : 1
                   }
                 ]}

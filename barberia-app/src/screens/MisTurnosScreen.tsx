@@ -18,7 +18,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { fetchMisTurnos, cancelarTurno, Turno as TurnoAPI, MisTurnosResponse } from '../api/misTurnos';
-import { useNotifications } from '../hooks/useNotifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MisTurnos'>;
 
@@ -97,7 +96,6 @@ export default function MisTurnosScreen({ navigation }: Props) {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { showSuccess, showError, showWarning } = useNotifications();
 
   // Función para cargar turnos desde la API
   const cargarTurnos = async (showLoading = true) => {
@@ -115,9 +113,9 @@ export default function MisTurnosScreen({ navigation }: Props) {
     } catch (error: any) {
       console.error('Error cargando turnos:', error);
       if (error.response && error.response.status === 401) {
-        showError('Sesión expirada', 'Por favor, inicia sesión nuevamente.');
+        Alert.alert('Sesión expirada', 'Por favor, inicia sesión nuevamente.');
       } else {
-        showError('Error', 'No se pudieron cargar los turnos.');
+        Alert.alert('Error', 'No se pudieron cargar los turnos.');
       }
       setTurnos([]);
     } finally {
@@ -156,19 +154,16 @@ export default function MisTurnosScreen({ navigation }: Props) {
               // Refrescar la lista desde el servidor
               await cargarTurnos(false);
               
-              showSuccess(
-                'Turno cancelado',
-                'Su turno ha sido cancelado correctamente.'    
-              );
+              Alert.alert('Turno cancelado', 'El turno ha sido cancelado correctamente.');
             } catch (error: any) {
               if (error.response && error.response.status === 400) {
-                showWarning(
-                  'Ya no puedes cancelar este turno',
+                Alert.alert(
+                  '⏰ Ya no puedes cancelar este turno',
                   'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitás ayuda, comunicate con el negocio.'
                 );
               } else {
                 console.error('Error cancelando turno:', error);
-                showError('No se pudo cancelar el turno.');
+                Alert.alert('Error', 'No se pudo cancelar el turno.');
               }
             }
           }

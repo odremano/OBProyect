@@ -7,7 +7,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { obtenerTurnosProfesional, obtenerDiasConTurnos, cancelarTurnoProfesional, marcarTurnoCompletado, TurnoProfesional } from '../api/turnos';
-import { useNotifications } from '../hooks/useNotifications';
 
 interface TurnoAgenda {
   id: number;
@@ -32,7 +31,6 @@ const VerAgendaScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { user, tokens } = useContext(AuthContext);
-  const { showSuccess, showError, showWarning } = useNotifications();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
@@ -244,18 +242,18 @@ const VerAgendaScreen = () => {
                 )
               );
               
-              showSuccess('Turno cancelado', 'El turno se canceló correctamente');
+              Alert.alert('Éxito', 'Turno cancelado correctamente');
               // Recargar datos del servidor para sincronizar
               cargarTurnosDelDia(selectedDate);
               cargarDiasConTurnos(currentMonth);
             } catch (error: any) {
               if (error.response && error.response.status === 400) {
-                showWarning(
-                  'Ya no puedes cancelar este turno',
+                Alert.alert(
+                  '⏰ Ya no puedes cancelar este turno',
                   'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitas ayuda, comunícate con el cliente.'
                 );
               } else {
-                showError('Error al cancelar turno', 'No se pudo cancelar el turno');
+                Alert.alert('Error', 'No se pudo cancelar el turno');
                 console.error('Error cancelando turno:', error);
               }
             }
@@ -288,11 +286,11 @@ const VerAgendaScreen = () => {
                 )
               );
               
-              showSuccess('Turno completado', 'El turno se marcó como realizado correctamente');
+              Alert.alert('Éxito', 'Turno marcado como completado');
               // Recargar datos del servidor para sincronizar
               cargarTurnosDelDia(selectedDate);
             } catch (error: any) {
-              showError('Error al completar turno', 'No se pudo marcar el turno como completado');
+              Alert.alert('Error', 'No se pudo marcar el turno como completado');
               console.error('Error completando turno:', error);
             }
           }
@@ -380,7 +378,7 @@ const VerAgendaScreen = () => {
                 <Text style={[styles.turnoPrecio, { color: colors.text }]}>{formatearPrecio(turno.precio)}</Text>
                 
                 {turno.status === 'completado' ? (
-                  <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: colors.primary }]}>
                     <Icon name="checkmark-circle" size={16} color={colors.white} style={{ marginRight: 4 }} />
                     <Text style={[styles.statusText, { color: colors.white }]}>Realizado</Text>
                   </View>
@@ -398,10 +396,10 @@ const VerAgendaScreen = () => {
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity 
-                    style={[styles.realizadoButton, { backgroundColor: colors.success }]}
+                    style={[styles.realizadoButton, { backgroundColor: colors.primary }]}
                     onPress={() => manejarRealizarTurno(turno)}
                   >
-                    <Text style={[styles.buttonText, { color: colors.white }]}>Marcar realizado</Text>
+                    <Text style={[styles.buttonText, { color: colors.white }]}>Realizado</Text>
                   </TouchableOpacity>
                 )}
               </View>

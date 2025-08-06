@@ -90,7 +90,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
           icon: 'checkmark-circle',
           backgroundColor: colors.dark2,
           borderColor: colors.primary,
-          iconBackground: colors.success,
+          iconBackground: colors.primary,
           textColor: colors.text,
           secondaryTextColor: colors.textSecondary
         };
@@ -98,8 +98,8 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
         return {
           icon: 'close-circle',
           backgroundColor: colors.dark2,
-          borderColor: colors.error,
-          iconBackground: colors.error,
+          borderColor: '#ef4444',
+          iconBackground: '#ef4444',
           textColor: colors.text,
           secondaryTextColor: colors.textSecondary
         };
@@ -203,7 +203,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
             </View>
             <TouchableOpacity 
               onPress={handleClose} 
-              style={[styles.closeButton, { backgroundColor: colors.background }]}
+              style={[styles.closeButton, { backgroundColor: colors.dark3 }]}
               activeOpacity={0.7}
             >
               <Icon name="close" size={18} color={config.secondaryTextColor} />

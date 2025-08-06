@@ -11,8 +11,6 @@ import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { reservarTurno, obtenerHorariosDisponibles, HorariosResponse } from '../api/turnos';
 import { formatearPrecio } from './VerAgendaScreen';
-import { mostrarEstadoDisponibilidad } from '../utils/disponibilidadUtils';
-
 
 // Import condicional de react-native-date-picker
 let DatePicker: any = null;
@@ -24,11 +22,6 @@ try {
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReservaTurno'>;
-
-interface ProfesionalConDisponibilidad extends Profesional {
-  proximaDisponibilidad?: string;
-  cargandoDisponibilidad?: boolean;
-}
 
 // Función para detectar si estamos en Expo Go
 const isExpoGo = () => {
@@ -90,6 +83,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const isStep1Complete = !!selectedProfesional;
   const isStep2Complete = isStep1Complete && !!selectedServicio;
   const isStep3Complete = isStep2Complete && !!selectedDate && !!selectedTime;
+
   // Función para convertir fecha a string local sin problemas de zona horaria
   const formatDateForAPI = (date: Date): string => {
     const year = date.getFullYear();
@@ -97,7 +91,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-  
+
   // Cargar horarios disponibles cuando se selecciona una fecha
   useEffect(() => {
     if (selectedProfesional && selectedServicio && selectedDate && tokens && negocioId) {
@@ -341,17 +335,6 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             !isStep2Complete && { opacity: 0.7 },
             selectedTime && { borderWidth: 1, borderColor: colors.primary }
           ]}>
-            
-            {/* Información de disponibilidad del profesional */}
-            {selectedProfesional && mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad) && (
-              <View style={styles.disponibilidadContainer}>
-                <Icon name="time" size={12} color={colors.primary} />
-                <Text style={[styles.disponibilidadText, { color: colors.primary }]}>
-                  {mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad)}
-                </Text>
-              </View>
-            )}
-            
             <Text style={[styles.appointmentDate, { color: colors.text }, !isStep2Complete && { opacity: 0.7 }]}>
               Tu turno será el día:
             </Text>
@@ -832,16 +815,5 @@ const styles = StyleSheet.create({
   },
   selectedServiceTextInfo: {
     flex: 1,
-  },
-  disponibilidadContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  disponibilidadText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
   },
 });

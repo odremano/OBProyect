@@ -7,7 +7,6 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { fetchProfesionales, Profesional } from '../api/profesionales';
 import { fetchServicios, Servicio } from '../api/servicios';
 import { obtenerHorariosDisponibles } from '../api/turnos';
-import { mostrarEstadoDisponibilidad, mostrarBioProfesional } from '../utils/disponibilidadUtils';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profesionales'>;
@@ -118,7 +117,24 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
     }
   };
 
+  // Función para mostrar la bio del profesional
+  const mostrarBioProfesional = (profesional: ProfesionalConDisponibilidad): string => {
+    return profesional.bio || 'Especialista en cortes modernos y clásicos';
+  };
 
+  // Función para mostrar el estado de disponibilidad
+  const mostrarEstadoDisponibilidad = (profesional: ProfesionalConDisponibilidad): string | null => {
+    if (profesional.cargandoDisponibilidad) {
+      return 'Verificando disponibilidad...';
+    }
+    
+    if (profesional.proximaDisponibilidad && profesional.proximaDisponibilidad !== 'Consultar disponibilidad') {
+      return `Próximo turno: ${profesional.proximaDisponibilidad}hs`;
+    }
+    
+    // No mostrar nada si no hay disponibilidad específica o si es "Consultar disponibilidad"
+    return null;
+  };
 
   useEffect(() => {
     if (!tokens || negocioId == null) return;

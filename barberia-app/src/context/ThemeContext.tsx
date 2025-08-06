@@ -16,7 +16,6 @@ export interface ThemeColors {
   black: string;
   text: string;         // Texto principal
   textSecondary: string; // Texto secundario
-  success: string;      // ✅ Verde de confirmación
 }
 
 // Colores por defecto (fallback)
@@ -32,8 +31,7 @@ export const defaultColors: ThemeColors = {
   error: '#D32F2F',
   black: '#000000',
   text: "#181818",
-  textSecondary: "#cccccc",
-  success: "#22C55E", // ✅ Verde de confirmación
+  textSecondary: "#cccccc"
 };
 
 // En ThemeContext.tsx
@@ -60,9 +58,8 @@ export const globalLightColors: ThemeColors = {
   white: "#FFFFFF",
   error: "#D32F2F",
   black: "#000000",
-  text: "#181818",
-  textSecondary: "#474747",
-  success: "#22C55E", // ✅ Verde de confirmación
+  text: "#181818", // Negro o gris oscuro para modo claro
+  textSecondary: "#474747", // O el que prefieras
 };
 
 export const globalDarkColors: ThemeColors = {
@@ -76,9 +73,8 @@ export const globalDarkColors: ThemeColors = {
   white: "#FFFFFF",
   error: "#D32F2F",
   black: "#000000",
-  text: "#FFFFFF",
+  text: "#FFFFFF", // Blanco para modo oscuro
   textSecondary: "#cccccc",
-  success: "#22C55E", // ✅ Verde de confirmación
 };
 
 type ThemeMode = 'light' | 'dark' | 'auto';
@@ -123,7 +119,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     white: "#FFFFFF",
     text: isDark ? "#FFFFFF" : "#181818",
     textSecondary: isDark ? "#cccccc" : "#666666",
-    success: "#22C55E",
   });
 
   // Cargar configuración persistente al inicializar
@@ -177,10 +172,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       else if (mode === 'dark') selectedColors = globalDarkColors;
       else if (mode === 'auto') selectedColors = systemScheme === 'dark' ? globalDarkColors : globalLightColors;
     }
-    
-    // ✅ Debug temporal
-    console.log(' Selected colors:', selectedColors);
-    console.log('🎨 Success color in selected:', selectedColors.success);
     
     setColors(selectedColors);
   }, [mode, negocioThemeColors]);
