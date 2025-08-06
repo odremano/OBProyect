@@ -1,0 +1,30 @@
+databases:
+  - name: Ordema-PostgreSQL-Database
+    databaseName: ordema_postgresql_database
+    user: ordema_postgresql_database_user
+
+envVarGroups:
+  - name: ordema-env-group
+    envVars:
+      - key: DATABASE_URL
+        value: null
+        fromDatabase:
+          name: Ordema-PostgreSQL-Database
+          property: connectionString
+
+services:
+  - type: web
+    name: ordema-backend
+    env: python
+    plan: free
+    branch: feature/render-deployment
+    repo: github.com/odremano/OBProyect
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: >
+      bash -c "
+        python manage.py migrate &&
+        echo \"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'jesus.odreman@ordema.app', 'ñoquisconsalsa25')\" | python manage.py shell &&
+        gunicorn barberia_project.wsgi:application
+      "
+    envVars:
+      - fromGroup: ordema-env-group
