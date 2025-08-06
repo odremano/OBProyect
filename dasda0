@@ -1,0 +1,17 @@
+[33m01d0ef1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/render-deployment[m[33m, [m[1;31morigin/feature/render-deployment[m[33m)[m MVPv1 Ordema. Primer deployment a producción con Render.
+[33m943ed56[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m the commit.
+[33ma87b340[m Integración de banners de notificación/resultados de éxito o error. Pendiente de corregir con mejora de diseño. Logo oficial aún no integrado. Corrección de bug de logo dinámico de negocio
+[33m49186f1[m Update README.md
+[33mc9a31a8[m Ordema v1.3, Pantalla de Mi perfil y cambio de contraseña, README actualizado, textos con acento arg, último commit pre-logo(ya pagado)
+[33m3f28183[m ORDEMA v1.2 (MVP) - Sistema de identificación de roles en login, pantallas Agenda y Disponibilidad y APIs de usuario profesional, corrección de bugs leves y críticos
+[33m7ba06da[m ORDEMA v1.0 - Sistema multi-tenant implementado en BO y FE. Sistema de personalización de negocios y apariencia claro/oscuro. Lógica de negocios aislados e independientes en un solo sistema.
+[33m2208d6f[m MVP de FE CASI listo, un éxito! Este es el último commit del proyecto OdremanBarber. A partir del siguiente commit, por estrategia de negocio OB se convierte en un cliente del proyecto ORDEMA.
+[33m397dbef[m Mejoras de UX/UI en app y backoffice, centralización de apiURL y correcciones varias. Viento en popa!
+[33mf9a8245[m Integración de lib de íconos React Native a la navbar. Funcionando correctamente
+[33m7689c56[m Primer commit con FE en proceso. Solo FE en Screenlogin. Login funcional.
+[33m749d6bf[m v0.3 del proyecto total. Primeros rastros de React Native
+[33m226143b[m Actualización de README.md con información actual del Backoffice
+[33m5ee421b[m Agregar botón + de input Cliente en Agregar turno
+[33mc9947cc[m Se integran la v1 de las API's del proyecto (Todas funcionales)
+[33m64b6f73[m Esquema de base de datos real
+[33m58faff4[m Primer commit, primer respaldo
