@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-// import BottomNavBar from '../components/BottomNavBar';
 import LoginModal from '../components/LoginModal';
 import DynamicLogo from '../components/DynamicLogo';
+import OrdemaBackground from '../components/OrdemaBackground';
 import { login } from '../api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -55,24 +55,26 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-      <View style={styles.content}>
-        <DynamicLogo style={styles.logo} resizeMode="contain" />
-        <Text style={[styles.title, { color: colors.text }]}>Bienvenido/a</Text>
-        <Text style={[styles.subtitle, { color: colors.dark3 }]}>al Gestor de Turnos{"\n"}ORDEMA</Text>
-        <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => setLoginVisible(true)}>
-          <Text style={[styles.buttonText, { color: colors.white }]}>Ingresá a tu usuario</Text>
-        </TouchableOpacity>
+    <OrdemaBackground>
+      <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={styles.content}>
+          <DynamicLogo style={styles.logo} resizeMode="contain" />
+          <Text style={[styles.title, { color: colors.white }]}>Bienvenido/a</Text>
+          <Text style={[styles.subtitle, { color: colors.white }]}>al Gestor de Turnos{"\n"}ORDEMA</Text>
+          <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => setLoginVisible(true)}>
+            <Text style={[styles.buttonText, { color: colors.white }]}>Ingresá a tu usuario</Text>
+          </TouchableOpacity>
+        </View>
+        <LoginModal
+          visible={loginVisible}
+          onClose={() => setLoginVisible(false)}
+          onLogin={handleLogin}
+          loading={loading}
+          error={loginError}
+        />
       </View>
-      <LoginModal
-        visible={loginVisible}
-        onClose={() => setLoginVisible(false)}
-        onLogin={handleLogin}
-        loading={loading}
-        error={loginError}
-      />
-    </View>
+    </OrdemaBackground>
   );
 };
 
@@ -113,12 +115,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'left',
+    // Agregar sombra para mejor legibilidad sobre el fondo
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   subtitle: {
     fontSize: 20,
     marginBottom: 40,
     textAlign: 'left',
     fontWeight: '500',
+    // Agregar sombra para mejor legibilidad sobre el fondo
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   button: {
     borderRadius: 12,
@@ -128,6 +138,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
     width: '100%',
     maxWidth: 340,
+    // Agregar sombra para mejor definición sobre el fondo
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    // Agregar un borde sutil para mejor definición
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   buttonText: {
     fontSize: 16,
