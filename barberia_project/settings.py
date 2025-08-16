@@ -23,13 +23,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "192.168.0.40",
-    "192.168.1.18"  # <-- Agrega tu IP local aquí
+    "192.168.1.18",
+    "https://ordema-backend.onrender.com",
+    "ordema-backend.onrender.com",
+    "ordema.app", 
+    "www.ordema.app"
+
 ]
 
 
