@@ -20,6 +20,9 @@ ALLOWED_HOSTS = [
     config('RENDER_EXTERNAL_HOSTNAME', default=''),
     'localhost',
     '127.0.0.1',
+    "ordema-backend.onrender.com",
+    "ordema.app", 
+    "www.ordema.app"
 ]
 
 # Application definition
@@ -111,7 +114,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "core" / "static",
 ]
 
-# Configuración de WhiteNoise para archivos estáticos
+# Configuración de WhiteNoise para servir archivos estáticos
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (uploads de usuarios)
@@ -205,4 +208,4 @@ LOGGING = {
         'handlers': ['console'],
         'level': 'INFO',
     },
-} 
+}
