@@ -66,7 +66,9 @@ const AboutScreen: React.FC = () => {
           <Text style={[styles.sectionTitle, { color: screenColors.text }]}>Información de la Aplicación</Text>
           
           <View style={[styles.infoItem, { backgroundColor: screenColors.dark2 }]}>
-            <Icon name="calendar" size={20} color={screenColors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+              <Icon name="calendar" size={20} color={screenColors.white} />
+            </View>
             <View style={styles.infoText}>
               <Text style={[styles.infoLabel, { color: screenColors.text }]}>Fecha de lanzamiento</Text>
               <Text style={[styles.infoValue, { color: screenColors.textSecondary }]}>Junio 2025</Text>
@@ -74,7 +76,9 @@ const AboutScreen: React.FC = () => {
           </View>
 
           <View style={[styles.infoItem, { backgroundColor: screenColors.dark2 }]}>
-            <Icon name="code-slash" size={20} color={screenColors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+              <Icon name="code-slash" size={20} color={screenColors.white} />
+            </View>
             <View style={styles.infoText}>
               <Text style={[styles.infoLabel, { color: screenColors.text }]}>Tecnología</Text>
               <Text style={[styles.infoValue, { color: screenColors.textSecondary }]}>React Native + Django</Text>
@@ -82,7 +86,9 @@ const AboutScreen: React.FC = () => {
           </View>
 
           <View style={[styles.infoItem, { backgroundColor: screenColors.dark2 }]}>
-            <Icon name="shield-checkmark" size={20} color={screenColors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+              <Icon name="shield-checkmark" size={20} color={screenColors.white} />
+            </View>
             <View style={styles.infoText}>
               <Text style={[styles.infoLabel, { color: screenColors.text }]}>Última actualización</Text>
               <Text style={[styles.infoValue, { color: screenColors.textSecondary }]}>Julio 2025</Text>
@@ -118,7 +124,9 @@ const AboutScreen: React.FC = () => {
             style={[styles.contactItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => handleContact('email')}
           >
-            <Icon name="mail" size={24} color={screenColors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+              <Icon name="mail" size={24} color={screenColors.white} />
+            </View>
             <View style={styles.contactText}>
               <Text style={[styles.contactLabel, { color: screenColors.text }]}>Email</Text>
               <Text style={[styles.contactValue, { color: screenColors.textSecondary }]}>jesus.odreman@ordema.app</Text>
@@ -130,7 +138,9 @@ const AboutScreen: React.FC = () => {
             style={[styles.contactItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => handleContact('WhatsApp')}
           >
-            <Icon name="logo-whatsapp" size={24} color={screenColors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+              <Icon name="logo-whatsapp" size={24} color={screenColors.white} />
+            </View>
             <View style={styles.contactText}>
               <Text style={[styles.contactLabel, { color: screenColors.text }]}>WhatsApp</Text>
               <Text style={[styles.contactValue, { color: screenColors.textSecondary }]}>+1 (234) 000-0000</Text>
@@ -142,7 +152,9 @@ const AboutScreen: React.FC = () => {
             style={[styles.contactItem, { backgroundColor: screenColors.dark2 }]}
             onPress={() => handleContact('LinkedIn')}
           >
-            <Icon name="logo-linkedin" size={24} color={screenColors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+              <Icon name="logo-linkedin" size={24} color={screenColors.white} />
+            </View>
             <View style={styles.contactText}>
               <Text style={[styles.contactLabel, { color: screenColors.text }]}>LinkedIn</Text>
               <Text style={[styles.contactValue, { color: screenColors.textSecondary }]}>linkedin.com/in/jesus-odreman</Text>
@@ -203,7 +215,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 200,
-    height: 43,
+    height: 60,
     marginBottom: 16,
   },
   appName: {
@@ -240,16 +252,24 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
   infoText: {
     marginLeft: 16,
     flex: 1,
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: 16,
     marginBottom: 2,
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
   },
   developerCard: {
@@ -302,7 +322,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   contactText: {
-    marginLeft: 16,
     flex: 1,
   },
   contactLabel: {

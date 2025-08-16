@@ -33,6 +33,8 @@ ALLOWED_HOSTS = [
     "192.168.1.18",
     "https://ordema-backend.onrender.com",
     "ordema-backend.onrender.com"
+    "ordema.app", 
+    "www.ordema.app"  # <-- Agrega tu IP local aquí
 ]
 
 
@@ -93,11 +95,17 @@ WSGI_APPLICATION = 'barberia_project.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'barberia_system',
+        'USER': 'root',
+        'PASSWORD': 'OdreBARBER2003',
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
 }
 
 # Password validation

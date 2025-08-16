@@ -1,8 +1,7 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, Image } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import LoginModal from '../components/LoginModal';
-import DynamicLogo from '../components/DynamicLogo';
 import OrdemaBackground from '../components/OrdemaBackground';
 import { login } from '../api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -59,9 +58,14 @@ const LoginScreen: React.FC = () => {
       <View style={[styles.container, { backgroundColor: 'transparent' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.content}>
-          <DynamicLogo style={styles.logo} resizeMode="contain" />
-          <Text style={[styles.title, { color: colors.white }]}>Bienvenido/a</Text>
-          <Text style={[styles.subtitle, { color: colors.white }]}>al Gestor de Turnos{"\n"}ORDEMA</Text>
+          <Image 
+            source={require('../../assets/logo.png')} 
+            style={styles.logo} 
+            resizeMode="contain" 
+          />
+          <Text style={[styles.title, { color: colors.brand }]}>Bienvenido/a</Text>
+          <Text style={[styles.subtitle, { color: colors.brand }]}>al Gestor de Turnos</Text>
+          <Text style={[styles.ordemaText, { color: colors.white }]}>Ordema</Text>
           <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => setLoginVisible(true)}>
             <Text style={[styles.buttonText, { color: colors.white }]}>Ingresá a tu usuario</Text>
           </TouchableOpacity>
@@ -97,23 +101,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logo: {
-    width: 330,
-    height: 80,
-    marginBottom: 120,
-    marginTop: 100,
-    marginLeft: 10
-  },
-  logo1: {
-    width: 330,
-    height: 250,
-    marginBottom: 12,
-    marginTop: 60,
-    marginLeft: 10
+    width: 380,
+    height: 165,
+    marginBottom: 45,
+    marginTop: 80,
+    marginLeft: -15,
+    // Sombra mejorada para el logo
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8, // Para Android
   },
   title: {
-    fontSize: 36,
+    fontSize: 50,
     fontWeight: 'bold',
-    marginBottom: 8,
     textAlign: 'left',
     // Agregar sombra para mejor legibilidad sobre el fondo
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
@@ -121,10 +123,22 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   subtitle: {
-    fontSize: 20,
-    marginBottom: 40,
+    fontSize: 30,
+    marginBottom: 30,
     textAlign: 'left',
     fontWeight: '500',
+    // Agregar sombra para mejor legibilidad sobre el fondo
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  ordemaText: {
+    fontSize: 44,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    marginTop: -25,
+    textAlign: 'left',
+    fontStyle: 'italic', // ← Agregar esta línea para cursiva
     // Agregar sombra para mejor legibilidad sobre el fondo
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
@@ -146,7 +160,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     // Agregar un borde sutil para mejor definición
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'colors.secondaryText',
   },
   buttonText: {
     fontSize: 16,

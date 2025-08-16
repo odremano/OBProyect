@@ -18,7 +18,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
-import { cambiarContrasena, CambiarContrasenaPayload, obtenerTokensDelStorage, guardarTokensEnStorage } from '../api/perfil';
+import { cambiarContrasena, CambiarContrasenaPayload, obtenerTokensDelStorage, guardarTokensEnStorage, actualizarPerfil } from '../api/perfil';
 import { Tokens } from '../api/auth';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -87,8 +87,8 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
 const MiPerfilScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { user, logout } = useContext(AuthContext);
-  const { showSuccess, showError } = useNotifications();
+  const { user, logout, updateUser } = useContext(AuthContext);
+  const { showSuccess, showError, showInfo } = useNotifications();
   
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState({
@@ -97,6 +97,19 @@ const MiPerfilScreen = () => {
     confirmPassword: ''
   });
   const [loadingPassword, setLoadingPassword] = useState(false);
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneValue, setPhoneValue] = useState<string>('');
+  const [loadingPhone, setLoadingPhone] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameValue, setUsernameValue] = useState<string>('');
+  const [loadingUsername, setLoadingUsername] = useState(false);
+  const [editingNames, setEditingNames] = useState(false);
+  const [firstNameValue, setFirstNameValue] = useState<string>('');
+  const [lastNameValue, setLastNameValue] = useState<string>('');
+  const [loadingNames, setLoadingNames] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailValue, setEmailValue] = useState<string>('');
+  const [loadingEmail, setLoadingEmail] = useState(false);
   
   // ✅ Estados para mostrar/ocultar contraseñas
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -115,7 +128,215 @@ const MiPerfilScreen = () => {
       return;
     }
     
-    setExpandedSection(expandedSection === sectionId ? null : sectionId);
+    const next = expandedSection === sectionId ? null : sectionId;
+    setExpandedSection(next);
+    // Cerrar formularios inline si se colapsa o cambia de sección
+    if (next !== 'datos-personales') {
+      setEditingUsername(false);
+      setEditingNames(false);
+      setEditingEmail(false);
+      setEditingPhone(false);
+    }
+  };
+
+  const startEditPhone = () => {
+    setExpandedSection('datos-personales');
+    if (editingPhone) {
+      setEditingPhone(false);
+      return;
+    }
+    setEditingUsername(false);
+    setEditingNames(false);
+    setEditingEmail(false);
+    setEditingPhone(true);
+    setPhoneValue(user?.phone_number || '');
+  };
+
+  const cancelEditPhone = () => {
+    setEditingPhone(false);
+    setPhoneValue('');
+  };
+
+  const handleSavePhone = async () => {
+    if (loadingPhone) return;
+    const trimmed = (phoneValue || '').trim();
+    if (!trimmed) {
+      showError('Error', 'El teléfono no puede estar vacío');
+      return;
+    }
+    if (trimmed.length < 6) {
+      showError('Error', 'Ingresa un teléfono válido');
+      return;
+    }
+    setLoadingPhone(true);
+    try {
+      const tokens = await obtenerTokensDelStorage();
+      if (!tokens) {
+        showError('Error', 'No se encontraron credenciales. Inicia sesión nuevamente.');
+        setLoadingPhone(false);
+        return;
+      }
+      const response = await actualizarPerfil(tokens, { phone_number: trimmed });
+      if (response.success) {
+        await updateUser(response.user);
+        setEditingPhone(false);
+        showSuccess('Datos actualizados', 'Teléfono actualizado correctamente');
+      } else {
+        showError('Error', response.message);
+      }
+    } catch (e) {
+      showError('Error', 'No se pudo actualizar el teléfono.');
+    } finally {
+      setLoadingPhone(false);
+    }
+  };
+
+  const startEditUsername = () => {
+    setExpandedSection('datos-personales');
+    if (editingUsername) {
+      setEditingUsername(false);
+      return;
+    }
+    setEditingPhone(false);
+    setEditingNames(false);
+    setEditingEmail(false);
+    setEditingUsername(true);
+    setUsernameValue(user?.username || '');
+  };
+
+  const cancelEditUsername = () => {
+    setEditingUsername(false);
+    setUsernameValue('');
+  };
+
+  const handleSaveUsername = async () => {
+    if (loadingUsername) return;
+    const trimmed = (usernameValue || '').trim();
+    if (!trimmed || trimmed.length < 3) {
+      showError('Error', 'El username debe tener al menos 3 caracteres');
+      return;
+    }
+    setLoadingUsername(true);
+    try {
+      const tokens = await obtenerTokensDelStorage();
+      if (!tokens) {
+        showError('Error', 'No se encontraron credenciales. Inicia sesión nuevamente.');
+        setLoadingUsername(false);
+        return;
+      }
+      const response = await actualizarPerfil(tokens, { username: trimmed });
+      if (response.success) {
+        await updateUser(response.user);
+        setEditingUsername(false);
+        showSuccess('Datos actualizados', 'Username actualizado correctamente');
+      } else {
+        showError('Error', response.message);
+      }
+    } catch (e) {
+      showError('Error', 'No se pudo actualizar el username.');
+    } finally {
+      setLoadingUsername(false);
+    }
+  };
+
+  const startEditNames = () => {
+    setExpandedSection('datos-personales');
+    if (editingNames) {
+      setEditingNames(false);
+      return;
+    }
+    setEditingPhone(false);
+    setEditingUsername(false);
+    setEditingEmail(false);
+    setEditingNames(true);
+    setFirstNameValue(user?.first_name || '');
+    setLastNameValue(user?.last_name || '');
+  };
+
+  const cancelEditNames = () => {
+    setEditingNames(false);
+    setFirstNameValue('');
+    setLastNameValue('');
+  };
+
+  const handleSaveNames = async () => {
+    if (loadingNames) return;
+    const fn = (firstNameValue || '').trim();
+    const ln = (lastNameValue || '').trim();
+    if (!fn || !ln) {
+      showError('Error', 'Nombre y apellido son obligatorios');
+      return;
+    }
+    setLoadingNames(true);
+    try {
+      const tokens = await obtenerTokensDelStorage();
+      if (!tokens) {
+        showError('Error', 'No se encontraron credenciales. Inicia sesión nuevamente.');
+        setLoadingNames(false);
+        return;
+      }
+      const response = await actualizarPerfil(tokens, { first_name: fn, last_name: ln });
+      if (response.success) {
+        await updateUser(response.user);
+        setEditingNames(false);
+        showSuccess('Datos actualizados', 'Nombre y apellido actualizados');
+      } else {
+        showError('Error', response.message);
+      }
+    } catch (e) {
+      showError('Error', 'No se pudo actualizar el nombre.');
+    } finally {
+      setLoadingNames(false);
+    }
+  };
+
+  const startEditEmail = () => {
+    setExpandedSection('datos-personales');
+    if (editingEmail) {
+      setEditingEmail(false);
+      return;
+    }
+    setEditingPhone(false);
+    setEditingUsername(false);
+    setEditingNames(false);
+    setEditingEmail(true);
+    setEmailValue(user?.email || '');
+  };
+
+  const cancelEditEmail = () => {
+    setEditingEmail(false);
+    setEmailValue('');
+  };
+
+  const handleSaveEmail = async () => {
+    if (loadingEmail) return;
+    const trimmed = (emailValue || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) {
+      showError('Error', 'Ingresa un correo válido');
+      return;
+    }
+    setLoadingEmail(true);
+    try {
+      const tokens = await obtenerTokensDelStorage();
+      if (!tokens) {
+        showError('Error', 'No se encontraron credenciales. Inicia sesión nuevamente.');
+        setLoadingEmail(false);
+        return;
+      }
+      const response = await actualizarPerfil(tokens, { email: trimmed });
+      if (response.success) {
+        await updateUser(response.user);
+        setEditingEmail(false);
+        showSuccess('Datos actualizados', 'Correo actualizado correctamente');
+      } else {
+        showError('Error', response.message);
+      }
+    } catch (e) {
+      showError('Error', 'No se pudo actualizar el correo.');
+    } finally {
+      setLoadingEmail(false);
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -242,6 +463,7 @@ const MiPerfilScreen = () => {
   const userName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'Usuario';
   const userEmail = user?.email || 'correo@ejemplo.com';
   const userUsername = user?.username || 'usuario';
+  const userPhone = user?.phone_number || 'Sin teléfono';
 
   return (
     <KeyboardAvoidingView 
@@ -302,14 +524,161 @@ const MiPerfilScreen = () => {
             isExpanded={expandedSection === 'datos-personales'}
             onToggle={handleToggleSection}
           >
-            {renderEditableField('Username', userUsername, () => 
-              Alert.alert('Próximamente', 'Edición de username próximamente')
+            {renderEditableField('Username', userUsername, startEditUsername)}
+            {editingUsername && (
+              <View style={{ gap: 8, paddingTop: 8 }}>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Nuevo username</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
+                  value={usernameValue}
+                  onChangeText={setUsernameValue}
+                  placeholder="Ingresa tu username"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="none"
+                />
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: colors.dark3 }]}
+                    onPress={cancelEditUsername}
+                    disabled={loadingUsername}
+                  >
+                    <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: colors.success, flex: 1, opacity: loadingUsername ? 0.7 : 1 }]}
+                    onPress={handleSaveUsername}
+                    disabled={loadingUsername}
+                  >
+                    {loadingUsername ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.white} />
+                        <Text style={[styles.saveButtonText, { color: colors.white, marginLeft: 8 }]}>Guardando...</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.saveButtonText, { color: colors.white }]}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
-            {renderEditableField('Nombre y apellido', userName, () =>
-              Alert.alert('Próximamente', 'Edición de nombre próximamente')
+            {renderEditableField('Nombre y apellido', userName, startEditNames)}
+            {editingNames && (
+              <View style={{ gap: 8, paddingTop: 8 }}>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Nombre</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
+                  value={firstNameValue}
+                  onChangeText={setFirstNameValue}
+                  placeholder="Ingresa tu nombre"
+                  placeholderTextColor={colors.textSecondary}
+                />
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Apellido</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
+                  value={lastNameValue}
+                  onChangeText={setLastNameValue}
+                  placeholder="Ingresa tu apellido"
+                  placeholderTextColor={colors.textSecondary}
+                />
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: colors.dark3 }]}
+                    onPress={cancelEditNames}
+                    disabled={loadingNames}
+                  >
+                    <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: colors.success, flex: 1, opacity: loadingNames ? 0.7 : 1 }]}
+                    onPress={handleSaveNames}
+                    disabled={loadingNames}
+                  >
+                    {loadingNames ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.white} />
+                        <Text style={[styles.saveButtonText, { color: colors.white, marginLeft: 8 }]}>Guardando...</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.saveButtonText, { color: colors.white }]}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
-            {renderEditableField('Correo electrónico', userEmail, () =>
-              Alert.alert('Próximamente', 'Edición de email próximamente')
+            {renderEditableField('Correo electrónico', userEmail, startEditEmail)}
+            {editingEmail && (
+              <View style={{ gap: 8, paddingTop: 8 }}>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Nuevo correo</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
+                  value={emailValue}
+                  onChangeText={setEmailValue}
+                  placeholder="Ingresa tu correo"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: colors.dark3 }]}
+                    onPress={cancelEditEmail}
+                    disabled={loadingEmail}
+                  >
+                    <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: colors.success, flex: 1, opacity: loadingEmail ? 0.7 : 1 }]}
+                    onPress={handleSaveEmail}
+                    disabled={loadingEmail}
+                  >
+                    {loadingEmail ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.white} />
+                        <Text style={[styles.saveButtonText, { color: colors.white, marginLeft: 8 }]}>Guardando...</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.saveButtonText, { color: colors.white }]}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            {renderEditableField('Teléfono', userPhone, startEditPhone)}
+            {editingPhone && (
+              <View style={{ gap: 8, paddingTop: 8 }}>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Nuevo teléfono</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text }]}
+                  value={phoneValue}
+                  onChangeText={setPhoneValue}
+                  placeholder="Ingresa tu teléfono"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="phone-pad"
+                />
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: colors.dark3 }]}
+                    onPress={cancelEditPhone}
+                    disabled={loadingPhone}
+                  >
+                    <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: colors.success, flex: 1, opacity: loadingPhone ? 0.7 : 1 }]}
+                    onPress={handleSavePhone}
+                    disabled={loadingPhone}
+                  >
+                    {loadingPhone ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.white} />
+                        <Text style={[styles.saveButtonText, { color: colors.white, marginLeft: 8 }]}>Guardando...</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.saveButtonText, { color: colors.white }]}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
           </AccordionItem>
 
@@ -600,6 +969,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
