@@ -86,11 +86,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
 const MiPerfilScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-<<<<<<< HEAD
-  const { user, logout } = useContext(AuthContext);
-=======
   const { user, logout, updateUser } = useContext(AuthContext);
->>>>>>> development
   const { showSuccess, showError, showInfo } = useNotifications();
   
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -527,16 +523,6 @@ const MiPerfilScreen = () => {
             isExpanded={expandedSection === 'datos-personales'}
             onToggle={handleToggleSection}
           >
-<<<<<<< HEAD
-            {renderEditableField('Username', userUsername, () => 
-              showInfo('Próximamente', 'Edición de username próximamente')
-            )}
-            {renderEditableField('Nombre y apellido', userName, () =>
-              showInfo('Próximamente', 'Edición de nombre próximamente')
-            )}
-            {renderEditableField('Correo electrónico', userEmail, () =>
-              showInfo('Próximamente', 'Edición de email próximamente')
-=======
             {renderEditableField('Username', userUsername, startEditUsername)}
             {editingUsername && (
               <View style={{ gap: 8, paddingTop: 8 }}>
@@ -692,7 +678,6 @@ const MiPerfilScreen = () => {
                   </TouchableOpacity>
                 </View>
               </View>
->>>>>>> development
             )}
           </AccordionItem>
 
