@@ -124,7 +124,7 @@ class ServicioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Servicio
-        fields = ['id', 'name', 'description', 'duration_minutes', 'price', 'is_active', 'negocio']
+        fields = ['id', 'name', 'description', 'duration_minutes', 'price', 'is_active', 'negocio', 'icon_name']
         read_only_fields = ['negocio']  # Solo superuser puede modificarlo
 
     def create(self, validated_data):
