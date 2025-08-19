@@ -91,7 +91,7 @@ export default function HomeScreen() {
                 activeOpacity={0.8}
               >
                 <View style={[styles.smallIconCircle, { backgroundColor: colors.primary }]}>
-                  <Icon name="cut" size={30} color={colors.white} />
+                  <Icon name="bag-check" size={30} color={colors.white} />
                 </View>
                 <Text style={[styles.buttonText, { color: colors.text }]}>Ver servicios</Text>
               </TouchableOpacity>
@@ -140,8 +140,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   logo: {
-    width: 160,
-    height: 160,
+    width: 100,
+    height: 70,
     resizeMode: 'contain',
   },
   content: {

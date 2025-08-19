@@ -14,8 +14,8 @@ interface DynamicLogoProps {
 const DynamicLogo: React.FC<DynamicLogoProps> = ({
   style, 
   resizeMode = 'contain',
-  fallbackSourceDark = require('../../assets/logo2.png'),
-  fallbackSourceLight = require('../../assets/logo.png'),
+  fallbackSourceDark = require('../../assets/isologo2.png'),
+  fallbackSourceLight = require('../../assets/isologo.png'),
   forceDefault = false // ✅ Valor por defecto
 }) => {
   const { negocioLogo, user } = useContext(AuthContext);

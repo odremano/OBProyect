@@ -14,9 +14,16 @@ export interface ThemeColors {
   white: string;
   error: string;
   black: string;
+<<<<<<< HEAD
   text: string;         // Texto principal
   textSecondary: string; // Texto secundario
   success: string;      // ✅ Verde de confirmación
+=======
+  text: string;
+  textSecondary: string;
+  success: string;
+  brand: string; // Nuevo color de marca
+>>>>>>> development
 }
 
 // Colores por defecto (fallback)
@@ -33,7 +40,12 @@ export const defaultColors: ThemeColors = {
   black: '#000000',
   text: "#181818",
   textSecondary: "#cccccc",
+<<<<<<< HEAD
   success: "#22C55E", // ✅ Verde de confirmación
+=======
+  success: "#22C55E",
+  brand: "#33FFC2", // Nuevo color de marca agregado
+>>>>>>> development
 };
 
 // En ThemeContext.tsx
@@ -50,9 +62,9 @@ export const globalLightColors: ThemeColors = {
   black: "#000000",
   text: "#181818", // Negro o gris oscuro para modo claro
   textSecondary: "#474747", // O el que prefieras// */
-  background: "#F4FAF6",
+  background: "#F5F4FA",
   primary: "#2a2857",
-  primaryDark: "#2a2857",
+  primaryDark: "#1D1C3D",
   dark2: "#FFFFFF",
   dark3: "#4A476B",
   light2: "#FFFFFF",
@@ -62,15 +74,20 @@ export const globalLightColors: ThemeColors = {
   black: "#000000",
   text: "#181818",
   textSecondary: "#474747",
+<<<<<<< HEAD
   success: "#22C55E", // ✅ Verde de confirmación
+=======
+  success: "#22C55E",
+  brand: "#33FFC2",
+>>>>>>> development
 };
 
 export const globalDarkColors: ThemeColors = {
-  background: "#181818",
-  primary: "#444072",
-  primaryDark: "#2a2857",
-  dark2: "#302D53",
-  dark3: "#4A476B",
+  background: "#181736",
+  primary: "#2a2857",
+  primaryDark: "#1D1C3D",
+  dark2: "#2E2D53",
+  dark3: "#49476B",
   light2: "#F4FAF6",
   light3: "#cccccc",
   white: "#FFFFFF",
@@ -78,7 +95,12 @@ export const globalDarkColors: ThemeColors = {
   black: "#000000",
   text: "#FFFFFF",
   textSecondary: "#cccccc",
+<<<<<<< HEAD
   success: "#22C55E", // ✅ Verde de confirmación
+=======
+  success: "#22C55E",
+  brand: "#33FFC2",
+>>>>>>> development
 };
 
 type ThemeMode = 'light' | 'dark' | 'auto';

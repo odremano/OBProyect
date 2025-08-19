@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, StatusBar } from 'react-native';
+import { View, StyleSheet, Animated, StatusBar, Image } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import DynamicLogo from '../components/DynamicLogo';
+import OrdemaBackground from '../components/OrdemaBackground';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -67,13 +67,13 @@ const CustomSplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   }, []); // Remover todas las dependencias problemáticas
 
   return (
-    <>
+    <OrdemaBackground>
       <StatusBar 
         barStyle="light-content" 
-        backgroundColor={colors.primaryDark} 
-        translucent={false}
+        backgroundColor="transparent" 
+        translucent 
       />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: 'transparent' }]}>
         <Animated.View 
           style={[
             styles.logoContainer,
@@ -83,7 +83,8 @@ const CustomSplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             },
           ]}
         >
-          <DynamicLogo
+          <Image
+            source={require('../../assets/splash-icon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -96,10 +97,10 @@ const CustomSplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             { opacity: fadeAnim }
           ]}
         >
-          <LoadingDots color={colors.text} />
+          <LoadingDots color={colors.white} />
         </Animated.View>
       </View>
-    </>
+    </OrdemaBackground>
   );
 };
 
@@ -108,14 +109,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: 50, // Espacio para StatusBar translúcida
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 150,
+    height: 150,
     resizeMode: 'contain',
   },
   loadingWrapper: {
