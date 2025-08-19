@@ -115,7 +115,7 @@ STATICFILES_DIRS = [
 ]
 
 # Configuración de WhiteNoise para archivos estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media files (uploads de usuarios)
 MEDIA_URL = '/media/'
