@@ -110,12 +110,18 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / "core" / "static",
-]
 
-# Configuración de WhiteNoise para archivos estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# COMENTAR STATICFILES_DIRS temporalmente para evitar conflictos
+# STATICFILES_DIRS = [
+#     BASE_DIR / "core" / "static", 
+# ]
+
+# WhiteNoise sin compresión ni manifest
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
+
+# Configuración adicional para WhiteNoise
+WHITENOISE_USE_FINDERS = True  # Para desarrollo/debug
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg']
 
 # Media files (uploads de usuarios)
 MEDIA_URL = '/media/'
