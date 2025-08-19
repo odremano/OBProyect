@@ -11,15 +11,18 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f')
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = False
 
 ALLOWED_HOSTS = [
     config('RENDER_EXTERNAL_HOSTNAME', default=''),
     'localhost',
     '127.0.0.1',
+    "ordema-backend.onrender.com",
+    "ordema.app", 
+    "www.ordema.app"
     "ordema-backend.onrender.com",
     "ordema.app", 
     "www.ordema.app"
@@ -110,12 +113,18 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / "core" / "static",
-]
 
-# Configuración de WhiteNoise para servir archivos estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# COMENTAR STATICFILES_DIRS temporalmente para evitar conflictos
+# STATICFILES_DIRS = [
+#     BASE_DIR / "core" / "static", 
+# ]
+
+# WhiteNoise sin compresión ni manifest
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
+
+# Configuración adicional para WhiteNoise
+WHITENOISE_USE_FINDERS = True  # Para desarrollo/debug
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg']
 
 # Media files (uploads de usuarios)
 MEDIA_URL = '/media/'

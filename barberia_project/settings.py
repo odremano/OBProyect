@@ -9,8 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import dj_database_url
-import os
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,6 +24,7 @@ SECRET_KEY = 'django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
+DEBUG = False
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -32,9 +32,10 @@ ALLOWED_HOSTS = [
     "192.168.0.40",
     "192.168.1.18",
     "https://ordema-backend.onrender.com",
-    "ordema-backend.onrender.com"
+    "ordema-backend.onrender.com",
     "ordema.app", 
-    "www.ordema.app"  # <-- Agrega tu IP local aquí
+    "www.ordema.app"
+
 ]
 
 
@@ -62,6 +63,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← Debe estar aquí, después de SecurityMiddleware
     'whitenoise.middleware.WhiteNoiseMiddleware',  # ← Debe estar aquí, después de SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -108,6 +110,7 @@ DATABASES = {
     }
 }
 
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -145,6 +148,7 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # ← Cambiar esto
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # ← Cambiar esto
 STATICFILES_DIRS = [
     BASE_DIR / "core" / "static",
 ]
@@ -152,6 +156,9 @@ STATICFILES_DIRS = [
 # Media files (uploads de usuarios)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Configuración de WhiteNoise para servir archivos estáticos
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -225,11 +232,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8080",
     "http://192.168.0.19:8000",  # Cambia por tu IP real y puerto del backend
     "http://192.168.0.19:19006", # Si usas Expo, agrega el puerto de Expo
-    "http://ordema-backend.onrender.com"
-    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-
-# Configuración de WhiteNoise para servir archivos estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

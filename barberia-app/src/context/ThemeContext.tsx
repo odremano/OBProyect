@@ -79,7 +79,7 @@ export const globalDarkColors: ThemeColors = {
   white: "#FFFFFF",
   error: "#D32F2F",
   black: "#000000",
-  text: "#FFFFFF", // Blanco para modo oscuro
+  text: "#FFFFFF",
   textSecondary: "#cccccc",
   success: "#22C55E",
   brand: "#33FFC2",
@@ -127,6 +127,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     white: "#FFFFFF",
     text: isDark ? "#FFFFFF" : "#181818",
     textSecondary: isDark ? "#cccccc" : "#666666",
+    success: "#22C55E",
   });
 
   // Cargar configuración persistente al inicializar
@@ -180,6 +181,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       else if (mode === 'dark') selectedColors = globalDarkColors;
       else if (mode === 'auto') selectedColors = systemScheme === 'dark' ? globalDarkColors : globalLightColors;
     }
+    
+    // ✅ Debug temporal
+    console.log(' Selected colors:', selectedColors);
+    console.log('🎨 Success color in selected:', selectedColors.success);
     
     setColors(selectedColors);
   }, [mode, negocioThemeColors]);

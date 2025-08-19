@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { fetchDisponibilidad, saveDisponibilidad, DisponibilidadDia } from '../api/disponibilidad';
 import { useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface DayAvailability {
   id: number;
@@ -23,6 +24,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const MiDisponibilidadScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { showSuccess, showError } = useNotifications();
   
   const [availability, setAvailability] = useState<DayAvailability[]>([
     { id: 0, name: 'Lunes', enabled: true, startTime: new Date(1970, 0, 1, 10, 0, 0, 0), endTime: new Date(1970, 0, 1, 21, 0, 0, 0) },
@@ -173,14 +175,17 @@ const MiDisponibilidadScreen = () => {
       
     try {
       await saveDisponibilidad(tokens, payload);
-      alert('¡Disponibilidad guardada con éxito!');
+      showSuccess(
+        'Disponibilidad guardada',
+        'Tu disponibilidad se actualizó correctamente'
+      );
       // Resetear el stack para evitar volver con gesto de deslizar
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
     } catch (error) {
-      alert('Error al guardar la disponibilidad');
+      showError('Error al guardar la disponibilidad');
       console.error(error);
     }
   };

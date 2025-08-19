@@ -6,7 +6,6 @@ import {
   TouchableOpacity, 
   ScrollView, 
   Image, 
-  Alert,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView, // ✅ Agregar import
@@ -124,7 +123,7 @@ const MiPerfilScreen = () => {
 
   const handleToggleSection = (sectionId: string) => {
     if (sectionId === 'nuevo-negocio' || sectionId === 'eliminar-cuenta') {
-      Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente.');
+      showInfo('Próximamente', 'Esta funcionalidad estará disponible próximamente.');
       return;
     }
     
@@ -400,7 +399,7 @@ const MiPerfilScreen = () => {
           
           // ✅ Un solo banner con título y descripción
           setTimeout(() => {
-            showSuccess('¡Contraseña actualizada!', 'Su sesión ha finalizado por seguridad.');
+            showSuccess('Cambio de contraseña exitoso', 'Su sesión ha finalizado por seguridad.');
           }, 500);
         }, 1000);
         
@@ -519,7 +518,7 @@ const MiPerfilScreen = () => {
           <AccordionItem
             id="datos-personales"
             title="Datos personales"
-            subtitle="Gestiona tu información personal"
+            subtitle="Gestioná tu información personal"
             iconName="person"
             isExpanded={expandedSection === 'datos-personales'}
             onToggle={handleToggleSection}
@@ -686,7 +685,7 @@ const MiPerfilScreen = () => {
           <AccordionItem
             id="contraseña"
             title="Contraseña"
-            subtitle="Cambia tu contraseña"
+            subtitle="Cambiá tu contraseña"
             iconName="lock-closed"
             isExpanded={expandedSection === 'contraseña'}
             onToggle={handleToggleSection}
@@ -699,7 +698,7 @@ const MiPerfilScreen = () => {
                 (text) => setPasswordData(prev => ({ ...prev, currentPassword: text })),
                 showCurrentPassword,
                 setShowCurrentPassword,
-                'Ingresa tu contraseña actual'
+                'Ingresá tu contraseña actual'
               )}
               
               {/* ✅ Nueva contraseña con ojo */}
@@ -709,7 +708,7 @@ const MiPerfilScreen = () => {
                 (text) => setPasswordData(prev => ({ ...prev, newPassword: text })),
                 showNewPassword,
                 setShowNewPassword,
-                'Ingresa tu nueva contraseña'
+                'Ingresá tu nueva contraseña'
               )}
               
               {/* ✅ Confirmar contraseña con ojo */}
@@ -726,7 +725,7 @@ const MiPerfilScreen = () => {
                 style={[
                   styles.saveButton, 
                   { 
-                    backgroundColor: loadingPassword ? colors.textSecondary : colors.primary,
+                    backgroundColor: loadingPassword ? colors.success : colors.success,
                     opacity: loadingPassword ? 0.7 : 1
                   }
                 ]}
