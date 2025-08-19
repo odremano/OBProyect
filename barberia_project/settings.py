@@ -9,8 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import dj_database_url
-import os
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -35,6 +34,7 @@ ALLOWED_HOSTS = [
     "ordema-backend.onrender.com",
     "ordema.app", 
     "www.ordema.app"
+
 ]
 
 
@@ -95,12 +95,19 @@ WSGI_APPLICATION = 'barberia_project.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'barberia_system',
+        'USER': 'root',
+        'PASSWORD': 'OdreBARBER2003',
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -222,8 +229,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8080",
     "http://192.168.0.19:8000",  # Cambia por tu IP real y puerto del backend
     "http://192.168.0.19:19006", # Si usas Expo, agrega el puerto de Expo
-    "http://ordema-backend.onrender.com"
-    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
