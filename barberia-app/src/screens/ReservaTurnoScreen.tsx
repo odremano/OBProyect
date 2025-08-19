@@ -286,14 +286,18 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               <View style={styles.selectedContent}>
                 <View style={styles.selectedServiceInfo}>
                   <View style={[styles.selectedServiceIconContainer, { backgroundColor: colors.primary }]}>
-                    <Icon name="cut" size={24} color={colors.white} />
+                    <Icon
+                      name={selectedServicio.icon_name || "stop"}
+                      size={24}
+                      color={colors.white}
+                    />
                   </View>
                   <View style={styles.selectedServiceTextInfo}>
                     <Text style={[styles.selectedServiceName, { color: colors.text }]}>
                       {selectedServicio.name}
                     </Text>
                     <Text style={[styles.selectedServiceDescription, { color: colors.textSecondary }]}>
-                      {selectedServicio.description || 'Servicio profesional de barbería'}
+                      {selectedServicio.description || 'Servicio sin descripción'}
                     </Text>
                     <View style={styles.selectedServiceDetails}>
                       <View style={styles.selectedServiceDetailItem}>

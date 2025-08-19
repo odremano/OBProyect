@@ -134,12 +134,16 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Servicio</Text>
             <View style={styles.serviceInfo}>
               <View style={[styles.serviceIconContainer, { backgroundColor: colors.primary }]}>
-                <Icon name="cut" size={24} color={colors.white} />
+                <Icon
+                  name={servicio.icon_name || "stop"}
+                  size={24}
+                  color={colors.white}
+                />
               </View>
               <View style={styles.serviceDetails}>
                 <Text style={[styles.serviceName, { color: colors.text }]}>{servicio.name}</Text>
                 <Text style={[styles.serviceDescription, { color: colors.textSecondary }]}>
-                  {servicio.description || 'Servicio profesional de barbería'}
+                  {servicio.description || 'Servicio sin descripción'}
                 </Text>
               </View>
             </View>

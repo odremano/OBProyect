@@ -5,6 +5,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator # Para v
 from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from .constants import IONIC_ICON_CHOICES
+
+
 
 # =====================================================
 # 0. PALETA DE COLORES Y MODELO NEGOCIO (MULTI-TENANT)
@@ -131,6 +134,16 @@ class Servicio(models.Model):
     
     # Campo para multi-tenant
     negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
+
+    # Campo para íconos variables 19/08/2025
+    
+    icon_name = models.CharField(
+    max_length=100,
+    blank=True,
+    null=True,
+    choices=IONIC_ICON_CHOICES,
+    help_text="Ícono representativo del servicio"
+    )
 
     class Meta:
         db_table = 'servicio'
