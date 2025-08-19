@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { fetchServicios, Servicio } from '../api/servicios';
+import { fetchServicios, Servicio, } from '../api/servicios';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -68,14 +68,18 @@ export default function ServiciosScreen({ route, navigation }: Props) {
             <View style={styles.cardContent}>
               <View style={styles.servicioInfo}>
                 <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
-                  <Icon name="id-card-outline" size={24} color={colors.white} />
+                  <Icon
+                    name={item.icon_name || "stop"}
+                    size={24}
+                    color={colors.white}
+                  />
                 </View>
                 <View style={styles.textInfo}>
                   <Text style={[styles.servicioName, { color: colors.text }]}>
                     {item.name}
                   </Text>
                   <Text style={[styles.servicioDescription, { color: colors.textSecondary }]}>
-                    {item.description || 'Servicio profesional de barbería'}
+                    {item.description || 'Servicio sin descripción'}
                   </Text>
                   <View style={styles.servicioDetails}>
                     <View style={styles.detailItem}>
