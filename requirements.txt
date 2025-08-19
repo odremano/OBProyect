@@ -4,6 +4,7 @@ djangorestframework==3.14.0
 django-cors-headers==4.3.1
 
 # Base de datos
+psycopg2-binary==2.9.9
 mysqlclient==2.2.0
 
 # Autenticación y seguridad
@@ -25,7 +26,8 @@ django-filter==23.5
 django-notifications-hq==1.8.3
 
 # Utilidades
-Pillow==10.1.0
+setuptools>=65.5.0
+Pillow
 python-dateutil==2.8.2
 
 # Desarrollo y testing
@@ -34,5 +36,7 @@ pytest==7.4.3
 pytest-django==4.7.0
 
 # Producción
+whitenoise==6.6.0
+dj-database-url==2.1.0 
 gunicorn==21.2.0
 whitenoise==6.6.0 

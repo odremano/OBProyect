@@ -126,11 +126,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Horario de Disponibilidad',
                 'verbose_name_plural': 'Horarios de Disponibilidad',
                 'db_table': 'horario_disponibilidad',
-<<<<<<< HEAD
-                'constraints': [models.CheckConstraint(check=models.Q(('end_time__gt', models.F('start_time'))), name='check_time_valid')],
-=======
                 'constraints': [models.CheckConstraint(check=models.Q(end_time__gt=models.F('start_time')), name='check_time_valid')],
->>>>>>> development
                 'unique_together': {('profesional', 'day_of_week', 'start_time', 'end_time', 'is_recurring', 'start_date', 'end_date')},
             },
         ),
@@ -150,12 +146,8 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Bloqueo de Horario',
                 'verbose_name_plural': 'Bloqueos de Horario',
                 'db_table': 'bloqueo_horario',
-<<<<<<< HEAD
-                'constraints': [models.CheckConstraint(check=models.Q(('end_datetime__gt', models.F('start_datetime'))), name='check_datetime_valid')],
-=======
                 'constraints': [models.CheckConstraint(check=models.Q(end_datetime__gt=models.F('start_datetime')), name='check_datetime_valid')
 ],
->>>>>>> development
             },
         ),
         migrations.CreateModel(
@@ -177,7 +169,8 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Turno',
                 'verbose_name_plural': 'Turnos',
                 'db_table': 'turno',
-                'constraints': [models.CheckConstraint(check=models.Q(('end_datetime__gt', models.F('start_datetime'))), name='check_turno_datetime_valid')],
+                'constraints': [models.CheckConstraint(check=models.Q(end_datetime__gt=models.F('start_datetime')), name='check_turno_datetime_valid')
+],
             },
         ),
     ]
