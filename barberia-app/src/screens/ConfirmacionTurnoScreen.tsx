@@ -13,10 +13,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmacionTurno'>;
 export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   
-  // ✅ Debug temporal
-  console.log('🎨 Colors object:', colors);
-  console.log('🎨 Success color:', colors.success);
-  
   const { tokens } = useContext(AuthContext);
   const { profesional, servicio, fecha: fechaStr, hora } = route.params;
   const fecha = new Date(fechaStr); 

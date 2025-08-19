@@ -68,7 +68,7 @@ export default function ServiciosScreen({ route, navigation }: Props) {
             <View style={styles.cardContent}>
               <View style={styles.servicioInfo}>
                 <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
-                  <Icon name="cut" size={24} color={colors.white} />
+                  <Icon name="id-card-outline" size={24} color={colors.white} />
                 </View>
                 <View style={styles.textInfo}>
                   <Text style={[styles.servicioName, { color: colors.text }]}>

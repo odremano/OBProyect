@@ -47,9 +47,19 @@ class DateTimeWithNowWidget(forms.SplitDateTimeWidget):
 
 # --- Usuario ---
 class UsuarioAdmin(UserAdmin):
+    list_display = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'is_staff')
+    search_fields = ('username', 'email', 'first_name', 'last_name', 'phone_number')
+
     def get_fieldsets(self, request, obj=None):
         # Convierte a lista y haz copia profunda
         fieldsets = list(copy.deepcopy(super().get_fieldsets(request, obj)))
+        # Asegurar que el campo phone_number aparezca en "Personal info"
+        for name, opts in fieldsets:
+            if name == 'Personal info' and 'fields' in opts:
+                fields_tuple = opts.get('fields', ())
+                if 'phone_number' not in fields_tuple:
+                    opts['fields'] = tuple(list(fields_tuple) + ['phone_number'])
+                break
         if request.user.is_superuser:
             if not any('negocio' in opts.get('fields', ()) for _, opts in fieldsets):
                 fieldsets.append(('Negocio', {'fields': ('negocio',)}))

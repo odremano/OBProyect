@@ -91,7 +91,9 @@ const SettingsScreen: React.FC = () => {
             onPress={() => showComingSoon('Notificaciones')}
           >
             <View style={styles.settingLeft}>
-              <Icon name="notifications" size={24} color={screenColors.primary} />
+              <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+                <Icon name="notifications" size={24} color={screenColors.white} />
+              </View>
               <View style={styles.settingText}>
                 <Text style={[styles.settingTitle, { color: screenColors.text }]}>Notificaciones Push</Text>
                 <Text style={[styles.settingDescription, { color: screenColors.textSecondary }]}>
@@ -111,7 +113,9 @@ const SettingsScreen: React.FC = () => {
             onPress={() => setThemeModalVisible(true)}
           >
             <View style={styles.settingLeft}>
-              <Icon name="color-palette" size={24} color={screenColors.primary} />
+              <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+                <Icon name="color-palette" size={24} color={screenColors.white} />
+              </View>
               <View style={styles.settingText}>
                 <Text style={[styles.settingTitle, { color: screenColors.text }]}>Tema</Text>
                 <Text style={[styles.settingDescription, { color: screenColors.textSecondary }]}>
@@ -131,7 +135,9 @@ const SettingsScreen: React.FC = () => {
             onPress={() => showComingSoon('Privacidad')}
           >
             <View style={styles.settingLeft}>
-              <Icon name="shield-checkmark" size={24} color={screenColors.primary} />
+              <View style={[styles.iconContainer, { backgroundColor: screenColors.primary }]}>
+                <Icon name="shield-checkmark" size={24} color={screenColors.white} />
+              </View>
               <View style={styles.settingText}>
                 <Text style={[styles.settingTitle, { color: screenColors.text }]}>Política de Privacidad</Text>
                 <Text style={[styles.settingDescription, { color: screenColors.textSecondary }]}>
@@ -261,6 +267,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
   },
   settingText: {
     marginLeft: 16,

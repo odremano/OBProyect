@@ -9,6 +9,7 @@ export interface AuthContextType {
   negocioId: number | null;
   negocioLogo: string | null;
   login: (user: User, tokens: Tokens, negocio?: any) => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -19,6 +20,7 @@ export const AuthContext = createContext<AuthContextType>({
   negocioId: null,
   negocioLogo: null,
   login: async () => {},
+  updateUser: async () => {},
   logout: async () => {},
   loading: true,
 });
@@ -94,6 +96,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem('tokens', JSON.stringify(tokens));
   };
 
+  const updateUser = async (newUser: User) => {
+    setUser(newUser);
+    await AsyncStorage.setItem('user', JSON.stringify(newUser));
+  };
+
   const loadSession = async () => {
     try {
       const userData = await AsyncStorage.getItem('user');
@@ -150,7 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const negocioId = user?.negocio?.id ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, tokens, negocioId, negocioLogo, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, tokens, negocioId, negocioLogo, login, updateUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

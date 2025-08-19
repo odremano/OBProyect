@@ -1,5 +1,6 @@
 import React from 'react';
-import { ImageBackground, StyleSheet, useColorScheme, ViewStyle } from 'react-native';
+import { ImageBackground, StyleSheet, useColorScheme, ViewStyle, Appearance } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 interface OrdemaBackgroundProps {
   children: React.ReactNode;
@@ -9,10 +10,19 @@ interface OrdemaBackgroundProps {
 }
 
 const OrdemaBackground = ({ children, style, customUri, forceTheme }: OrdemaBackgroundProps) => {
+  const { mode, colors } = useTheme(); // Agregar colors al hook
   const systemTheme = useColorScheme();
   
-  // Determinar el tema a usar
-  const effectiveTheme = forceTheme || systemTheme || 'dark';
+  // Determinar el tema efectivo basado en el ThemeContext
+  let effectiveTheme: 'light' | 'dark';
+  
+  if (forceTheme) {
+    effectiveTheme = forceTheme;
+  } else if (mode === 'auto') {
+    effectiveTheme = systemTheme === 'dark' ? 'dark' : 'light';
+  } else {
+    effectiveTheme = mode; // 'light' o 'dark'
+  }
   
   const defaultDark = require('../../assets/bgdark-ordema.png');
   const defaultLight = require('../../assets/bglight-ordema.png');
@@ -26,7 +36,11 @@ const OrdemaBackground = ({ children, style, customUri, forceTheme }: OrdemaBack
   return (
     <ImageBackground 
       source={backgroundSource} 
-      style={[styles.container, style]} 
+      style={[
+        styles.container, 
+        { backgroundColor: colors.background }, // Usar color del tema como base
+        style
+      ]} 
       resizeMode="cover"
     >
       {children}

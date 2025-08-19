@@ -23,6 +23,9 @@ ALLOWED_HOSTS = [
     "ordema-backend.onrender.com",
     "ordema.app", 
     "www.ordema.app"
+    "ordema-backend.onrender.com",
+    "ordema.app", 
+    "www.ordema.app"
 ]
 
 # Application definition
