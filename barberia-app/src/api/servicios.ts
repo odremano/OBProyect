@@ -9,6 +9,7 @@ export interface Servicio {
   duration_minutes: number;
   price: string;
   is_active: boolean;
+  icon_name: string;
 }
 
 interface ServiciosResponse {
