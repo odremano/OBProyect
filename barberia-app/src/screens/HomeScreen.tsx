@@ -30,7 +30,6 @@ export default function HomeScreen() {
       
       <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <DynamicLogo
-          style={styles.logo}
           resizeMode="contain"
         />
         <View style={{ flex: 1 }} />
@@ -139,11 +138,11 @@ const styles = StyleSheet.create({
     height: 100, // Altura fija para el header
     zIndex: 1,
   },
-  logo: {
-    width: 100,
-    height: 70,
-    resizeMode: 'contain',
-  },
+  // logo: {
+  //   width: 100,  // ✅ Ahora se maneja dinámicamente desde la API
+  //   height: 70,  // ✅ Ahora se maneja dinámicamente desde la API
+  //   resizeMode: 'contain',
+  // },
   content: {
     flex: 1,
     paddingTop: 100, // Espacio exacto para el header fijo

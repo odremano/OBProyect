@@ -8,6 +8,7 @@ export interface AuthContextType {
   tokens: Tokens | null;
   negocioId: number | null;
   negocioLogo: string | null;
+  logoDimensions: { width: number; height: number } | null;
   login: (user: User, tokens: Tokens, negocio?: any) => Promise<void>;
   updateUser: (user: User) => Promise<void>;
   logout: () => Promise<void>;
@@ -19,6 +20,7 @@ export const AuthContext = createContext<AuthContextType>({
   tokens: null,
   negocioId: null,
   negocioLogo: null,
+  logoDimensions: null,
   login: async () => {},
   updateUser: async () => {},
   logout: async () => {},
@@ -29,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<Tokens | null>(null);
   const [negocioLogo, setNegocioLogo] = useState<string | null>(null);
+  const [logoDimensions, setLogoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const { setNegocioThemeColors } = useTheme();
 
@@ -72,12 +75,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (negocio && negocio.logo_url) {
       setNegocioLogo(negocio.logo_url);
+      setLogoDimensions({
+        width: negocio.logo_width || 100,
+        height: negocio.logo_height || 70
+      });
       logoToSave = negocio.logo_url;
       if (!negocioDataToSave) {
-        negocioDataToSave = { logo_url: negocio.logo_url };
+        negocioDataToSave = { 
+          logo_url: negocio.logo_url,
+          logo_width: negocio.logo_width,
+          logo_height: negocio.logo_height
+        };
       }
     } else if (user.negocio && user.negocio.logo_url) {
       setNegocioLogo(user.negocio.logo_url);
+      setLogoDimensions({
+        width: user.negocio.logo_width || 100,
+        height: user.negocio.logo_height || 70
+      });
       logoToSave = user.negocio.logo_url;
       if (!negocioDataToSave) {
         negocioDataToSave = user.negocio;
@@ -123,6 +138,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
         
+        // Cargar dimensiones del logo
+        if (negocioData) {
+          const negocio = JSON.parse(negocioData);
+          if (negocio && (negocio.logo_width || negocio.logo_height)) {
+            setLogoDimensions({
+              width: negocio.logo_width || 100,
+              height: negocio.logo_height || 70
+            });
+          }
+        } else if (user.negocio && (user.negocio.logo_width || user.negocio.logo_height)) {
+          setLogoDimensions({
+            width: user.negocio.logo_width || 100,
+            height: user.negocio.logo_height || 70
+          });
+        }
+        
         if (
           user.negocio &&
           user.negocio.theme_colors &&
@@ -147,6 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setTokens(null);
     setNegocioLogo(null);
+    setLogoDimensions(null);
     setNegocioThemeColors(undefined);
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('tokens');
@@ -157,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const negocioId = user?.negocio?.id ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, tokens, negocioId, negocioLogo, login, updateUser, logout, loading }}>
+    <AuthContext.Provider value={{ user, tokens, negocioId, negocioLogo, logoDimensions, login, updateUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

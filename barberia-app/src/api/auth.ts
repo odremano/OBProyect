@@ -29,6 +29,8 @@ export interface User {
     id: number;
     nombre: string;
     logo_url?: string;
+    logo_width?: number;
+    logo_height?: number;
     theme_colors?: ThemeColors;
   };
 }
