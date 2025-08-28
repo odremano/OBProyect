@@ -198,7 +198,7 @@ const MoreScreen: React.FC = () => {
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: screenColors.primary }]}>Ordema v1.0.0</Text>
           <Text style={[styles.footerText, { color: screenColors.dark3 }]}>
-            Desarrollado con ❤️ para la mejor experiencia. dev
+            Desarrollado con ❤️ para la mejor experiencia.
           </Text>
         </View>
       </ScrollView>
