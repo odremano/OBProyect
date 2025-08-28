@@ -41,10 +41,14 @@ const DynamicLogo: React.FC<DynamicLogoProps> = ({
     ? defaultLogo 
     : { uri: negocioLogo };
 
-  // ✅ Calcular las dimensiones dinámicas
+  // ✅ Extraer dimensiones simplificado (solo width y height)
+  const logoWidth = logoDimensions?.width ?? defaultWidth;
+  const logoHeight = logoDimensions?.height ?? defaultHeight;
+
+  // ✅ Validar que las dimensiones sean números válidos
   const dynamicDimensions = {
-    width: logoDimensions?.width || defaultWidth,
-    height: logoDimensions?.height || defaultHeight
+    width: (typeof logoWidth === 'number' && logoWidth > 0) ? logoWidth : defaultWidth,
+    height: (typeof logoHeight === 'number' && logoHeight > 0) ? logoHeight : defaultHeight
   };
 
   // ✅ Combinar estilos: primero las dimensiones dinámicas, luego los estilos personalizados
@@ -70,4 +74,4 @@ const DynamicLogo: React.FC<DynamicLogoProps> = ({
   );
 };
 
-export default DynamicLogo; 
+export default DynamicLogo;

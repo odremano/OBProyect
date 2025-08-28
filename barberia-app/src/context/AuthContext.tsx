@@ -9,7 +9,7 @@ export interface AuthContextType {
   negocioId: number | null;
   negocioLogo: string | null;
   logoDimensions: { width: number; height: number } | null;
-  login: (user: User, tokens: Tokens, negocio?: any) => Promise<void>;
+  login: (user: User, tokens: Tokens) => Promise<void>; // ✅ Removido parámetro negocio
   updateUser: (user: User) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -46,67 +46,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     textSecondary: isDark ? "#cccccc" : "#474747",
   });
 
-  const login = async (user: User, tokens: Tokens, negocio?: any) => {
+  const login = async (user: User, tokens: Tokens) => {
     setUser(user);
     setTokens(tokens);
-
-    let logoToSave = null;
-    let negocioDataToSave = null;
     
-    if (negocio && negocio.theme_colors) {
-      setNegocioThemeColors({
-        light: addTextColors(negocio.theme_colors.light, false),
-        dark: addTextColors(negocio.theme_colors.dark, true),
-      });
-      negocioDataToSave = negocio;
-    } else if (
-      user.negocio &&
-      user.negocio.theme_colors &&
-      (user.negocio.theme_colors as any).light &&
-      (user.negocio.theme_colors as any).dark
-    ) {
-      const themeColors = user.negocio.theme_colors as any;
-      setNegocioThemeColors({
-        light: addTextColors(themeColors.light, false),
-        dark: addTextColors(themeColors.dark, true),
-      });
-      negocioDataToSave = user.negocio;
-    }
-
-    if (negocio && negocio.logo_url) {
-      setNegocioLogo(negocio.logo_url);
-      setLogoDimensions({
-        width: negocio.logo_width || 100,
-        height: negocio.logo_height || 70
-      });
-      logoToSave = negocio.logo_url;
-      if (!negocioDataToSave) {
-        negocioDataToSave = { 
-          logo_url: negocio.logo_url,
-          logo_width: negocio.logo_width,
-          logo_height: negocio.logo_height
-        };
+    if (user.negocio) {
+      if (user.negocio.logo_url) {
+        setNegocioLogo(user.negocio.logo_url);
+        setLogoDimensions({
+          width: user.negocio.logo_width ?? 100,
+          height: user.negocio.logo_height ?? 70
+        });
+        
+        await AsyncStorage.setItem('negocioLogo', user.negocio.logo_url);
       }
-    } else if (user.negocio && user.negocio.logo_url) {
-      setNegocioLogo(user.negocio.logo_url);
-      setLogoDimensions({
-        width: user.negocio.logo_width || 100,
-        height: user.negocio.logo_height || 70
-      });
-      logoToSave = user.negocio.logo_url;
-      if (!negocioDataToSave) {
-        negocioDataToSave = user.negocio;
+      
+      if (user.negocio.theme_colors) {
+        const themeColors = user.negocio.theme_colors as any;
+        if (themeColors.light && themeColors.dark) {
+          setNegocioThemeColors({
+            light: addTextColors(themeColors.light, false),
+            dark: addTextColors(themeColors.dark, true),
+          });
+        }
       }
+      
+      await AsyncStorage.setItem('negocio', JSON.stringify(user.negocio));
     }
-
-    if (negocioDataToSave) {
-      await AsyncStorage.setItem('negocio', JSON.stringify(negocioDataToSave));
-    }
-
-    if (logoToSave) {
-      await AsyncStorage.setItem('negocioLogo', logoToSave);
-    }
-
+    
     await AsyncStorage.setItem('user', JSON.stringify(user));
     await AsyncStorage.setItem('tokens', JSON.stringify(tokens));
   };
