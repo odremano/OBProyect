@@ -29,7 +29,12 @@ export interface User {
     id: number;
     nombre: string;
     logo_url?: string;
-    theme_colors?: ThemeColors;
+    logo_width?: number;
+    logo_height?: number;
+    theme_colors?: {
+      light: ThemeColors;
+      dark: ThemeColors;
+    };
   };
 }
 
@@ -43,12 +48,6 @@ export interface LoginSuccess {
   message: string;
   user: User;
   tokens: Tokens;
-  negocio?: {
-    id: number;
-    nombre: string;
-    logo_url?: string;
-    theme_colors?: ThemeColors;
-  };
 }
 
 export interface LoginError {
