@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,12 +26,12 @@ SECRET_KEY = 'django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-DEBUG = False
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "192.168.0.40",
+    "192.168.0.12",
     "192.168.1.18",
     "https://ordema-backend.onrender.com",
     "ordema-backend.onrender.com",
@@ -49,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'drf_yasg',
+    'storages',
     
     # Django REST Framework
     'rest_framework',
@@ -63,7 +66,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← Debe estar aquí, después de SecurityMiddleware
     'whitenoise.middleware.WhiteNoiseMiddleware',  # ← Debe estar aquí, después de SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -147,18 +149,33 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # ← Cambiar esto
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # ← Cambiar esto
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 STATICFILES_DIRS = [
     BASE_DIR / "core" / "static",
 ]
 
-# Media files (uploads de usuarios)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# Configuración de WhiteNoise para servir archivos estáticos
+# Configuración de WhiteNoise para servir archivos estáticos comprimidos en producción
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
+# ======================
+# AWS S3 – Almacenamiento de archivos MEDIA (subidos por usuarios)
+# ======================
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = 'ordema-media'
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+# URL base para acceder a los archivos media
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
+# ACL pública: permite acceder a imágenes por URL sin autenticación
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = False
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

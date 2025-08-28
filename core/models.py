@@ -5,6 +5,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator # Para v
 from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from .constants import IONIC_ICON_CHOICES
+
+
 
 # =====================================================
 # 0. PALETA DE COLORES Y MODELO NEGOCIO (MULTI-TENANT)
@@ -48,10 +51,22 @@ def get_default_theme():
             "black": "#000000"
         }
     }
-
+# =====================================================
+# 0.5. MODELO NEGOCIO (Múltiples negocios)
+# =====================================================
 class Negocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     logo = models.ImageField(upload_to='negocio_logos/', null=True, blank=True)
+    logo_width = models.IntegerField(
+        default=100, 
+        validators=[MinValueValidator(20), MaxValueValidator(300)],
+        help_text="Ancho del logo en píxeles (20-300px)"
+    )
+    logo_height = models.IntegerField(
+        default=70, 
+        validators=[MinValueValidator(20), MaxValueValidator(200)],
+        help_text="Alto del logo en píxeles (20-200px)"
+    )
     propietario = models.ForeignKey(
         'Usuario', # Referencia al modelo Usuario custom
         related_name='negocios_propios',
@@ -131,6 +146,16 @@ class Servicio(models.Model):
     
     # Campo para multi-tenant
     negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE)
+
+    # Campo para íconos variables 19/08/2025
+    
+    icon_name = models.CharField(
+    max_length=100,
+    blank=True,
+    null=True,
+    choices=IONIC_ICON_CHOICES,
+    help_text="Ícono representativo del servicio"
+    )
 
     class Meta:
         db_table = 'servicio'

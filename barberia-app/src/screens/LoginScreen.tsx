@@ -38,9 +38,10 @@ const LoginScreen: React.FC = () => {
         // await AsyncStorage.setItem('accessToken', data.tokens.access);
         // await AsyncStorage.setItem('refreshToken', data.tokens.refresh);
         
-        // Actualiza el AuthContext - esto triggereará la navegación automática
-        // Pasar el objeto negocio para que se carguen los colores dinámicos
-        await contextLogin(data.user, data.tokens, data.negocio);
+        // ✅ Actualiza el AuthContext - ahora usa solo user.negocio como fuente única
+        // ❌ ANTES: await contextLogin(data.user, data.tokens, data.negocio);
+        // ✅ DESPUÉS: Remover el tercer parámetro
+        await contextLogin(data.user, data.tokens);
         
         setLoginVisible(false);
       } else {
