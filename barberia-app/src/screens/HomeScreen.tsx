@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground, Image, Appearance } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -13,11 +13,24 @@ type HomeScreenRouteProp = RouteProp<{ HomeScreen: { showConfirmationBanner?: bo
 
 export default function HomeScreen() {
   const { user, logout } = useContext(AuthContext);
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<HomeScreenRouteProp>();
   
   const { showBanner } = useNotification();
+
+  // Determinar qué logo usar basado en el tema actual
+  const getBackgroundLogo = () => {
+    const systemScheme = Appearance.getColorScheme();
+    
+    // Determinar si estamos en modo claro
+    const isLightMode = mode === 'light' || (mode === 'auto' && systemScheme === 'light');
+    
+    // Si está en modo claro, usar logobg2.png, si no, usar logobg.png
+    return isLightMode 
+      ? require('../../assets/logobg2.png')
+      : require('../../assets/logobg.png');
+  };
 
   useEffect(() => {
     if (route.params?.showConfirmationBanner) {
@@ -26,11 +39,14 @@ export default function HomeScreen() {
   }, [route.params?.showConfirmationBanner]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ImageBackground 
+      source={getBackgroundLogo()} 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      imageStyle={styles.backgroundImage}
+    >
       
       <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <DynamicLogo
-          style={styles.logo}
           resizeMode="contain"
         />
         <View style={{ flex: 1 }} />
@@ -44,9 +60,30 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
       <View style={styles.content}>
-        <Text style={[styles.greeting, { color: colors.text }]}>
-          ¡Bienvenido, {user?.first_name ? `${user.first_name}!` : 'Usuario!'}
-        </Text>
+        <View style={[styles.welcomeContainer, { backgroundColor: colors.dark2 }]}>
+          <View style={styles.userInfoContainer}>
+            <View style={styles.avatarContainer}>
+              {user?.profile_picture_url ? (
+                <Image 
+                  source={{ uri: user.profile_picture_url }} 
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={[styles.defaultAvatar, { backgroundColor: colors.primary }]}>
+                  <Icon name="person" size={24} color={colors.white} />
+                </View>
+              )}
+            </View>
+            <View style={styles.userTextContainer}>
+              <Text style={[styles.roleText, { color: colors.text }]}>
+                ¡Bienvenido, {user?.first_name ? `${user.first_name}!` : 'Usuario!'}
+              </Text>
+              <Text style={[styles.greeting, { color: colors.textSecondary }]}>
+                Rol: {user?.role === 'cliente' ? 'Cliente' : 'Profesional'}
+              </Text>
+            </View>
+          </View>
+        </View>
         {user?.role === 'profesional' ? (
           <View style={styles.buttonsContainer}>
             <View style={styles.topRow}>
@@ -119,13 +156,17 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  backgroundImage: {
+    opacity: 0.025,
+    transform: [{ scale: 1.22 }, { translateX: 15 }, { translateY: 5 }]
   },
   header: {
     position: 'absolute',
@@ -139,28 +180,68 @@ const styles = StyleSheet.create({
     height: 100, // Altura fija para el header
     zIndex: 1,
   },
-  logo: {
-    width: 100,
-    height: 70,
-    resizeMode: 'contain',
-  },
+  // logo: {
+  //   width: 100,  // ✅ Ahora se maneja dinámicamente desde la API
+  //   height: 70,  // ✅ Ahora se maneja dinámicamente desde la API
+  //   resizeMode: 'contain',
+  // },
   content: {
     flex: 1,
     paddingTop: 100, // Espacio exacto para el header fijo
     paddingHorizontal: 24,
     justifyContent: 'space-between', // Distribuye el espacio entre greeting y buttons
   },
-  greeting: {
-    fontSize: 32,
+  welcomeContainer: {
+    borderTopEndRadius: 12,
+    borderBottomEndRadius: 12,
+    padding: 16,
+    marginTop: 45,
+    marginLeft: -24, // Compensar el padding horizontal del content
+    marginRight: 24, // Mantener margen derecho
+    marginBottom: -60,
+    paddingLeft: 24, // Restaurar padding interno izquierdo
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    marginRight: 16,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  defaultAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userTextContainer: {
+    flex: 1,
+  },
+  roleText: {
+    fontSize: 20,
     fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 60,
+    marginBottom: 4,
+  },
+  greeting: {
+    fontSize: 12,
+    fontWeight: '400',
   },
   buttonsContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 100, // Espacio desde el bottom para balancear
+    paddingBottom: 80, // Reducido para compensar el nuevo welcome container
   },
   topRow: {
     flexDirection: 'row',
@@ -170,7 +251,7 @@ const styles = StyleSheet.create({
   },
   smallButton: {
     borderRadius: 12,
-    height: 183,
+    height: 180,
     alignItems: 'center',
     justifyContent: 'center',
     width: '47%',

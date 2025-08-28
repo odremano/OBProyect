@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'drf_yasg',
+    'storages',  # ← Agregado para AWS S3
     
     # Django REST Framework
     'rest_framework',
@@ -126,9 +127,23 @@ STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 WHITENOISE_USE_FINDERS = True  # Para desarrollo/debug
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg']
 
-# Media files (uploads de usuarios)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# ======================
+# AWS S3 – Almacenamiento de archivos MEDIA (subidos por usuarios)
+# ======================
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = 'ordema-media'
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+# URL base para acceder a los archivos media
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
+# ACL pública: permite acceder a imágenes por URL sin autenticación
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = False
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

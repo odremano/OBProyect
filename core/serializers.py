@@ -14,7 +14,7 @@ class NegocioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Negocio
-        fields = ['id', 'nombre', 'logo_url', 'theme_colors']
+        fields = ['id', 'nombre', 'logo_url', 'logo_width', 'logo_height', 'theme_colors']
     
     def get_logo_url(self, obj):
         if obj.logo:

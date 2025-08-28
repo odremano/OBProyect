@@ -51,10 +51,22 @@ def get_default_theme():
             "black": "#000000"
         }
     }
-
+# =====================================================
+# 0.5. MODELO NEGOCIO (Múltiples negocios)
+# =====================================================
 class Negocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     logo = models.ImageField(upload_to='negocio_logos/', null=True, blank=True)
+    logo_width = models.IntegerField(
+        default=100, 
+        validators=[MinValueValidator(20), MaxValueValidator(300)],
+        help_text="Ancho del logo en píxeles (20-300px)"
+    )
+    logo_height = models.IntegerField(
+        default=70, 
+        validators=[MinValueValidator(20), MaxValueValidator(200)],
+        help_text="Alto del logo en píxeles (20-200px)"
+    )
     propietario = models.ForeignKey(
         'Usuario', # Referencia al modelo Usuario custom
         related_name='negocios_propios',

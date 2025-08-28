@@ -111,6 +111,38 @@ admin.site.register(Usuario, UsuarioAdmin)
 
 # --- Negocio ---
 class NegocioAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'propietario', 'logo_preview', 'logo_dimensions', 'fecha_creacion')
+    list_filter = ('fecha_creacion',)
+    search_fields = ('nombre', 'propietario__username')
+    readonly_fields = ('fecha_creacion',)
+    
+    fieldsets = (
+        ('Información General', {
+            'fields': ('nombre', 'propietario', 'fecha_creacion')
+        }),
+        ('Logo y Dimensiones', {
+            'fields': ('logo', 'logo_width', 'logo_height'),
+            'description': 'Configura el logo del negocio y sus dimensiones de visualización en la aplicación.'
+        }),
+        ('Configuración de Tema', {
+            'fields': ('theme_colors',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def logo_preview(self, obj):
+        if obj.logo:
+            return format_html(
+                '<img src="{}" width="50" height="50" style="object-fit: contain; border: 1px solid #ddd;" />',
+                obj.logo.url
+            )
+        return "Sin logo"
+    logo_preview.short_description = "Vista previa"
+    
+    def logo_dimensions(self, obj):
+        return f"{obj.logo_width}x{obj.logo_height}px"
+    logo_dimensions.short_description = "Dimensiones"
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
