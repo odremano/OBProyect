@@ -35,11 +35,7 @@ class RegistroView(APIView):
     permission_classes = [permissions.AllowAny]  # Público
     
     def post(self, request):
-        # ✅ Convertir username a minúsculas antes de validar
-        if 'username' in request.data:
-            request.data = request.data.copy()  # Hacer mutable si es inmutable
-            request.data['username'] = request.data['username'].lower()
-        
+        # ✅ El serializer ya se encarga de normalizar el username
         serializer = RegistroSerializer(data=request.data)
         if serializer.is_valid():
             # Crear el usuario
@@ -627,7 +623,7 @@ def disponibilidad_profesional(request):
     if request.method == 'PUT':
         # El frontend debe enviar una lista de objetos con day_of_week, start_time, end_time
         HorarioDisponibilidad.objects.filter(profesional=profesional).delete()
-        data = request.data if isinstance(request.data, list) else request.data.get('horarios', [])
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         for item in data:
             item['profesional'] = profesional.id
         serializer = HorarioDisponibilidadSerializer(data=data, many=True, context={'profesional': profesional})

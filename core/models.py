@@ -131,8 +131,9 @@ class Usuario(AbstractUser):
         return self.username
 
     def save(self, *args, **kwargs):
-        # ✅ Siempre guardar username en minúsculas
-        self.username = self.username.lower()
+        # ✅ Validar que username existe antes de aplicar .lower()
+        if self.username:
+            self.username = self.username.lower()
         super().save(*args, **kwargs)
 
 # =====================================================
