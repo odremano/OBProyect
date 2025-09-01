@@ -35,6 +35,11 @@ class RegistroView(APIView):
     permission_classes = [permissions.AllowAny]  # Público
     
     def post(self, request):
+        # ✅ Convertir username a minúsculas antes de validar
+        if 'username' in request.data:
+            request.data = request.data.copy()  # Hacer mutable si es inmutable
+            request.data['username'] = request.data['username'].lower()
+        
         serializer = RegistroSerializer(data=request.data)
         if serializer.is_valid():
             # Crear el usuario
@@ -76,6 +81,8 @@ class LoginView(APIView):
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
             
+            username = username.lower()
+            
             # Autenticar usuario
             user = authenticate(username=username, password=password)
             if user:
@@ -108,10 +115,12 @@ class LoginView(APIView):
                 # Añadir datos del negocio si el usuario tiene uno asignado
                 if user.negocio:
                     negocio = user.negocio
-                    response_data['negocio'] = {
+                    response_data['user']['negocio'] = {
                         'id': negocio.id,
                         'nombre': negocio.nombre,
                         'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
+                        'logo_width': negocio.logo_width,
+                        'logo_height': negocio.logo_height,
                         'theme_colors': negocio.theme_colors
                     }
                 

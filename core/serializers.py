@@ -80,6 +80,10 @@ class RegistroSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Las contraseñas no coinciden")
         return data
     
+    def validate_username(self, value):
+        """✅ Normalizar username a minúsculas"""
+        return value.lower()
+    
     def create(self, validated_data):
         """Crear un nuevo cliente"""
         validated_data.pop('password_confirm')
@@ -89,7 +93,6 @@ class RegistroSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-
 
 class LoginSerializer(serializers.Serializer):
     """
@@ -110,6 +113,10 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError({'password': 'Password es requerido'})
         
         return data
+
+    def validate_username(self, value):
+        # ✅ Normalizar a minúsculas en la validación
+        return value.lower()
 
 
 # =============================================================================
@@ -498,4 +505,4 @@ class CambiarContrasenaSerializer(serializers.Serializer):
                 'new_password': 'La nueva contraseña debe ser diferente a la actual'
             })
         
-        return data 
+        return data

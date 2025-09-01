@@ -130,6 +130,11 @@ class Usuario(AbstractUser):
     def __str__(self):
         return self.username
 
+    def save(self, *args, **kwargs):
+        # ✅ Siempre guardar username en minúsculas
+        self.username = self.username.lower()
+        super().save(*args, **kwargs)
+
 # =====================================================
 # 2. MODELO SERVICIO (Service)
 # =====================================================
