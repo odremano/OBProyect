@@ -107,19 +107,6 @@ class LoginView(APIView):
                         'access': str(refresh.access_token),
                     }
                 }
-                
-                # Añadir datos del negocio si el usuario tiene uno asignado
-                if user.negocio:
-                    negocio = user.negocio
-                    response_data['user']['negocio'] = {
-                        'id': negocio.id,
-                        'nombre': negocio.nombre,
-                        'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
-                        'logo_width': negocio.logo_width,
-                        'logo_height': negocio.logo_height,
-                        'theme_colors': negocio.theme_colors
-                    }
-                
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
                 return Response({
