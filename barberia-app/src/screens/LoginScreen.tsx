@@ -160,8 +160,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     // Agregar un borde sutil para mejor definición
-    borderWidth: 1,
-    borderColor: 'colors.secondaryText',
+    borderWidth: 0.3,
   },
   buttonText: {
     fontSize: 16,

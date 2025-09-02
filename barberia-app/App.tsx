@@ -1,15 +1,23 @@
 import React from 'react';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import NotificationBanner from './src/components/NotificationBanner';
-import { useNotification } from './src/context/NotificationContext';
 import BannerStack from './src/components/BannerStack';
+import { useTheme } from './src/context/ThemeContext';
 
 function AppContent() {
+  const { colors } = useTheme();
+  
   return (
     <>
+      <StatusBar 
+        backgroundColor={colors.primaryDark}
+        barStyle="light-content"
+        translucent={false}
+      />
       <AppNavigator />
       <BannerStack />
     </>
@@ -18,12 +26,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <AppContent />
-        </NotificationProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <AppContent />
+          </NotificationProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

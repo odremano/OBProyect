@@ -228,6 +228,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
+            autoCorrect={false}
             onBlur={() => setTouched(t => ({ ...t, username: true }))}
           />
           
@@ -246,6 +247,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
               placeholderTextColor={colors.dark3}
               value={password}
               onChangeText={setPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
               secureTextEntry={!showPassword}
               onBlur={() => setTouched(t => ({ ...t, password: true }))}
             />

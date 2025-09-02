@@ -35,6 +35,7 @@ class RegistroView(APIView):
     permission_classes = [permissions.AllowAny]  # Público
     
     def post(self, request):
+        # ✅ El serializer ya se encarga de normalizar el username
         serializer = RegistroSerializer(data=request.data)
         if serializer.is_valid():
             # Crear el usuario
@@ -76,6 +77,8 @@ class LoginView(APIView):
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
             
+            username = username.lower()
+            
             # Autenticar usuario
             user = authenticate(username=username, password=password)
             if user:
@@ -104,17 +107,6 @@ class LoginView(APIView):
                         'access': str(refresh.access_token),
                     }
                 }
-                
-                # Añadir datos del negocio si el usuario tiene uno asignado
-                if user.negocio:
-                    negocio = user.negocio
-                    response_data['negocio'] = {
-                        'id': negocio.id,
-                        'nombre': negocio.nombre,
-                        'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
-                        'theme_colors': negocio.theme_colors
-                    }
-                
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
                 return Response({
@@ -618,7 +610,7 @@ def disponibilidad_profesional(request):
     if request.method == 'PUT':
         # El frontend debe enviar una lista de objetos con day_of_week, start_time, end_time
         HorarioDisponibilidad.objects.filter(profesional=profesional).delete()
-        data = request.data if isinstance(request.data, list) else request.data.get('horarios', [])
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         for item in data:
             item['profesional'] = profesional.id
         serializer = HorarioDisponibilidadSerializer(data=data, many=True, context={'profesional': profesional})
