@@ -58,6 +58,10 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const [mensajeHorarios, setMensajeHorarios] = useState<string | null>(null);
   const [profesionalNoTrabaja, setProfesionalNoTrabaja] = useState(false);
 
+  // ✅ Solo agregar estos estados mínimos
+  const [proximaDisponibilidad, setProximaDisponibilidad] = useState<string | null>(null);
+  const [cargandoDisponibilidadInicial, setCargandoDisponibilidadInicial] = useState(false);
+
   useEffect(() => {
     if (!tokens || negocioId == null) return;
 
@@ -178,6 +182,87 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
       setShowTimePicker(true);
     }
   };
+
+  // ✅ Función simplificada para precargar disponibilidad
+  const precargarDisponibilidad = async (profesional: Profesional) => {
+    if (!tokens || negocioId == null || servicios.length === 0) return;
+
+    setCargandoDisponibilidadInicial(true);
+
+    try {
+      // Próximos 7 días
+      const fechas = [];
+      for (let i = 0; i < 7; i++) {
+        const fecha = new Date();
+        fecha.setDate(fecha.getDate() + i);
+        
+        let label;
+        if (i === 0) label = 'Hoy';
+        else if (i === 1) label = 'Mañana';
+        else {
+          const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          label = diasSemana[fecha.getDay()];
+        }
+        
+        fechas.push({ fecha, label });
+      }
+
+      // Usar primeros 3 servicios para eficiencia
+      const serviciosAProbar = servicios.slice(0, 3).map(s => s.id);
+
+      for (const { fecha, label } of fechas) {
+        const fechaStr = formatDateForAPI(fecha);
+
+        for (const servicioId of serviciosAProbar) {
+          try {
+            const response = await obtenerHorariosDisponibles(
+              tokens, 
+              profesional.id,
+              fechaStr, 
+              servicioId,
+              negocioId as number
+            );
+
+            if (response.horarios.length > 0) {
+              const primerHorario = response.horarios[0];
+              setProximaDisponibilidad(`${label} ${primerHorario}`);
+              return; // Salir cuando encuentra disponibilidad
+            }
+
+            if (response.profesionalNoTrabaja) break;
+          } catch (error) {
+            continue;
+          }
+        }
+      }
+
+      // Si no encuentra disponibilidad
+      setProximaDisponibilidad('Consultar disponibilidad');
+
+    } catch (error) {
+      setProximaDisponibilidad('Consultar disponibilidad');
+    } finally {
+      setCargandoDisponibilidadInicial(false);
+    }
+  };
+
+  // ✅ Efecto corregido con dependencias completas
+  useEffect(() => {
+    if (selectedProfesional && servicios.length > 0 && !proximaDisponibilidad && !cargandoDisponibilidadInicial) {
+      // Solo precargar si fue autoseleccionado (no viene por parámetro de navegación)
+      const fuePrecargado = profesionales.length === 1 && !profesionalIdParam;
+      
+      if (fuePrecargado) {
+        precargarDisponibilidad(selectedProfesional);
+      }
+    }
+  }, [selectedProfesional, servicios, tokens, negocioId, profesionales.length, profesionalIdParam, proximaDisponibilidad, cargandoDisponibilidadInicial]);
+
+  // ✅ Limpiar disponibilidad cuando cambie el profesional
+  useEffect(() => {
+    setProximaDisponibilidad(null);
+    setCargandoDisponibilidadInicial(false);
+  }, [selectedProfesional?.id]);
 
   if (loading) {
     return (
@@ -347,10 +432,25 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           ]}>
             
             {/* Información de disponibilidad del profesional */}
-            {selectedProfesional && mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad) && (
+            {selectedProfesional && (proximaDisponibilidad || cargandoDisponibilidadInicial) && (
               <View style={styles.disponibilidadContainer}>
                 <Icon name="time" size={12} color={colors.primary} />
-                <Text style={[styles.disponibilidadText, { color: colors.primary }]}>
+                <Text style={[styles.disponibilidadText, { color: colors.primary }]}
+                >
+                  {cargandoDisponibilidadInicial 
+                    ? 'Cargando disponibilidad...' 
+                    : `Próximo turno: ${proximaDisponibilidad}`}
+                </Text>
+              </View>
+            )}
+
+            {/* ✅ También mostrar disponibilidad si viene de ProfesionalesScreen */}
+            {selectedProfesional && !proximaDisponibilidad && !cargandoDisponibilidadInicial && 
+             mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad) && (
+              <View style={styles.disponibilidadContainer}>
+                <Icon name="time" size={12} color={colors.primary} />
+                <Text style={[styles.disponibilidadText, { color: colors.primary }]}
+                >
                   {mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad)}
                 </Text>
               </View>
@@ -475,7 +575,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               modal
               open={showDatePicker}
               date={selectedDate || new Date()}
-              mode="date"
+              mode="calendar"
               minimumDate={new Date()}
               maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
               onConfirm={(date: Date) => {

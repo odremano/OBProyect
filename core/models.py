@@ -130,6 +130,12 @@ class Usuario(AbstractUser):
     def __str__(self):
         return self.username
 
+    def save(self, *args, **kwargs):
+        # ✅ Validar que username existe antes de aplicar .lower()
+        if self.username:
+            self.username = self.username.lower()
+        super().save(*args, **kwargs)
+
 # =====================================================
 # 2. MODELO SERVICIO (Service)
 # =====================================================
