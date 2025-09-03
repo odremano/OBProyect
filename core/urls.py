@@ -15,7 +15,10 @@ from .views import (
     disponibilidad_profesional,
     
     # APIs de Agenda del Profesional
-    AgendaProfesionalView, DiasConTurnosView, CompletarTurnoView, CancelarTurnoProfesionalView
+    AgendaProfesionalView, DiasConTurnosView, CompletarTurnoView, CancelarTurnoProfesionalView,
+    
+    # ✅ Nuevo endpoint optimizado para calendario
+    DiasConDisponibilidadView
 )
 
 urlpatterns = [
@@ -47,6 +50,8 @@ urlpatterns = [
     
     # Consultar disponibilidad (público)
     path('reservas/disponibilidad/', consultar_disponibilidad, name='consultar_disponibilidad'),
+    # ✅ Nuevo endpoint optimizado para obtener días con disponibilidad (público)
+    path('reservas/dias-con-disponibilidad/', DiasConDisponibilidadView.as_view(), name='dias_con_disponibilidad'),
     # Consultar disponibilidad (privada)
     path('disponibilidad/', disponibilidad_profesional, name='disponibilidad_profesional'),
     
