@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, PanResponder } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { obtenerTurnosProfesional, obtenerDiasConTurnos, cancelarTurnoProfesional, marcarTurnoCompletado, TurnoProfesional } from '../api/turnos';
 import { useNotifications } from '../hooks/useNotifications';
+import { CalendarModal } from '../components/CalendarModal';
 
 interface TurnoAgenda {
   id: number;
@@ -159,7 +160,6 @@ const VerAgendaScreen = () => {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  const diasSemana = ['LU', 'MA', 'MI', 'JU', 'VI', 'SA', 'DO'];
   const diasSemanaCompletos = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   const formatearFechaCompleta = (fecha: Date) => {
@@ -174,50 +174,6 @@ const VerAgendaScreen = () => {
     const mes = meses[fecha.getMonth()];
     const año = fecha.getFullYear();
     return `${mes} ${año}`;
-  };
-
-  const obtenerDiasDelMes = (fecha: Date) => {
-    const año = fecha.getFullYear();
-    const mes = fecha.getMonth();
-    
-    // Primer día del mes
-    const primerDia = new Date(año, mes, 1);
-    // Último día del mes
-    const ultimoDia = new Date(año, mes + 1, 0);
-    
-    // Día de la semana del primer día (0 = domingo, pero queremos 0 = lunes)
-    let primerDiaSemana = primerDia.getDay();
-    primerDiaSemana = primerDiaSemana === 0 ? 6 : primerDiaSemana - 1; // Convertir domingo a 6
-    
-    const diasDelMes = [];
-    
-    // Días vacíos al inicio
-    for (let i = 0; i < primerDiaSemana; i++) {
-      diasDelMes.push(null);
-    }
-    
-    // Días del mes
-    for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
-      diasDelMes.push(dia);
-    }
-    
-    return diasDelMes;
-  };
-
-  const seleccionarDia = (dia: number) => {
-    const nuevaFecha = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dia);
-    setSelectedDate(nuevaFecha);
-    setShowCalendar(false);
-  };
-
-  const cambiarMes = (direccion: 'anterior' | 'siguiente') => {
-    const nuevoMes = new Date(currentMonth);
-    if (direccion === 'anterior') {
-      nuevoMes.setMonth(nuevoMes.getMonth() - 1);
-    } else {
-      nuevoMes.setMonth(nuevoMes.getMonth() + 1);
-    }
-    setCurrentMonth(nuevoMes);
   };
 
   const manejarCancelarTurno = async (turno: TurnoAgenda) => {
@@ -420,90 +376,15 @@ const VerAgendaScreen = () => {
         )}
       </View>
 
-      {/* Modal del calendario */}
-      <Modal
+      {/* Calendario Modal */}
+      <CalendarModal
         visible={showCalendar}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCalendar(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.calendarModal, { backgroundColor: colors.background }]}>
-            {/* Header del calendario */}
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity onPress={() => cambiarMes('anterior')}>
-                <Icon name="chevron-back" size={24} color={colors.text} />
-              </TouchableOpacity>
-              <Text style={[styles.calendarTitle, { color: colors.text }]}>
-                {formatearMesAño(currentMonth)}
-              </Text>
-              <TouchableOpacity onPress={() => cambiarMes('siguiente')}>
-                <Icon name="chevron-forward" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Días de la semana */}
-            <View style={styles.diasSemanaContainer}>
-              {diasSemana.map((dia) => (
-                <Text key={dia} style={[styles.diaSemana, { color: colors.text }]}>{dia}</Text>
-              ))}
-            </View>
-
-            {/* Días del mes */}
-            <View style={styles.diasContainer}>
-              {obtenerDiasDelMes(currentMonth).map((dia, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.diaButton,
-                    dia === selectedDate.getDate() && 
-                    currentMonth.getMonth() === selectedDate.getMonth() && 
-                    currentMonth.getFullYear() === selectedDate.getFullYear() && 
-                    { backgroundColor: colors.primaryDark }
-                  ]}
-                  onPress={() => dia && seleccionarDia(dia)}
-                  disabled={!dia}
-                >
-                  {dia && (
-                    <>
-                      <Text style={[
-                        styles.diaTexto,
-                        { color: dia === selectedDate.getDate() && 
-                          currentMonth.getMonth() === selectedDate.getMonth() && 
-                          currentMonth.getFullYear() === selectedDate.getFullYear() 
-                          ? colors.white : colors.text 
-                        }
-                      ]}>
-                        {dia}
-                      </Text>
-                      {diasConTurnos.includes(dia) && (
-                        <View style={[
-                          styles.puntito, 
-                          { 
-                            backgroundColor: dia === selectedDate.getDate() && 
-                              currentMonth.getMonth() === selectedDate.getMonth() && 
-                              currentMonth.getFullYear() === selectedDate.getFullYear() 
-                              ? colors.light2  // Color del puntito cuando está seleccionado
-                              : colors.primary        // Color del puntito normal
-                          }
-                        ]} />
-                      )}
-                    </>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Botón cerrar */}
-            <TouchableOpacity 
-              style={[styles.closeCalendarButton, { backgroundColor: colors.white }]}
-              onPress={() => setShowCalendar(false)}
-            >
-              <Text style={[styles.closeCalendarText, { color: colors.primaryDark }]}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowCalendar(false)}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        diasConIndicadores={diasConTurnos}
+        title="Seleccionar fecha"
+      />
     </View>
   );
 };
@@ -647,73 +528,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarModal: {
-    margin: 20,
-    borderRadius: 16,
-    padding: 20,
-    width: '85%',
-    maxWidth: 350,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  diasSemanaContainer: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  diaSemana: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    width: '14.28%', // 100% / 7 días = 14.28%
-  },
-  diasContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  diaButton: {
-    width: '14.28%', // 100% / 7 días = 14.28%
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    position: 'relative',
-  },
-  diaTexto: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  puntito: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    position: 'absolute',
-    bottom: 4,
-  },
-  closeCalendarButton: {
-    marginTop: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeCalendarText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

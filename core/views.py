@@ -7,8 +7,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from rest_framework import serializers
+import calendar
 
 from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio
 from .serializers import (
@@ -887,6 +888,133 @@ class CancelarTurnoProfesionalView(APIView):
             'turno_id': turno.id,
             'nuevo_status': turno.status
         })
+
+
+class DiasConDisponibilidadView(APIView):
+    """
+    API optimizada para obtener días con disponibilidad en un mes específico.
+    
+    GET /api/v1/reservas/dias-con-disponibilidad/?year=2025&month=9&profesional_id=1&servicio_id=2
+    
+    Retorna solo los días del mes que tienen AL MENOS un horario disponible.
+    Optimizado para indicadores de calendario (solo True/False, no cantidad de horarios).
+    """
+    permission_classes = [permissions.AllowAny]  # Público para que los clientes puedan ver
+    
+    def get(self, request):
+        try:
+            # Parámetros requeridos
+            year = int(request.GET.get('year'))
+            month = int(request.GET.get('month'))
+            profesional_id = int(request.GET.get('profesional_id'))
+            servicio_id = int(request.GET.get('servicio_id'))
+
+            # Validar que el profesional y servicio existen
+            try:
+                profesional = Profesional.objects.get(id=profesional_id)
+                servicio = Servicio.objects.get(id=servicio_id)
+            except (Profesional.DoesNotExist, Servicio.DoesNotExist):
+                return Response({
+                    'success': False,
+                    'error': 'Profesional o servicio no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Obtener días del mes
+            _, dias_en_mes = calendar.monthrange(year, month)
+            
+            dias_con_disponibilidad = []
+
+            for dia in range(1, dias_en_mes + 1):
+                fecha = date(year, month, dia)
+                
+                # Solo verificar SI HAY disponibilidad, no cuánta
+                if self._tiene_disponibilidad(profesional, servicio, fecha):
+                    dias_con_disponibilidad.append(dia)
+
+            return Response({
+                'success': True,
+                'year': year,
+                'month': month,
+                'profesional_id': profesional_id,
+                'servicio_id': servicio_id,
+                'dias': dias_con_disponibilidad,
+                'total_dias': len(dias_con_disponibilidad)
+            })
+
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'Parámetros inválidos. Se requiere year, month, profesional_id y servicio_id'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _tiene_disponibilidad(self, profesional, servicio, fecha):
+        """
+        ✅ OPTIMIZACIÓN: Solo retorna True/False, no calcula todos los horarios.
+        Usa "early exit" para parar en el primer slot disponible encontrado.
+        """
+        # Verificar si el profesional trabaja este día
+        dia_semana = fecha.weekday()
+        horario_trabajo = HorarioDisponibilidad.objects.filter(
+            profesional=profesional,
+            day_of_week=dia_semana
+        ).first()
+        
+        if not horario_trabajo:
+            return False
+
+        # Si es día pasado, no hay disponibilidad
+        if fecha < timezone.now().date():
+            return False
+
+        # Si es hoy, verificar que no sea muy tarde
+        if fecha == timezone.now().date():
+            hora_actual = timezone.now().time()
+            if hora_actual >= horario_trabajo.end_time:
+                return False
+
+        # ✅ EARLY EXIT: En lugar de calcular TODOS los slots, 
+        # solo verificamos si hay AL MENOS UNO disponible
+        
+        hora_inicio = datetime.combine(fecha, horario_trabajo.start_time)
+        hora_fin = datetime.combine(fecha, horario_trabajo.end_time)
+        duracion_servicio = servicio.duration_minutes
+
+        # Generar solo algunos slots para verificar disponibilidad (más eficiente)
+        slot_actual = hora_inicio
+        slots_verificados = 0
+        max_slots_a_verificar = 5  # ✅ Solo verificar primeros 5 slots
+        
+        while slot_actual + timedelta(minutes=duracion_servicio) <= hora_fin and slots_verificados < max_slots_a_verificar:
+            slot_fin = slot_actual + timedelta(minutes=duracion_servicio)
+            
+            # Si es hoy, verificar que no sea hora pasada
+            if fecha == timezone.now().date() and slot_actual.time() <= timezone.now().time():
+                slot_actual += timedelta(minutes=30)
+                slots_verificados += 1
+                continue
+
+            # Verificar si este slot está ocupado
+            turnos_conflictivos = Turno.objects.filter(
+                profesional=profesional,
+                start_datetime__date=fecha,
+                start_datetime__time__lt=slot_fin.time(),
+                end_datetime__time__gt=slot_actual.time(),
+                status__in=['confirmado', 'pendiente']
+            )
+
+            # ✅ EARLY EXIT: Si encontramos UN slot libre, ya sabemos que hay disponibilidad
+            if not turnos_conflictivos.exists():
+                return True  # ¡Encontramos disponibilidad!
+
+            slot_actual += timedelta(minutes=30)
+            slots_verificados += 1
+
+        return False  # No hay disponibilidad
 
 
 class CambiarContrasenaView(APIView):

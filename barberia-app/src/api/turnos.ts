@@ -238,3 +238,40 @@ export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: nu
     return [];
   }
 }
+
+// ✅ Nueva función API optimizada para obtener días con disponibilidad
+export async function obtenerDiasConDisponibilidadOptimizada(
+  year: number,
+  month: number, // 1-12 (formato backend)
+  profesionalId: number,
+  servicioId: number
+): Promise<number[]> {
+  try {
+    console.log('📅 Enviando parámetros:', { year, month, profesionalId, servicioId });
+    
+    const response = await axios.get(`${API_URL}/reservas/dias-con-disponibilidad/`, {
+      params: {
+        year: year,
+        month: month,
+        profesional_id: profesionalId,
+        servicio_id: servicioId
+      }
+    });
+
+    console.log('✅ Respuesta API disponibilidad:', response.data);
+    
+    if (response.data.success) {
+      return response.data.dias || [];
+    } else {
+      console.error('❌ Error en respuesta API:', response.data.error);
+      return [];
+    }
+  } catch (error: any) {
+    console.error('❌ Error obteniendo días con disponibilidad:', error);
+    if (error.response) {
+      console.error('❌ Detalles del error:', error.response.data);
+      console.error('❌ Status code:', error.response.status);
+    }
+    return [];
+  }
+}
