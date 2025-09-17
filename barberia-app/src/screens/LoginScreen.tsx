@@ -148,11 +148,10 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 40,
+    paddingHorizontal: 10,
     alignItems: 'center',
     marginTop: 8,
     width: '100%',
-    maxWidth: 340,
     // Agregar sombra para mejor definición sobre el fondo
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
