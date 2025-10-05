@@ -42,9 +42,7 @@ const MiDisponibilidadScreen = () => {
     field: 'startTime' | 'endTime';
   }>({ visible: false, dayId: -1, field: 'startTime' });
 
-  // Estado temporal para la hora seleccionada en el picker
   const [tempTime, setTempTime] = useState<Date | null>(null);
-  // Nuevo estado para Android: mostrar picker nativo sin modal
   const [androidPicker, setAndroidPicker] = useState<{
     visible: boolean;
     dayId: number;
@@ -78,14 +76,12 @@ const MiDisponibilidadScreen = () => {
     }
   };
 
-  // iOS: solo actualiza el estado temporal
   const onTimeChangeIOS = (event: any, selectedTime?: Date) => {
     if (selectedTime) {
       setTempTime(selectedTime);
     }
   };
 
-  // Android: guarda y cierra automáticamente
   const onTimeChangeAndroid = (event: any, selectedTime?: Date) => {
     if (event?.type === 'dismissed') {
       setAndroidPicker({ visible: false, dayId: -1, field: 'startTime' });
@@ -192,7 +188,7 @@ const MiDisponibilidadScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header fijo */}
+      {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
@@ -249,7 +245,7 @@ const MiDisponibilidadScreen = () => {
         ))}
       </ScrollView>
 
-      {/* Time Picker Modal solo en iOS */}
+      {/* Time Picker Modal de iOS */}
       {Platform.OS === 'ios' && (
         <Modal
           visible={showTimePicker.visible}
