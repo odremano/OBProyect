@@ -48,9 +48,6 @@ const VerAgendaScreen = () => {
       // Solo activar si el deslizamiento es principalmente horizontal
       return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
     },
-    onPanResponderMove: (evt, gestureState) => {
-      // Opcional: agregar feedback visual durante el deslizamiento
-    },
     onPanResponderRelease: (evt, gestureState) => {
       const { dx } = gestureState;
       
@@ -121,7 +118,12 @@ const VerAgendaScreen = () => {
     
     setLoading(true);
     try {
-      const fechaStr = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Usar formateo local en lugar de UTC para evitar problemas de zona horaria
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      const fechaStr = `${año}-${mes}-${dia}`;
+      
       const turnos = await obtenerTurnosProfesional(tokens, fechaStr);
       const turnosConvertidos = turnos.map(convertirTurno);
       setTurnosDelDia(turnosConvertidos);
@@ -531,4 +533,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VerAgendaScreen; 
+export default VerAgendaScreen;
