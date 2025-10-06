@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert, PanResponder } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -118,7 +118,6 @@ const VerAgendaScreen = () => {
     
     setLoading(true);
     try {
-      // Usar formateo local en lugar de UTC para evitar problemas de zona horaria
       const año = fecha.getFullYear();
       const mes = String(fecha.getMonth() + 1).padStart(2, '0');
       const dia = String(fecha.getDate()).padStart(2, '0');
@@ -304,9 +303,9 @@ const VerAgendaScreen = () => {
       {/* Contenido principal */}
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
         {loading ? (
-          <View style={styles.loadingState}>
-            <Text style={[styles.loadingMessage, { color: colors.text }]}>Cargando turnos...</Text>
-          </View>
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
         ) : hayTurnosDelDia ? (
           <ScrollView 
             style={styles.content}

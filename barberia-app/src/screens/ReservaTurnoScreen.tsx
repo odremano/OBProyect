@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, SafeAreaView, Image, Platform } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchProfesionales, Profesional } from '../api/profesionales';
@@ -43,19 +43,15 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const [mensajeHorarios, setMensajeHorarios] = useState<string | null>(null);
   const [profesionalNoTrabaja, setProfesionalNoTrabaja] = useState(false);
   
-  // ✅ Estado para los días con disponibilidad del calendario
+  // Estado para los días con disponibilidad del calendario
   const [diasConDisponibilidad, setDiasConDisponibilidad] = useState<number[]>([]);
 
-  // ✅ Solo agregar estos estados mínimos
+  // Solo agregar estos estados mínimos
   const [proximaDisponibilidad, setProximaDisponibilidad] = useState<string | null>(null);
   const [cargandoDisponibilidadInicial, setCargandoDisponibilidadInicial] = useState(false);
 
   useEffect(() => {
     if (!tokens || negocioId == null) return;
-
-    // Logs para debug
-    console.log('tokens:', tokens);
-    console.log('negocioId:', negocioId);
 
     Promise.all([
       fetchProfesionales(tokens, negocioId),
@@ -184,7 +180,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
       setDiasConDisponibilidad([]);}
   };
 
-  // ✅ Función simplificada para precargar disponibilidad
+  // Función simplificada para precargar disponibilidad
   const precargarDisponibilidad = async (profesional: Profesional) => {
     if (!tokens || negocioId == null || servicios.length === 0) return;
 
@@ -247,7 +243,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
     }
   };
 
-  // ✅ Efecto corregido con dependencias completas
+  // Efecto corregido con dependencias completas
   useEffect(() => {
     if (selectedProfesional && servicios.length > 0 && !proximaDisponibilidad && !cargandoDisponibilidadInicial) {
       // Solo precargar si fue autoseleccionado (no viene por parámetro de navegación)
@@ -280,7 +276,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: colors.text }]}>Cargando...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -306,7 +302,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContentContainer}
       >
-        {/* Step 1: Seleccionar Profesional */}
+        {/* 1: Seleccionar Profesional */}
         <View style={styles.stepContainer}>
           <Text style={[styles.stepTitle, { color: colors.text }]}>Profesional</Text>
           <TouchableOpacity
@@ -357,7 +353,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Step 2: Seleccionar Servicio */}
+        {/* 2: Seleccionar Servicio */}
         <View style={[styles.stepContainer, !isStep1Complete && styles.stepDisabled]}>
           <Text style={[styles.stepTitle, { color: colors.text }, !isStep1Complete && { color: colors.dark3 }]}>Servicio</Text>
           <TouchableOpacity
@@ -431,7 +427,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Step 3: Seleccionar Horario */}
+        {/* 3: Seleccionar Horario */}
         <View style={[styles.stepContainer, !isStep2Complete && styles.stepDisabled]}>
           <Text style={[styles.stepTitle, { color: colors.text }, !isStep2Complete && { color: colors.dark3 }]}>Fecha y horario</Text>
           
@@ -456,7 +452,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               </View>
             )}
 
-            {/* ✅ También mostrar disponibilidad si viene de ProfesionalesScreen */}
+            {/* Mostrar disponibilidad si viene de ProfesionalesScreen */}
             {selectedProfesional && !proximaDisponibilidad && !cargandoDisponibilidadInicial && 
              mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad) && (
               <View style={styles.disponibilidadContainer}>
@@ -533,7 +529,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         </View>
 
         {/* Bottom Button */}
-        <View style={styles.bottomContainer}>
+        <View>
           <TouchableOpacity
             style={[
               styles.nextButton,
@@ -575,10 +571,10 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           setLoadingHorarios(false);
         }}
         onMonthChange={(date: Date) => {
-          // ✅ Recargar disponibilidad cuando cambie de mes
+          // Recargar disponibilidad cuando cambie de mes
           cargarDiasConDisponibilidad(date);
         }}
-        diasConIndicadores={diasConDisponibilidad} // ✅ Usar el estado con días disponibles
+        diasConIndicadores={diasConDisponibilidad} // Usar el estado con días disponibles
         title="Seleccionar fecha"
         minimumDate={(() => {
           const today = new Date();
@@ -793,9 +789,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  bottomContainer: {
-    // Sin padding adicional ya que está en contentContainerStyle
-  },
+
   nextButton: {
     borderRadius: 12,
     paddingVertical: 16,
