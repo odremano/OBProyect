@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django import forms
 from django.utils.html import format_html
-from .models import Usuario, Negocio, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno
+from .models import Usuario, Membership, Negocio, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno
 import copy
 
 # =====================================================
@@ -45,6 +45,14 @@ class DateTimeWithNowWidget(forms.SplitDateTimeWidget):
         
         return html + button_html
 
+# --- Membership --- 08/10/2025 Odreman.
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'negocio', 'rol', 'is_active', 'created_at')
+    list_filter = ('rol', 'is_active', 'negocio')
+    search_fields = ('user__username', 'user__email', 'negocio__nombre')
+
+    readonly_fields = ('user', 'negocio', 'created_at', 'updated_at')
 # --- Usuario ---
 class UsuarioAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'is_staff')
@@ -111,7 +119,7 @@ admin.site.register(Usuario, UsuarioAdmin)
 
 # --- Negocio ---
 class NegocioAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'propietario', 'logo_preview', 'logo_dimensions', 'fecha_creacion')
+    list_display = ('nombre', 'id', 'propietario', 'logo_preview', 'fecha_creacion')
     list_filter = ('fecha_creacion',)
     search_fields = ('nombre', 'propietario__username')
     readonly_fields = ('fecha_creacion',)

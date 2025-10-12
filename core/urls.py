@@ -6,7 +6,7 @@ from .views import (
     RegistroView, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
     
     # APIs Públicas
-    servicios_publicos, profesionales_disponibles, resumen_barberia,
+    servicios_publicos, profesionales_disponibles, resumen_negocio,
     
     # APIs de Reservas
     CrearTurnoView, MisTurnosView, CancelarTurnoView, consultar_disponibilidad,
@@ -17,7 +17,7 @@ from .views import (
     # APIs de Agenda del Profesional
     AgendaProfesionalView, DiasConTurnosView, CompletarTurnoView, CancelarTurnoProfesionalView,
     
-    # ✅ Nuevo endpoint optimizado para calendario
+    # Endpoint optimizado para calendario
     DiasConDisponibilidadView
 )
 
@@ -42,7 +42,7 @@ urlpatterns = [
     
     path('servicios-publicos/', servicios_publicos, name='servicios_publicos'),
     path('profesionales-disponibles/', profesionales_disponibles, name='profesionales_disponibles'),
-    path('resumen-barberia/', resumen_barberia, name='resumen_barberia'),
+    path('resumen-negocio/', resumen_negocio, name='resumen_negocio'),
     
     # =============================================================================
     # RUTAS DE RESERVAS
@@ -50,7 +50,7 @@ urlpatterns = [
     
     # Consultar disponibilidad (público)
     path('reservas/disponibilidad/', consultar_disponibilidad, name='consultar_disponibilidad'),
-    # ✅ Nuevo endpoint optimizado para obtener días con disponibilidad (público)
+    # Nuevo endpoint optimizado para obtener días con disponibilidad (público)
     path('reservas/dias-con-disponibilidad/', DiasConDisponibilidadView.as_view(), name='dias_con_disponibilidad'),
     # Consultar disponibilidad (privada)
     path('disponibilidad/', disponibilidad_profesional, name='disponibilidad_profesional'),

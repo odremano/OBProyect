@@ -52,7 +52,33 @@ def get_default_theme():
         }
     }
 # =====================================================
-# 0.5. MODELO NEGOCIO (Múltiples negocios)
+# 0.5. MODELO MemberShip (Múltiples negocios por usuario)
+# =====================================================
+class Membership(models.Model):
+    class Roles(models.TextChoices):
+            CLIENTE = 'cliente', 'Cliente'
+            PROFESIONAL = 'profesional', 'Profesional'
+            ADMIN = 'admin', 'Administrador'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
+    negocio = models.ForeignKey('core.Negocio', on_delete=models.CASCADE, related_name='memberships')
+    rol = models.CharField(
+        max_length=50,
+        choices=Roles.choices,
+        default=Roles.PROFESIONAL
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = (('user', 'negocio'),)
+
+    def __str__(self):
+        return f"{self.user} @ {self.negocio} ({self.rol})"
+
+# =====================================================
+# 1. MODELO NEGOCIO (Múltiples negocios de Ordema)
 # =====================================================
 class Negocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -68,7 +94,7 @@ class Negocio(models.Model):
         help_text="Alto del logo en píxeles (20-200px)"
     )
     propietario = models.ForeignKey(
-        'Usuario', # Referencia al modelo Usuario custom
+        'Usuario',
         related_name='negocios_propios',
         on_delete=models.CASCADE
     )
@@ -90,7 +116,7 @@ class Negocio(models.Model):
             self.propietario.save()
 
 # =====================================================
-# 1. MODELO USUARIO (Custom User Model)
+# 2. MODELO USUARIO (Custom User Model)
 # =====================================================
 # Heredamos de AbstractUser para incluir todas las funcionalidades de usuario de Django
 # y añadimos nuestros campos personalizados como 'role' y 'phone_number'.
@@ -137,7 +163,7 @@ class Usuario(AbstractUser):
         super().save(*args, **kwargs)
 
 # =====================================================
-# 2. MODELO SERVICIO (Service)
+# 3. MODELO SERVICIO (Service)
 # =====================================================
 class Servicio(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -172,7 +198,7 @@ class Servicio(models.Model):
         return self.name
 
 # =====================================================
-# 3. MODELO PROFESIONAL (Professional)
+# 4. MODELO PROFESIONAL (Professional)
 # =====================================================
 class Profesional(models.Model):
     # Relación uno a uno con nuestro Custom User Model (Usuario)
@@ -201,7 +227,7 @@ class Profesional(models.Model):
 
 
 # =====================================================
-# 4. MODELO HORARIO_DISPONIBILIDAD (AvailabilitySchedule)
+# 5. MODELO HORARIO_DISPONIBILIDAD (AvailabilitySchedule)
 # =====================================================
 class HorarioDisponibilidad(models.Model):
     profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE)
@@ -245,7 +271,7 @@ class HorarioDisponibilidad(models.Model):
 
 
 # =====================================================
-# 5. MODELO BLOQUEO_HORARIO (TimeBlock)
+# 6. MODELO BLOQUEO_HORARIO (TimeBlock)
 # =====================================================
 class BloqueoHorario(models.Model):
     profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE)
@@ -271,7 +297,7 @@ class BloqueoHorario(models.Model):
 
 
 # =====================================================
-# 6. MODELO TURNO (Appointment)
+# 7. MODELO TURNO (Appointment)
 # =====================================================
 class Turno(models.Model):
     # Relación con nuestro Custom User Model (el cliente que reserva)

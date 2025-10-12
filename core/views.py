@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from datetime import datetime, timedelta, date
 from rest_framework import serializers
+from core.permissions import IsMemberOfSelectedNegocio
 import calendar
 
 from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio
@@ -209,26 +210,27 @@ class PerfilView(APIView):
 # =============================================================================
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.AllowAny])  # sigue siendo pública
 def servicios_publicos(request):
     """
-    API pública para obtener servicios activos de un negocio específico.
-    
-    GET /api/v1/servicios-publicos/?negocio_id=1
-    
-    Devuelve todos los servicios activos para mostrar en la app.
+    API pública para obtener servicios activos de un negocio.
+    Requiere negocio vía header X-Negocio-ID o fallback por middleware.
+
+    GET /api/v1/servicios-publicos/
+
+    Header opcional: X-Negocio-ID
     """
-    negocio_id = request.query_params.get('negocio_id')
-    
-    if not negocio_id:
+    negocio = getattr(request, 'negocio', None)
+
+    if not negocio:
         return Response({
             'success': False,
-            'message': 'Se requiere el parámetro negocio_id'
+            'message': 'No se pudo determinar el negocio. Asegúrese de enviar X-Negocio-ID.'
         }, status=status.HTTP_400_BAD_REQUEST)
-    
-    servicios = Servicio.objects.filter(is_active=True, negocio_id=negocio_id)
+
+    servicios = Servicio.objects.filter(is_active=True, negocio=negocio)
     serializer = ServicioSerializer(servicios, many=True)
-    
+
     return Response({
         'success': True,
         'servicios': serializer.data
@@ -239,66 +241,59 @@ def servicios_publicos(request):
 @permission_classes([permissions.AllowAny])
 def profesionales_disponibles(request):
     """
-    API pública para obtener profesionales disponibles de un negocio específico.
-    
-    GET /api/v1/profesionales-disponibles/?negocio_id=1
-    
-    Devuelve profesionales activos para mostrar en la app.
+    API pública para obtener profesionales disponibles del negocio en contexto.
+
+    GET /api/v1/profesionales-disponibles/
     """
-    negocio_id = request.query_params.get('negocio_id')
-    
-    if not negocio_id:
+    negocio = getattr(request, 'negocio', None)
+
+    if not negocio:
         return Response({
             'success': False,
-            'message': 'Se requiere el parámetro negocio_id'
+            'message': 'No se pudo determinar el negocio.'
         }, status=status.HTTP_400_BAD_REQUEST)
-    
-    profesionales = Profesional.objects.filter(is_available=True, negocio_id=negocio_id)
+
+    profesionales = Profesional.objects.filter(is_available=True, negocio=negocio)
     serializer = ProfesionalSerializer(profesionales, many=True)
-    
+
     return Response({
         'success': True,
         'profesionales': serializer.data
     })
 
 
+
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-def resumen_barberia(request):
+def resumen_negocio(request):
     """
     API pública con información general de un negocio específico.
     
-    GET /api/v1/resumen-barberia/?negocio_id=1
+    GET /api/v1/resumen-negocio/?negocio_id=1
     
     Devuelve estadísticas básicas para mostrar en la app.
     """
-    negocio_id = request.query_params.get('negocio_id')
+    negocio = getattr(request, 'negocio', None)
     
-    if not negocio_id:
+    if not negocio:
         return Response({
             'success': False,
-            'message': 'Se requiere el parámetro negocio_id'
+            'message': 'No se pudo determinar el negocio. Asegúrese de enviar el X-Negocio-ID en los header'
         }, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        negocio = Negocio.objects.get(id=negocio_id)
-    except Negocio.DoesNotExist:
-        return Response({
-            'success': False,
-            'message': 'Negocio no encontrado'
-        }, status=status.HTTP_404_NOT_FOUND)
-    
+
+    today = timezone.now().date()
+
     return Response({
         'success': True,
-        'barberia': {
+        'negocio': {
             'nombre': negocio.nombre,
-            'total_servicios': Servicio.objects.filter(is_active=True, negocio_id=negocio_id).count(),
-            'total_profesionales': Profesional.objects.filter(is_available=True, negocio_id=negocio_id).count(),
+            'total_servicios': Servicio.objects.filter(is_active=True, negocio=negocio).count(),
+            'total_profesionales': Profesional.objects.filter(is_available=True, negocio=negocio).count(),
             'turnos_hoy': Turno.objects.filter(
-                start_datetime__date__gte=timezone.now().date(),
+                start_datetime__date=today,
                 status__in=['pendiente', 'confirmado'],
-                negocio_id=negocio_id
-            ).count() if 'timezone' in globals() else 0,
+                negocio=negocio
+            ).count(),
         }
     })
 
@@ -316,7 +311,7 @@ class CrearTurnoView(APIView):
     Solo para clientes autenticados.
     Valida disponibilidad completa antes de crear el turno.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
     
     def post(self, request):
         # Solo clientes pueden crear turnos
@@ -326,16 +321,20 @@ class CrearTurnoView(APIView):
                 'message': 'Solo los clientes pueden crear turnos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Verificar que el usuario tenga negocio asignado
-        if not request.user.negocio:
+        # Verifica que el usuario tenga negocio asignado
+        if not request.negocio:
             return Response({
                 'success': False,
                 'message': 'Usuario no tiene negocio asignado'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        serializer = CrearTurnoSerializer(data=request.data, context={'request': request})
+        serializer = CrearTurnoSerializer(
+            data=request.data, 
+            context={'request': request}
+        )
+
         if serializer.is_valid():
-            # Crear el turno asignando automáticamente el cliente y el negocio
+            # Crea el turno asignando automáticamente el cliente y el negocio
             turno = serializer.save(cliente=request.user, negocio=request.user.negocio)
             
             # Devolver información completa del turno creado
@@ -360,7 +359,7 @@ class MisTurnosView(APIView):
     
     Devuelve todos los turnos del cliente con información completa.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
     
     def get(self, request):
         # Solo clientes pueden ver sus turnos
@@ -371,7 +370,7 @@ class MisTurnosView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
         
         # Verificar que el usuario tenga negocio asignado
-        if not request.user.negocio:
+        if not request.negocio:
             return Response({
                 'success': False,
                 'message': 'Usuario no tiene negocio asignado'
@@ -380,7 +379,7 @@ class MisTurnosView(APIView):
         # Obtener turnos del usuario del mismo negocio ordenados por fecha (más recientes primero)
         turnos = Turno.objects.filter(
             cliente=request.user,
-            negocio=request.user.negocio
+            negocio=request.negocio
         ).order_by('-start_datetime')
         
         # Separar turnos por estado
@@ -483,17 +482,17 @@ def consultar_disponibilidad(request):
     profesional_id = serializer.validated_data['profesional_id']
     fecha = serializer.validated_data['fecha']
     servicio_id = serializer.validated_data['servicio_id']
-    negocio_id = request.query_params.get('negocio_id')
     
-    if not negocio_id:
+    negocio = getattr(request, 'negocio', None)
+    if not negocio:
         return Response({
             'success': False,
-            'message': 'Se requiere el parámetro negocio_id'
+            'message': 'No se pudo determinar el negocio'
         }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        profesional = Profesional.objects.get(pk=profesional_id, negocio_id=negocio_id)
-        servicio = Servicio.objects.get(id=servicio_id, negocio_id=negocio_id)
+        profesional = Profesional.objects.get(pk=profesional_id, negocio_id=negocio.id)
+        servicio = Servicio.objects.get(id=servicio_id, negocio_id=negocio.id)
     except (Profesional.DoesNotExist, Servicio.DoesNotExist):
         return Response({
             'success': False,
@@ -507,7 +506,7 @@ def consultar_disponibilidad(request):
     horarios_trabajo = HorarioDisponibilidad.objects.filter(
         profesional=profesional,
         day_of_week=dia_semana,
-        negocio_id=negocio_id
+        negocio_id=negocio.id
     )
     
     if not horarios_trabajo.exists():
@@ -522,14 +521,14 @@ def consultar_disponibilidad(request):
         profesional=profesional,
         start_datetime__date=fecha,
         status__in=['pendiente', 'confirmado'],
-        negocio_id=negocio_id
+        negocio_id=negocio.id
     )
     
     # Obtener bloqueos para esa fecha
     bloqueos = BloqueoHorario.objects.filter(
         profesional=profesional,
         start_datetime__date=fecha,
-        negocio_id=negocio_id
+        negocio_id=negocio.id
     )
     
     # Generar horarios disponibles
@@ -918,7 +917,7 @@ class DiasConDisponibilidadView(APIView):
                     'success': False,
                     'error': 'Profesional o servicio no encontrado'
                 }, status=status.HTTP_404_NOT_FOUND)
-
+            
             # Obtener días del mes
             _, dias_en_mes = calendar.monthrange(year, month)
             
@@ -954,7 +953,7 @@ class DiasConDisponibilidadView(APIView):
 
     def _tiene_disponibilidad(self, profesional, servicio, fecha):
         """
-        ✅ OPTIMIZACIÓN: Solo retorna True/False, no calcula todos los horarios.
+        Solo retorna True/False, no calcula todos los horarios.
         Usa "early exit" para parar en el primer slot disponible encontrado.
         """
         # Verificar si el profesional trabaja este día
@@ -977,8 +976,8 @@ class DiasConDisponibilidadView(APIView):
             if hora_actual >= horario_trabajo.end_time:
                 return False
 
-        # ✅ EARLY EXIT: En lugar de calcular TODOS los slots, 
-        # solo verificamos si hay AL MENOS UNO disponible
+        # En lugar de calcular todos los slots, 
+        # solo verificamos si hay al menos uno disponible
         
         hora_inicio = datetime.combine(fecha, horario_trabajo.start_time)
         hora_fin = datetime.combine(fecha, horario_trabajo.end_time)
@@ -987,7 +986,7 @@ class DiasConDisponibilidadView(APIView):
         # Generar solo algunos slots para verificar disponibilidad (más eficiente)
         slot_actual = hora_inicio
         slots_verificados = 0
-        max_slots_a_verificar = 5  # ✅ Solo verificar primeros 5 slots
+        max_slots_a_verificar = 5  # Solo verificar primeros 5 slots
         
         while slot_actual + timedelta(minutes=duracion_servicio) <= hora_fin and slots_verificados < max_slots_a_verificar:
             slot_fin = slot_actual + timedelta(minutes=duracion_servicio)
@@ -1007,7 +1006,7 @@ class DiasConDisponibilidadView(APIView):
                 status__in=['confirmado', 'pendiente']
             )
 
-            # ✅ EARLY EXIT: Si encontramos UN slot libre, ya sabemos que hay disponibilidad
+            # Si encontramos UN slot libre, ya sabemos que hay disponibilidad
             if not turnos_conflictivos.exists():
                 return True  # ¡Encontramos disponibilidad!
 
