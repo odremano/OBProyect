@@ -144,7 +144,7 @@ class Usuario(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)    # Se actualiza automáticamente en cada guardado
     
     # Campo para multi-tenant (vinculación al negocio)
-    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE, null=True, blank=True)
+    # negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         # Esto le dice a Django que este modelo se mapea a la tabla 'usuario' en tu base de datos
@@ -157,7 +157,7 @@ class Usuario(AbstractUser):
         return self.username
 
     def save(self, *args, **kwargs):
-        # ✅ Validar que username existe antes de aplicar .lower()
+        # Validar que username existe antes de aplicar .lower()
         if self.username:
             self.username = self.username.lower()
         super().save(*args, **kwargs)

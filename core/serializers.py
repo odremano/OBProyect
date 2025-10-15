@@ -26,35 +26,22 @@ class NegocioSerializer(serializers.ModelSerializer):
 
 class UsuarioSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    negocio = NegocioSerializer(read_only=True, context={'request': None})
 
     class Meta:
         model = Usuario
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
             'phone_number', 'role', 'is_active', 'date_joined', 'password',
-            'profile_picture_url', 'negocio'
+            'profile_picture_url'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
         }
-    
-    def to_representation(self, instance):
-        """Pasar el contexto de la request al serializer del negocio"""
-        representation = super().to_representation(instance)
-        if instance.negocio:
-            negocio_serializer = NegocioSerializer(
-                instance.negocio, 
-                context=self.context
-            )
-            representation['negocio'] = negocio_serializer.data
-        return representation
-    
+
     def create(self, validated_data):
-        """Crear un nuevo usuario con password encriptado"""
         password = validated_data.pop('password')
         user = Usuario.objects.create_user(**validated_data)
-        user.set_password(password)  # Encripta el password
+        user.set_password(password)
         user.save()
         return user
 
@@ -66,7 +53,7 @@ class UsuarioLoginSerializer(UsuarioSerializer):
         fields = UsuarioSerializer.Meta.fields + ['negocios']
 
     def get_negocios(self, obj):
-        memberships = Membership.objects.filter(user=obj)
+        memberships = Membership.objects.filter(user=obj).select_related('negocio')
         return [
             {
                 'id': m.negocio.id,
