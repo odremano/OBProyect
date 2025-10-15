@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from datetime import timedelta
-from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno, Negocio
+from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno, Negocio, Membership
 
 
 # =============================================================================
@@ -58,6 +58,31 @@ class UsuarioSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+# Nuevo serializer para login adaptado a Membership (Usuario registrado en múltiples negocios). 12/10/2025 Odreman.
+class UsuarioLoginSerializer(UsuarioSerializer):
+    negocios = serializers.SerializerMethodField()
+
+    class Meta(UsuarioSerializer.Meta):
+        fields = UsuarioSerializer.Meta.fields + ['negocios']
+
+    def get_negocios(self, obj):
+        memberships = Membership.objects.filter(user=obj)
+        return [
+            {
+                'id': m.negocio.id,
+                'nombre': m.negocio.nombre,
+                'logo_url': self._get_logo_url(m.negocio),
+                'rol': m.rol
+            } for m in memberships
+        ]
+
+    def _get_logo_url(self, negocio):
+        request = self.context.get('request')
+        if negocio.logo:
+            return request.build_absolute_uri(negocio.logo.url) if request else negocio.logo.url
+        return None
+
+
 
 class RegistroSerializer(serializers.ModelSerializer):
     """
@@ -81,7 +106,7 @@ class RegistroSerializer(serializers.ModelSerializer):
         return data
     
     def validate_username(self, value):
-        """✅ Normalizar username a minúsculas"""
+        """Normalizar username a minúsculas"""
         return value.lower()
     
     def create(self, validated_data):
@@ -115,7 +140,7 @@ class LoginSerializer(serializers.Serializer):
         return data
 
     def validate_username(self, value):
-        # ✅ Normalizar a minúsculas en la validación
+        # Normalizar a minúsculas en la validación
         return value.lower()
 
 
@@ -137,7 +162,7 @@ class ServicioSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get('request')
         if request and not request.user.is_superuser:
-            validated_data['negocio'] = request.user.negocio
+            validated_data['negocio'] = request.negocio
         return super().create(validated_data)
 
 
@@ -216,7 +241,10 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
         # Obtener el usuario y negocio del contexto de la request
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            user_negocio = request.user.negocio
+            user_negocio = getattr(request, 'negocio', None)
+
+            if not user_negocio:
+                raise serializers.ValidationError('No se pudo determinar el negocio del usuario.')
             
             # Verificar que el profesional pertenezca al negocio del usuario
             if profesional.negocio != user_negocio:

@@ -12,9 +12,9 @@ from rest_framework import serializers
 from core.permissions import IsMemberOfSelectedNegocio
 import calendar
 
-from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio
+from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio, Membership
 from .serializers import (
-    UsuarioSerializer, RegistroSerializer, LoginSerializer,
+    UsuarioSerializer, UsuarioLoginSerializer, RegistroSerializer, LoginSerializer,
     ServicioSerializer, ProfesionalSerializer, TurnoBasicoSerializer,
     CrearTurnoSerializer, DisponibilidadConsultaSerializer, MisTurnosSerializer, HorarioDisponibilidadSerializer,
     AgendaProfesionalSerializer, CambiarContrasenaSerializer
@@ -37,7 +37,7 @@ class RegistroView(APIView):
     permission_classes = [permissions.AllowAny]  # Público
     
     def post(self, request):
-        # ✅ El serializer ya se encarga de normalizar el username
+        # El serializer ya se encarga de normalizar el username
         serializer = RegistroSerializer(data=request.data)
         if serializer.is_valid():
             # Crear el usuario
@@ -88,7 +88,7 @@ class LoginView(APIView):
                 refresh = RefreshToken.for_user(user)
                 
                 # Obtener datos del usuario
-                user_data = UsuarioSerializer(user, context={'request': request}).data
+                user_data = UsuarioLoginSerializer(user, context={'request': request}).data
                 
                 # Si es un profesional, obtener su foto de perfil
                 if user.role == 'profesional':
@@ -122,6 +122,73 @@ class LoginView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def mis_negocios(request):
+    """
+    API para obtener todos los negocios a los que el usuario está vinculado.
+    
+    GET /api/v1/auth/mis-negocios/
+    
+    Devuelve una lista de negocios con el rol del usuario en cada uno.
+    """
+    memberships = Membership.objects.filter(user=request.user).select_related('negocio')
+    
+    negocios = []
+    for membership in memberships:
+        negocio = membership.negocio
+        negocios.append({
+            'id': negocio.id,
+            'nombre': negocio.nombre,
+            'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
+            'rol': membership.rol,
+        })
+    
+    return Response({
+        'success': True,
+        'negocios': negocios
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def seleccionar_negocio(request):
+    """
+    API para seleccionar negocio al que el usuario está vinculado.
+    
+    GET /api/v1/auth/seleccionar-negocio/
+    
+    Selecciona y valida que el usuario pertenezca al negocio.
+    """
+    negocio_id = request.data.get('negocio_id')
+
+    if not negocio_id:
+        return Response({
+            'success': False,
+            'message': 'Se requiere el parámetro negocio_id'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validar que el usuario tenga un membership con ese negocio
+    from core.models import Membership, Negocio
+
+    try:
+        membership = Membership.objects.get(user=request.user, negocio_id=negocio_id)
+    except Membership.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'No tienes acceso a este negocio'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    # Asignar el negocio al usuario (lo guardamos temporalmente en request)
+    request.user.negocio = membership.negocio
+
+    return Response({
+        'success': True,
+        'message': 'Negocio seleccionado correctamente',
+        'negocio': {
+            'id': membership.negocio.id,
+            'nombre': membership.negocio.nombre
+        }
+    }, status=status.HTTP_200_OK)
 
 class LogoutView(APIView):
     """
@@ -325,7 +392,7 @@ class CrearTurnoView(APIView):
         if not request.negocio:
             return Response({
                 'success': False,
-                'message': 'Usuario no tiene negocio asignado'
+                'message': 'No se pudo determinar el negocio. Verifique que esté enviando el header X-Negocio-ID'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = CrearTurnoSerializer(
@@ -335,7 +402,7 @@ class CrearTurnoView(APIView):
 
         if serializer.is_valid():
             # Crea el turno asignando automáticamente el cliente y el negocio
-            turno = serializer.save(cliente=request.user, negocio=request.user.negocio)
+            turno = serializer.save(cliente=request.user, negocio=request.negocio)
             
             # Devolver información completa del turno creado
             return Response({
@@ -412,11 +479,11 @@ class CancelarTurnoView(APIView):
     
     Solo permite cancelar turnos propios con más de 2 horas de anticipación.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
     
     def post(self, request, turno_id):
         # Verificar que el usuario tenga negocio asignado
-        if not request.user.negocio:
+        if not request.negocio:
             return Response({
                 'success': False,
                 'message': 'Usuario no tiene negocio asignado'
@@ -427,7 +494,7 @@ class CancelarTurnoView(APIView):
             turno = Turno.objects.get(
                 id=turno_id,
                 cliente=request.user,
-                negocio=request.user.negocio
+                negocio=request.negocio
             )
         except Turno.DoesNotExist:
             return Response({
