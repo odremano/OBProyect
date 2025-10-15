@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, date
 from rest_framework import serializers
 from core.permissions import IsMemberOfSelectedNegocio
 import calendar
+import requests 
 
 from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio, Membership
 from .serializers import (
@@ -364,6 +365,30 @@ def resumen_negocio(request):
         }
     })
 
+# ==================================
+# Función de notificación - N8N
+# ==================================
+def enviar_notificacion_n8n(turno):
+    """
+    Prepara y envía los datos del turno al webhook de n8n.
+    """
+    # IMPORTANTE: Cambiar URL de TEST a PRODUCCIÓN
+    n8n_webhook_url = "https://n8n-service-c12q.onrender.com/webhook-test/5123e22d-22cf-44a8-9f69-e92386eaf7d9"
+    
+    payload = {
+        "cliente_nombre": f"{turno.cliente.first_name} {turno.cliente.last_name}",
+        "cliente_telefono": turno.cliente.phone_number,
+        "fecha_turno": turno.start_datetime.strftime("%d/%m/%Y"),
+        "hora_turno": turno.start_datetime.strftime("%H:%M"),
+        "nombre_negocio": turno.negocio.nombre,
+    }
+    try:
+        # Usar un timeout es importante para no bloquear el servidor indefinidamente
+        requests.post(n8n_webhook_url, json=payload, timeout=5)
+        print(f"Notificación para el turno {turno.id} enviada a n8n.") # Log para verificar
+    except requests.exceptions.RequestException as e:
+        # Aquí puedes registrar el error en un sistema de logs
+        print(f"Error al contactar n8n para el turno {turno.id}: {e}")
 
 # =============================================================================
 # APIs DE RESERVAS
@@ -403,7 +428,7 @@ class CrearTurnoView(APIView):
         if serializer.is_valid():
             # Crea el turno asignando automáticamente el cliente y el negocio
             turno = serializer.save(cliente=request.user, negocio=request.negocio)
-            
+            enviar_notificacion_n8n(turno)
             # Devolver información completa del turno creado
             return Response({
                 'success': True,
