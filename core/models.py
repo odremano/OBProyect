@@ -110,10 +110,26 @@ class Negocio(models.Model):
         return self.nombre
 
     def save(self, *args, **kwargs):
+        creating = self.pk is None
         super().save(*args, **kwargs)
-        if self.propietario.negocio != self:
-            self.propietario.negocio = self
-            self.propietario.save()
+
+        # Asegurar membership del propietario en este negocio (multi-negocio)
+        if self.propietario_id:
+            m, created = Membership.objects.get_or_create(
+                user=self.propietario,
+                negocio=self,
+                defaults={'rol': 'admin', 'is_active': True},
+            )
+            # Si ya existía, lo normalizamos (opcional pero recomendable)
+            update_fields = []
+            if not m.is_active:
+                m.is_active = True
+                update_fields.append('is_active')
+            if getattr(m, 'rol', None) != 'admin':
+                m.rol = 'admin'
+                update_fields.append('rol')
+            if update_fields:
+                m.save(update_fields=update_fields)
 
 # =====================================================
 # 2. MODELO USUARIO (Custom User Model)
@@ -350,7 +366,11 @@ class Turno(models.Model):
 
 @receiver(post_save, sender=Negocio)
 def asignar_negocio_a_propietario(sender, instance, created, **kwargs):
-    propietario = instance.propietario
-    if propietario.negocio != instance:
-        propietario.negocio = instance
-        propietario.save()
+    propietario = getattr(instance, "propietario", None)
+    if not propietario:
+        return
+    Membership.objects.get_or_create(
+        user=propietario,
+        negocio=instance,
+        defaults={"rol": "admin", "is_active": True},
+    )
