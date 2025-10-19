@@ -51,7 +51,7 @@ Ordema es una solución completa para la gestión de negocios que permite:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    OdremanBarber System                     │
+│                    Ordema Multi-Tenant System               │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌─────────────────┐    ┌─────────────────┐                │
@@ -60,45 +60,68 @@ Ordema es una solución completa para la gestión de negocios que permite:
 │  │   + Expo        │    │   + Bootstrap   │                │
 │  └─────────┬───────┘    └─────────┬───────┘                │
 │            │                      │                        │
+│            │   X-Negocio-ID       │                        │
 │            └──────────►  Django REST API  ◄───────────────┘
 │                         (DRF + JWT)                        │
+│                         Multi-Tenant                       │
 │                                │                            │
 │                       ┌────────┴────────┐                  │
 │                       │     MySQL       │                  │
 │                       │   Database      │                  │
+│                       │   + Membership  │                  │
 │                       └─────────────────┘                  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### 🏢 Sistema Multi-Tenant (Actualización Oct 2025)
+
+**Ordema ahora soporta arquitectura multi-tenant real:**
+
+- ✅ **Un usuario puede pertenecer a múltiples negocios**
+- ✅ **Roles diferentes por negocio** (cliente en uno, profesional en otro)
+- ✅ **Middleware automático** que detecta el negocio activo por header `X-Negocio-ID`
+- ✅ **Sincronización automática** entre roles y perfiles profesionales
+- ✅ **Permisos granulares** por negocio
+
+#### 🔄 Migración de Arquitectura
+
+**Antes (Sistema Monolítico):**
+```python
+Usuario.role = 'profesional'  # Rol único para todo el sistema
+Profesional.user = OneToOne   # Un usuario = un perfil profesional
+```
+
+**Después (Multi-Tenant):**
+```python
+Membership(user, negocio, rol='profesional')  # Rol por negocio
+Profesional.user = ForeignKey  # Un usuario = múltiples perfiles
+```
+
 ### 📁 Estructura del Proyecto
 
 ```
-OdremanBarber/
-├── 📁 barberia_project/          # Configuración principal de Django
-│   ├── settings.py               # Configuración del proyecto
-│   ├── urls.py                   # URLs principales
-│   └── wsgi.py                   # Configuración WSGI
+TechZone/
 ├── 📁 core/                      # Aplicación principal
+│   ├── migrations/               # Migraciones de BD
+│   │   └── 0015_ultimate_migration.py  # ⭐ Migración multi-tenant
+│   ├── services/                 # ⭐ NUEVO - Lógica de negocio
+│   │   ├── __init__.py
+│   │   └── memberships.py        # Sincronización de perfiles
 │   ├── models.py                 # Modelos de datos
-│   ├── views.py                  # Vistas y lógica de negocio
-│   ├── serializers.py            # Serializadores DRF
+│   ├── views.py                  # Endpoints API
+│   ├── serializers.py            # Serializers DRF
 │   ├── admin.py                  # Configuración del admin
-│   └── urls.py                   # URLs de la API
-├── 📁 barberia-app/              # Aplicación móvil React Native
-│   ├── src/
-│   │   ├── api/                  # Servicios de API
-│   │   ├── components/           # Componentes reutilizables
-│   │   ├── screens/              # Pantallas de la app
-│   │   ├── navigation/           # Configuración de navegación
-│   │   ├── context/              # Context API y estado global
-│   │   └── theme/                # Temas y estilos
-│   ├── App.tsx                   # Componente principal
-│   └── package.json              # Dependencias de la app
+│   ├── urls.py                   # URLs de la API
+│   ├── roles.py                  # ⭐ NUEVO - Helpers de roles
+│   ├── permissions.py            # ⭐ NUEVO - Permisos personalizados
+│   └── middleware.py             # ⭐ NUEVO - Middleware de negocio
+├── 📁 techzone/                  # Configuración del proyecto
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 ├── 📁 media/                     # Archivos multimedia
-├── 📁 negocio_logos/             # Logos de negocios
 ├── requirements.txt              # Dependencias de Python
-├── database_schema.sql           # Esquema de base de datos
 └── README.md                     # Este archivo
 ```
 
@@ -136,6 +159,13 @@ OdremanBarber/
 - **Tema personalizable** (claro/oscuro)
 - **Negocios con personalización única**
 - **Notificaciones push** (en desarrollo)
+
+### 🏢 Multi-Tenant (Nuevo)
+- **Usuarios multi-negocio**: Un usuario puede pertenecer a varios negocios
+- **Roles por negocio**: Cliente en un negocio, profesional en otro
+- **Middleware automático**: Detecta negocio activo por header HTTP
+- **Sincronización automática**: Entre Membership y perfiles Profesional
+- **Permisos granulares**: Validación de acceso por negocio
 
 ---
 
@@ -266,48 +296,109 @@ API_TIMEOUT=10000
 ### 📊 Modelos Principales
 
 #### 👤 Usuario (Usuario)
-```sql
-- id: Primary Key
-- username: Usuario único
-- email: Email único
-- first_name: Nombre
-- last_name: Apellido
-- is_active: Estado activo
-- date_joined: Fecha de registro
-- role: Rol (cliente, profesional, administrador)
+```python
+class Usuario(AbstractUser):
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Métodos multi-tenant
+    def get_rol_en_negocio(self, negocio):
+        """Obtiene el rol del usuario en un negocio específico"""
+    
+    def es_profesional_en(self, negocio):
+        """Verifica si es profesional en un negocio"""
 ```
 
-#### 🎯 Servicio (Servicio)
-```sql
-- id: Primary Key
-- nombre: Nombre del servicio
-- descripcion: Descripción detallada
-- duracion: Duración en minutos
-- precio: Precio del servicio
-- activo: Estado activo
-- created_at: Fecha de creación
+#### 🏢 Negocio (Negocio)
+```python
+class Negocio(models.Model):
+    nombre = models.CharField(max_length=100)
+    logo = models.ImageField(upload_to='logos/', null=True, blank=True)
+    theme_colors = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+#### 🎫 Membership (Nuevo - Multi-Tenant) ⭐
+```python
+class Membership(models.Model):
+    """Define la relación usuario-negocio con rol específico"""
+    
+    class Roles(models.TextChoices):
+        CLIENTE = 'cliente', 'Cliente'
+        PROFESIONAL = 'profesional', 'Profesional'
+    
+    user = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='memberships')
+    negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE, related_name='memberships')
+    rol = models.CharField(max_length=20, choices=Roles.choices, default=Roles.CLIENTE)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = [['user', 'negocio']]  # Un usuario no puede tener roles duplicados en el mismo negocio
 ```
 
 #### 👨‍💼 Profesional (Profesional)
-```sql
-- id: Primary Key
-- usuario: OneToOne con Usuario
-- bio: Biografía
-- foto: Imagen de perfil
-- especialidades: Texto
-- created_at: Fecha de creación
+```python
+class Profesional(models.Model):
+    """Perfil profesional por negocio (permite múltiples perfiles)"""
+    
+    user = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='perfiles_profesionales')  # ⭐ CAMBIO: ForeignKey
+    negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE, related_name='profesionales')
+    bio = models.TextField(null=True, blank=True)
+    is_available = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = [['user', 'negocio']]  # Un usuario solo puede tener un perfil profesional por negocio
+```
+
+#### 🎯 Servicio (Servicio)
+```python
+class Servicio(models.Model):
+    negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE, related_name='servicios')
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    duracion = models.IntegerField(help_text="Duración en minutos")
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    activo = models.BooleanField(default=True)
 ```
 
 #### 📅 Turno (Turno)
-```sql
-- id: Primary Key
-- cliente: ForeignKey a Usuario
-- profesional: ForeignKey a Profesional
-- servicio: ForeignKey a Servicio
-- fecha_hora: DateTime
-- estado: Choices (confirmado, cancelado, completado)
-- notas: Texto opcional
-- created_at: Fecha de creación
+```python
+class Turno(models.Model):
+    cliente = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='turnos_cliente')
+    profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE, related_name='turnos')
+    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
+    negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE, related_name='turnos')  # ⭐ NUEVO
+    start_datetime = models.DateTimeField()
+    end_datetime = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendiente')
+```
+
+### 🔗 Relaciones Multi-Tenant
+
+```
+Usuario (1) ←→ (N) Membership ←→ (N) Negocio
+Usuario (1) ←→ (N) Profesional (múltiples perfiles, uno por negocio)
+Negocio (1) ←→ (N) Profesional
+Negocio (1) ←→ (N) Servicio
+Negocio (1) ←→ (N) Turno
+Profesional (1) ←→ (N) Turno
+```
+
+### 🎯 Ejemplo de Usuario Multi-Negocio
+
+```python
+# Usuario "Juan" es profesional en Barbería A y cliente en Barbería B
+
+Usuario: Juan (id=1)
+├── Membership(user=1, negocio=1, rol='profesional')  # Barbería A
+│   └── Profesional(user=1, negocio=1, is_available=True)
+├── Membership(user=1, negocio=2, rol='cliente')      # Barbería B
+│   └── (sin perfil profesional)
+└── Turnos como cliente en Barbería B
 ```
 
 #### ⏰ HorarioDisponibilidad
@@ -343,12 +434,61 @@ Servicio (1) ←→ (N) Turno
 | `GET` | `/api/v1/auth/perfil/` | Obtener perfil del usuario |
 | `PUT` | `/api/v1/auth/perfil/` | Actualizar perfil del usuario |
 
+### 🏢 Multi-Tenant (Nuevos Endpoints) ⭐
+
+| Método | Endpoint | Descripción | Header Requerido |
+|--------|----------|-------------|------------------|
+| `GET` | `/api/v1/auth/mis-negocios/` | Lista todos los negocios del usuario con roles | `Authorization: Bearer {token}` |
+| `POST` | `/api/v1/auth/seleccionar-negocio/` | Valida acceso y devuelve info del negocio | `Authorization: Bearer {token}` |
+
+**📝 Nota Importante**: Todos los endpoints (excepto login/registro) ahora requieren el header:
+```
+X-Negocio-ID: {negocio_id}
+```
+
+#### Ejemplo: Login Multi-Negocio
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "juan", "password": "pass123"}'
+
+# Respuesta:
+{
+  "success": true,
+  "user": {
+    "id": 1,
+    "username": "juan",
+    "negocios": [
+      {"id": 1, "nombre": "Barbería Alpha", "rol": "profesional"},
+      {"id": 2, "nombre": "Barbería Beta", "rol": "cliente"}
+    ]
+  },
+  "tokens": {
+    "access": "eyJ0eXAi...",
+    "refresh": "eyJ0eXAi..."
+  }
+}
+```
+
+#### Ejemplo: Crear Turno con Multi-Tenant
+```bash
+curl -X POST http://localhost:8000/api/v1/reservas/crear/ \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Negocio-ID: 1" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "profesional_id": 5,
+    "servicio_id": 2,
+    "start_datetime": "2025-10-20T14:30:00Z"
+  }'
+```
+
 ### 🌐 APIs Públicas
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `GET` | `/api/v1/servicios-publicos/` | Listar servicios activos |
 | `GET` | `/api/v1/profesionales-disponibles/` | Listar profesionales disponibles |
-| `GET` | `/api/v1/resumen-barberia/` | Estadísticas generales |
+| `GET` | `/api/v1/resumen-negocio/` | Estadísticas generales |
 
 ### 📅 Gestión de Reservas
 | Método | Endpoint | Descripción |
@@ -463,6 +603,80 @@ export const lightTheme = {
 - **Axios interceptors** para manejo de tokens
 
 ---
+
+## 🎭 Sistema de Roles Multi-Tenant
+
+### 🔄 Cómo Funciona
+
+#### 1. **Membership Define el Rol por Negocio**
+```python
+# Usuario "Juan" tiene diferentes roles en diferentes negocios
+Membership(user=juan, negocio=barberia_a, rol='profesional')
+Membership(user=juan, negocio=barberia_b, rol='cliente')
+```
+
+#### 2. **Middleware Detecta el Negocio Activo**
+```python
+# El frontend envía el header:
+X-Negocio-ID: 1
+
+# El middleware establece automáticamente:
+request.negocio = Negocio.objects.get(id=1)
+```
+
+#### 3. **Permisos Validan por Negocio**
+```python
+# En las views:
+if is_profesional(request.user, request.negocio):
+    # Lógica para profesionales
+    pass
+```
+
+#### 4. **Sincronización Automática**
+```python
+# Al cambiar rol en admin:
+membership.rol = 'profesional'
+membership.save()
+
+# ✅ Se crea/activa automáticamente el perfil Profesional
+
+membership.rol = 'cliente'
+membership.save()
+
+# ✅ Se desactiva automáticamente el perfil Profesional
+```
+
+### 🛠️ Helpers Disponibles
+
+```python
+from core.roles import (
+    is_profesional,           # Verifica si es profesional en un negocio
+    is_cliente,               # Verifica si es cliente en un negocio
+    has_role,                 # Verifica rol específico
+    get_active_membership,    # Obtiene la membresía activa
+)
+
+from core.services.memberships import (
+    sync_profesional_profile,  # Sincroniza Membership ↔ Profesional
+    add_user_to_negocio,       # Agrega usuario a un negocio
+    get_profesional_profile,   # Obtiene perfil profesional activo
+    get_user_negocios,         # Lista negocios del usuario
+)
+```
+
+### 🔐 Permisos Personalizados
+
+```python
+from core.permissions import (
+    IsMemberOfSelectedNegocio,       # Usuario tiene acceso al negocio
+    IsProfessionalOfSelectedNegocio, # Usuario es profesional en el negocio
+    IsClienteOfSelectedNegocio,      # Usuario es cliente en el negocio
+)
+
+# Uso en views:
+class MiView(APIView):
+    permission_classes = [IsAuthenticated, IsMemberOfSelectedNegocio]
+```
 
 ## 👥 Roles de Usuario
 
@@ -719,23 +933,22 @@ LOG_LEVEL=debug
 
 ### 🎯 Roadmap
 
-#### Fase 1 (Actual) - MVP
+#### Fase 1 (Completado) - MVP + Multi-Tenant ✅
 - ✅ Backend funcional
 - ✅ APIs REST completas
 - ✅ Panel administrativo
 - ✅ App móvil básica
+- ✅ **Sistema multi-tenant implementado** (Oct 2025)
+- ✅ **Roles por negocio con Membership**
+- ✅ **Sincronización automática de perfiles**
+- ✅ **Middleware de contexto de negocio**
 
-#### Fase 2 (Próxima)
+#### Fase 2 (En Progreso) 🔄
+- 🔄 **Frontend multi-tenant** (selector de negocio)
+- 🔄 **HTTP interceptor con X-Negocio-ID**
 - 🔄 Notificaciones push
-- 🔄 Pagos online
-- 🔄 Tests automatizados
-- 🔄 Documentación completa
-
-#### Fase 3 (Futura)
-- 📋 Multi-tenancy
-- 📋 API pública
-- 📋 Integración con redes sociales
-- 📋 Machine Learning para recomendaciones
+- 🔄 OrdemAI - ChatBot
+- 🔄 Tests automatizados completos
 
 ---
 
