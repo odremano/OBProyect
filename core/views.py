@@ -10,7 +10,10 @@ from django.utils import timezone
 from datetime import datetime, timedelta, date
 from rest_framework import serializers
 from core.permissions import IsMemberOfSelectedNegocio
+from core.roles import is_profesional, is_cliente
+from core.services.memberships import get_profesional_profile
 import calendar
+from core.roles import Roles, has_role
 
 from .models import Usuario, Servicio, Profesional, Turno, HorarioDisponibilidad, BloqueoHorario, Negocio, Membership
 from .serializers import (
@@ -66,62 +69,56 @@ class RegistroView(APIView):
 class LoginView(APIView):
     """
     API para login de usuarios (clientes, profesionales, administradores).
-    
+
     POST /api/v1/auth/login/
-    
-    Autentica usuario y devuelve tokens JWT junto con datos del negocio.
+
+    Autentica usuario y devuelve tokens JWT junto con datos del usuario.
     """
     permission_classes = [permissions.AllowAny]  # Público
-    
+
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            
-            username = username.lower()
-            
-            # Autenticar usuario
-            user = authenticate(username=username, password=password)
-            if user:
-                # Generar tokens JWT
-                refresh = RefreshToken.for_user(user)
-                
-                # Obtener datos del usuario
-                user_data = UsuarioLoginSerializer(user, context={'request': request}).data
-                
-                # Si es un profesional, obtener su foto de perfil
-                if user.role == 'profesional':
-                    try:
-                        profesional = Profesional.objects.get(user=user)
-                        if profesional.profile_picture_url:
-                            user_data['profile_picture_url'] = profesional.profile_picture_url
-                    except Profesional.DoesNotExist:
-                        pass  # El usuario es profesional pero no tiene registro en Profesional
-                
-                # Preparar respuesta base
-                response_data = {
-                    'success': True,
-                    'message': 'Login exitoso',
-                    'user': user_data,
-                    'tokens': {
-                        'refresh': str(refresh),
-                        'access': str(refresh.access_token),
-                    }
-                }
-                return Response(response_data, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    'success': False,
-                    'message': 'Credenciales inválidas'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        return Response({
-            'success': False,
-            'message': 'Datos inválidos',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'message': 'Datos inválidos',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        username = serializer.validated_data['username'].lower()
+        password = serializer.validated_data['password']
+
+        # Autenticar usuario
+        user = authenticate(username=username, password=password)
+        if not user:
+            return Response({
+                'success': False,
+                'message': 'Credenciales inválidas'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Generar tokens JWT
+        refresh = RefreshToken.for_user(user)
+
+        # Datos base del usuario
+        user_data = UsuarioLoginSerializer(user, context={'request': request}).data
+
+        # Foto de perfil: global en Usuario; fallback temporal a Profesional
+        # (sin depender de user.role)
+        if getattr(user, "profile_picture_url", None):
+            user_data['profile_picture_url'] = user.profile_picture_url
+
+        # Respuesta (mismo shape que ya usas)
+        response_data = {
+            'success': True,
+            'message': 'Login exitoso',
+            'user': user_data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def mis_negocios(request):
@@ -153,11 +150,16 @@ def mis_negocios(request):
 @permission_classes([IsAuthenticated])
 def seleccionar_negocio(request):
     """
-    API para seleccionar negocio al que el usuario está vinculado.
+    API para validar y obtener información del negocio seleccionado.
     
-    GET /api/v1/auth/seleccionar-negocio/
+    POST /api/v1/auth/seleccionar-negocio/
+    Body: { "negocio_id": 1 }
     
-    Selecciona y valida que el usuario pertenezca al negocio.
+    El frontend debe:
+    1. Guardar el negocio_id en storage local
+    2. Enviar X-Negocio-ID en cada request subsiguiente
+
+    Sirve para ambos casos (Seleccionar negocio al primer login y para cambiar después)
     """
     negocio_id = request.data.get('negocio_id')
 
@@ -167,26 +169,37 @@ def seleccionar_negocio(request):
             'message': 'Se requiere el parámetro negocio_id'
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    # Validar que el usuario tenga un membership con ese negocio
-    from core.models import Membership, Negocio
-
     try:
-        membership = Membership.objects.get(user=request.user, negocio_id=negocio_id)
+        membership = Membership.objects.select_related('negocio').get(
+            user=request.user,
+            negocio_id=negocio_id,
+            is_active=True
+        )
     except Membership.DoesNotExist:
         return Response({
             'success': False,
             'message': 'No tienes acceso a este negocio'
         }, status=status.HTTP_403_FORBIDDEN)
 
-    # Asignar el negocio al usuario (lo guardamos temporalmente en request)
-    request.user.negocio = membership.negocio
+    negocio = membership.negocio
 
+    # Respuesta completa con toda la info del negocio
     return Response({
         'success': True,
         'message': 'Negocio seleccionado correctamente',
         'negocio': {
-            'id': membership.negocio.id,
-            'nombre': membership.negocio.nombre
+            'id': negocio.id,
+            'nombre': negocio.nombre,
+            'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
+            'logo_width': negocio.logo_width,
+            'logo_height': negocio.logo_height,
+            'theme_colors': negocio.theme_colors,
+            'rol': membership.rol,  # IMPORTANTE: Incluir el rol del usuario
+        },
+        'user': {
+            'id': request.user.id,
+            'username': request.user.username,
+            'rol_en_negocio': membership.rol,  # Para que el frontend sepa si es cliente o profesional
         }
     }, status=status.HTTP_200_OK)
 
@@ -372,50 +385,51 @@ def resumen_negocio(request):
 class CrearTurnoView(APIView):
     """
     API para crear nuevos turnos/reservas.
-    
+
     POST /api/v1/reservas/crear/
-    
+
     Solo para clientes autenticados.
     Valida disponibilidad completa antes de crear el turno.
     """
     permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
-    
+
     def post(self, request):
-        # Solo clientes pueden crear turnos
-        if request.user.role != 'cliente':
+        # Solo clientes pueden crear turnos (por Membership.rol en el negocio actual)
+        if not has_role(request.user, request.negocio, Roles.CLIENTE):
             return Response({
                 'success': False,
                 'message': 'Solo los clientes pueden crear turnos'
             }, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Verifica que el usuario tenga negocio asignado
-        if not request.negocio:
+        if not getattr(request, 'negocio', None):
             return Response({
                 'success': False,
                 'message': 'No se pudo determinar el negocio. Verifique que esté enviando el header X-Negocio-ID'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         serializer = CrearTurnoSerializer(
-            data=request.data, 
+            data=request.data,
             context={'request': request}
         )
 
         if serializer.is_valid():
             # Crea el turno asignando automáticamente el cliente y el negocio
             turno = serializer.save(cliente=request.user, negocio=request.negocio)
-            
+
             # Devolver información completa del turno creado
             return Response({
                 'success': True,
                 'message': 'Turno creado exitosamente',
                 'turno': MisTurnosSerializer(turno).data
             }, status=status.HTTP_201_CREATED)
-        
+
         return Response({
             'success': False,
             'message': 'Datos inválidos',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class MisTurnosView(APIView):
@@ -430,7 +444,7 @@ class MisTurnosView(APIView):
     
     def get(self, request):
         # Solo clientes pueden ver sus turnos
-        if request.user.role != 'cliente':
+        if not is_cliente(request.user, request.negocio):
             return Response({
                 'success': False,
                 'message': 'Solo los clientes pueden ver sus turnos'
@@ -703,15 +717,14 @@ class AgendaProfesionalView(APIView):
     
     def get(self, request):
         # Solo profesionales pueden ver su agenda
-        if request.user.role != 'profesional':
+        if not is_profesional(request.user, request.negocio):
             return Response({
                 'success': False,
                 'message': 'Solo los profesionales pueden ver su agenda'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        try:
-            profesional = Profesional.objects.get(user=request.user)
-        except Profesional.DoesNotExist:
+        profesional = get_profesional_profile(request.user, request.negocio)
+        if not profesional:
             return Response({
                 'success': False,
                 'message': 'Usuario profesional no encontrado'
@@ -764,15 +777,14 @@ class DiasConTurnosView(APIView):
     
     def get(self, request):
         # Solo profesionales pueden ver su agenda
-        if request.user.role != 'profesional':
+        if not is_profesional(request.user, request.negocio):
             return Response({
                 'success': False,
                 'message': 'Solo los profesionales pueden ver su agenda'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        try:
-            profesional = Profesional.objects.get(user=request.user)
-        except Profesional.DoesNotExist:
+        profesional = get_profesional_profile(request.user, request.negocio)
+        if not profesional:
             return Response({
                 'success': False,
                 'message': 'Usuario profesional no encontrado'
@@ -833,15 +845,14 @@ class CompletarTurnoView(APIView):
     
     def post(self, request, turno_id):
         # Solo profesionales pueden completar turnos
-        if request.user.role != 'profesional':
+        if not is_profesional(request.user, request.negocio):
             return Response({
                 'success': False,
                 'message': 'Solo los profesionales pueden completar turnos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        try:
-            profesional = Profesional.objects.get(user=request.user)
-        except Profesional.DoesNotExist:
+        profesional = get_profesional_profile(request.user, request.negocio)
+        if not profesional:
             return Response({
                 'success': False,
                 'message': 'Usuario profesional no encontrado'
@@ -851,7 +862,7 @@ class CompletarTurnoView(APIView):
             turno = Turno.objects.get(
                 id=turno_id,
                 profesional=profesional,
-                negocio=profesional.negocio
+                negocio=request.negocio  # CAMBIO: Usar request.negocio
             )
         except Turno.DoesNotExist:
             return Response({
@@ -896,26 +907,24 @@ class CancelarTurnoProfesionalView(APIView):
     
     def post(self, request, turno_id):
         # Solo profesionales pueden cancelar turnos de su agenda
-        if request.user.role != 'profesional':
+        if not is_profesional(request.user, request.negocio):
             return Response({
                 'success': False,
                 'message': 'Solo los profesionales pueden cancelar turnos de su agenda'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        try:
-            profesional = Profesional.objects.get(user=request.user)
-        except Profesional.DoesNotExist:
+        profesional = get_profesional_profile(request.user, request.negocio)
+        if not profesional:
             return Response({
                 'success': False,
                 'message': 'Usuario profesional no encontrado'
             }, status=status.HTTP_404_NOT_FOUND)
         
         try:
-            # Verificar que el turno existe y pertenece al profesional
             turno = Turno.objects.get(
                 id=turno_id,
                 profesional=profesional,
-                negocio=profesional.negocio
+                negocio=request.negocio  # CAMBIO: Usar request.negocio
             )
         except Turno.DoesNotExist:
             return Response({

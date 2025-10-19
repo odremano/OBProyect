@@ -6,7 +6,8 @@ from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .constants import IONIC_ICON_CHOICES
-
+from django.db.models.signals import post_delete, pre_delete
+from django.dispatch import receiver
 
 
 # =====================================================
@@ -58,14 +59,15 @@ class Membership(models.Model):
     class Roles(models.TextChoices):
             CLIENTE = 'cliente', 'Cliente'
             PROFESIONAL = 'profesional', 'Profesional'
-            ADMIN = 'admin', 'Administrador'
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
     negocio = models.ForeignKey('core.Negocio', on_delete=models.CASCADE, related_name='memberships')
     rol = models.CharField(
-        max_length=50,
+        max_length=20,
         choices=Roles.choices,
-        default=Roles.PROFESIONAL
+        null=False,
+        db_index=True,
+        default=Roles.CLIENTE
     )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -142,19 +144,6 @@ class Usuario(AbstractUser):
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
 
-    # Definimos las opciones para el campo 'role'
-    ROLE_CHOICES = (
-        ('cliente', 'Cliente'),
-        ('profesional', 'Profesional'),
-        ('administrador', 'Administrador'),
-    )
-    role = models.CharField(
-        max_length=20,
-        choices=ROLE_CHOICES,
-        default='cliente',
-        help_text="Rol del usuario en el sistema."
-    )
-
     # Añadimos los campos de timestamp que tienes en tu SQL
     created_at = models.DateTimeField(auto_now_add=True) # Se establece automáticamente en la creación
     updated_at = models.DateTimeField(auto_now=True)    # Se actualiza automáticamente en cada guardado
@@ -177,6 +166,22 @@ class Usuario(AbstractUser):
         if self.username:
             self.username = self.username.lower()
         super().save(*args, **kwargs)
+
+    def get_rol_en_negocio(self, negocio):
+        """Helper para obtener el rol del usuario en un negocio específico"""
+        try:
+            membership = self.memberships.get(negocio=negocio, is_active=True)
+            return membership.rol
+        except Membership.DoesNotExist:
+            return None
+    
+    def es_profesional_en(self, negocio):
+        """Verifica si el usuario es profesional en un negocio"""
+        return self.get_rol_en_negocio(negocio) == Membership.Roles.PROFESIONAL
+    
+    def es_cliente_en(self, negocio):
+        """Verifica si el usuario es cliente en un negocio"""
+        return self.get_rol_en_negocio(negocio) == Membership.Roles.CLIENTE
 
 # =====================================================
 # 3. MODELO SERVICIO (Service)
@@ -218,10 +223,10 @@ class Servicio(models.Model):
 # =====================================================
 class Profesional(models.Model):
     # Relación uno a uno con nuestro Custom User Model (Usuario)
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, # Referencia al modelo de usuario configurado en settings.py
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        unique=True  # Para mantener la relación uno a uno
+        related_name='perfiles_profesional'
     )
     bio = models.TextField(null=True, blank=True)
     profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
@@ -236,10 +241,16 @@ class Profesional(models.Model):
         db_table = 'profesional'
         verbose_name = 'Profesional del Servicio'
         verbose_name_plural = 'Profesionales del Servicio'
+        unique_together = [['user', 'negocio']]
 
     def __str__(self):
         # Muestra el nombre y apellido del usuario asociado al profesional
         return f"{self.user.first_name} {self.user.last_name}"
+    
+    @property
+    def profile_picture(self):
+        """Helper para obtener la foto de perfil desde Usuario"""
+        return self.user.profile_picture_url
 
 
 # =====================================================
@@ -374,3 +385,56 @@ def asignar_negocio_a_propietario(sender, instance, created, **kwargs):
         negocio=instance,
         defaults={"rol": "admin", "is_active": True},
     )
+
+@receiver(pre_delete, sender=Profesional)
+def sync_membership_on_profesional_delete(sender, instance, **kwargs):
+    """
+    Al eliminar un Profesional, cambia automáticamente el Membership.rol a 'cliente'.
+    
+    Usa pre_delete (antes de eliminar) para tener acceso a user y negocio.
+    """
+    try:
+        membership = Membership.objects.get(
+            user=instance.user,
+            negocio=instance.negocio,
+            is_active=True
+        )
+        
+        # Cambiar rol a cliente
+        membership.rol = Membership.Roles.CLIENTE
+        membership.save()
+        
+        print(f"Membership actualizado: {instance.user.username} ahora es cliente en {instance.negocio.nombre}")
+        
+    except Membership.DoesNotExist:
+        # Si no existe Membership, no hacer nada (caso edge)
+        print(f"No se encontró Membership para {instance.user.username} en {instance.negocio.nombre}")
+
+@receiver(pre_delete, sender=Membership)
+def sync_profesional_on_membership_delete(sender, instance, **kwargs):
+    """
+    Al eliminar un Membership con rol 'profesional', elimina automáticamente el perfil Profesional.
+    
+    Usa pre_delete (antes de eliminar) para tener acceso a user y negocio.
+    """
+    # Solo actuar si el rol era 'profesional'
+    if instance.rol != Membership.Roles.PROFESIONAL:
+        print(f"[SYNC] Membership de cliente eliminado, no hay perfil profesional que borrar.")
+        return
+    
+    try:
+        # Buscar el perfil profesional asociado
+        profesional = Profesional.objects.get(
+            user=instance.user,
+            negocio=instance.negocio
+        )
+        
+        # Eliminar el perfil profesional
+        profesional.delete()
+        
+        print(f"[SYNC] Perfil profesional eliminado: {instance.user.username} en {instance.negocio.nombre}")
+        
+    except Profesional.DoesNotExist:
+        print(f"[SYNC] No se encontró perfil Profesional para {instance.user.username} en {instance.negocio.nombre}")
+    except Exception as e:
+        print(f" [SYNC ERROR] {str(e)}")

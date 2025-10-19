@@ -31,7 +31,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'phone_number', 'role', 'is_active', 'date_joined', 'password',
+            'phone_number', 'is_active', 'date_joined', 'password',
             'profile_picture_url'
         ]
         extra_kwargs = {
@@ -99,11 +99,21 @@ class RegistroSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Crear un nuevo cliente"""
         validated_data.pop('password_confirm')
-        validated_data['role'] = 'cliente'  # Forzar rol de cliente
         password = validated_data.pop('password')
         user = Usuario.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
+
+        request = self.context.get('request')
+        if request and hasattr(request, 'negocio') and request.negocio:
+            from core.models import Membership
+            Membership.objects.create(
+                user=user,
+                negocio=request.negocio,
+                rol=Membership.Roles.CLIENTE,
+                is_active=True
+            )
+            
         return user
 
 class LoginSerializer(serializers.Serializer):

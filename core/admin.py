@@ -4,6 +4,7 @@ from django import forms
 from django.utils.html import format_html
 from .models import Usuario, Membership, Negocio, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno
 import copy
+from core.services.memberships import sync_profesional_profile
 
 # =====================================================
 # WIDGET PERSONALIZADO PARA DATETIME CON BOTÓN "AHORA"
@@ -46,16 +47,23 @@ class DateTimeWithNowWidget(forms.SplitDateTimeWidget):
         return html + button_html
 # === Helpers multi-negocio ===
 def user_negocio_ids(user):
+    """Retorna IDs de negocios a los que el usuario tiene acceso"""
     if user.is_superuser:
-        return Negocio.objects.values_list('id', flat=True)
-    return Membership.objects.filter(
-        user=user, is_active=True
-    ).values_list('negocio_id', flat=True)
+        return None  # Superusuario tiene acceso a todo
+    
+    # Obtener negocios desde Membership
+    return list(
+        Membership.objects.filter(user=user, is_active=True)
+        .values_list('negocio_id', flat=True)
+    )
+
 
 def limit_queryset_by_user_negocios(qs, user):
-    if user.is_superuser:
-        return qs
-    return qs.filter(negocio_id__in=user_negocio_ids(user))
+    """Filtra un queryset por los negocios del usuario"""
+    negocio_ids = user_negocio_ids(user)
+    if negocio_ids is None:
+        return qs  # Superusuario ve todo
+    return qs.filter(negocio_id__in=negocio_ids)
 
 # --- Membership --- 08/10/2025 Odreman.
 @admin.register(Membership)
@@ -63,6 +71,91 @@ class MembershipAdmin(admin.ModelAdmin):
     list_display = ('user', 'negocio', 'rol', 'is_active', 'created_at')
     list_filter = ('rol', 'is_active', 'negocio')
     search_fields = ('user__username', 'user__email', 'negocio__nombre')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Membresía', {
+            'fields': ('user', 'negocio', 'rol', 'is_active')
+        }),
+        ('Fechas', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """
+        Al cambiar el rol, sincroniza automáticamente el perfil profesional
+        """
+        super().save_model(request, obj, form, change)
+        
+        # Si cambió el rol, sincronizar
+        if 'rol' in form.changed_data or not change:
+            sync_profesional_profile(
+                user=obj.user,
+                negocio=obj.negocio,
+                rol=obj.rol
+            )
+    def delete_model(self, request, obj):
+        """
+        Muestra mensaje informativo al eliminar una Membresía.
+        El signal se encargará de eliminar el perfil Profesional si aplica.
+        """
+        user_username = obj.user.username
+        negocio_nombre = obj.negocio.nombre
+        rol = obj.rol
+        
+        # Eliminar (el signal sync_profesional_on_membership_delete se ejecutará automáticamente)
+        super().delete_model(request, obj)
+        
+        # Mensaje informativo
+        from django.contrib import messages
+        if rol == Membership.Roles.PROFESIONAL:
+            messages.success(
+                request,
+                f"Membresía de profesional eliminada. "
+                f"El perfil profesional de '{user_username}' en '{negocio_nombre}' fue eliminado."
+            )
+        else:
+            messages.success(
+                request,
+                f"Membresía de cliente eliminada. "
+                f"'{user_username}' ya no pertenece a '{negocio_nombre}'."
+            )
+    
+    # NUEVO: Mensaje al eliminar VARIAS membresías
+    def delete_queryset(self, request, queryset):
+        """
+        Mensaje al eliminar múltiples Membresías desde la lista.
+        """
+        count = queryset.count()
+        count_profesionales = queryset.filter(rol=Membership.Roles.PROFESIONAL).count()
+        
+        # Guardar info antes de eliminar (para el mensaje)
+        memberships_info = [
+            f"{m.user.username} ({m.negocio.nombre}) - {m.get_rol_display()}" 
+            for m in queryset[:5]  # Solo mostrar los primeros 5
+        ]
+        
+        # Eliminar (los signals se ejecutarán automáticamente para cada uno)
+        super().delete_queryset(request, queryset)
+        
+        # Mensaje informativo
+        from django.contrib import messages
+        mensaje = f"{count} membresía(s) eliminada(s)."
+        
+        if count_profesionales > 0:
+            mensaje += f" Se eliminaron {count_profesionales} perfil(es) profesional(es)."
+        
+        if count <= 5:
+            mensaje += f"\n\nUsuarios afectados:\n" + "\n".join(memberships_info)
+        
+        messages.success(request, mensaje)
+
+    def get_queryset(self, request):
+        """Filtra membresías por negocios del usuario"""
+        qs = super().get_queryset(request)
+        return limit_queryset_by_user_negocios(qs, request.user)
 
 # --- Usuario ---
 class UsuarioAdmin(UserAdmin):
@@ -198,6 +291,21 @@ admin.site.register(Servicio, ServicioAdmin)
 
 # --- Profesional ---
 class ProfesionalAdmin(admin.ModelAdmin):
+    list_display = ('user', 'negocio', 'bio', 'is_available', 'created_at')
+    list_filter = ('is_available', 'negocio', 'created_at')
+    search_fields = ('user__username', 'user__email', 'negocio__nombre')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('user', 'negocio', 'bio', 'is_available')
+        }),
+        ('Fechas', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
@@ -207,11 +315,57 @@ class ProfesionalAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
             obj.negocio = request.negocio
-        # Asignar rol profesional
-        if obj.user.role != 'profesional':
-            obj.user.role = 'profesional'
-            obj.user.save()
+        # CAMBIO: En lugar de modificar user.role, sincronizamos Membership
         obj.save()
+        
+        # Sincronizar automáticamente el Membership
+        sync_profesional_profile(
+            user=obj.user,
+            negocio=obj.negocio,
+            rol=Membership.Roles.PROFESIONAL
+        )
+    def delete_model(self, request, obj):
+        """
+        Muestra mensaje informativo al eliminar un Profesional.
+        El signal se encargará de actualizar el Membership automáticamente.
+        """
+        user_username = obj.user.username
+        negocio_nombre = obj.negocio.nombre
+        
+        # Eliminar (el signal sync_membership_on_profesional_delete se ejecutará automáticamente)
+        super().delete_model(request, obj)
+        
+        # Mensaje informativo
+        from django.contrib import messages
+        messages.success(
+            request,
+            f" Profesional '{user_username}' eliminado. "
+            f"Ahora es cliente en '{negocio_nombre}'."
+        )
+    
+    def delete_queryset(self, request, queryset):
+        """
+        Mensaje al eliminar múltiples Profesionales desde la lista.
+        """
+        count = queryset.count()
+        
+        # Guardar info antes de eliminar (para el mensaje)
+        profesionales_info = [
+            f"{p.user.username} ({p.negocio.nombre})" 
+            for p in queryset[:5]  # Solo mostrar los primeros 5
+        ]
+        
+        # Eliminar (los signals se ejecutarán automáticamente para cada uno)
+        super().delete_queryset(request, queryset)
+        
+        # Mensaje informativo
+        from django.contrib import messages
+        mensaje = f"{count} profesional(es) eliminado(s). Los Memberships fueron actualizados a 'cliente'."
+        
+        if count <= 5:
+            mensaje += f"\n\nUsuarios afectados: {', '.join(profesionales_info)}"
+        
+        messages.success(request, mensaje)
 
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
@@ -324,15 +478,18 @@ class TurnoAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if not request.user.is_superuser:
             if db_field.name == "cliente":
+                # CAMBIO: Filtrar por rol de Membership en lugar de user.role
                 kwargs["queryset"] = Usuario.objects.filter(
-                    role='cliente',
-                    memberships__negocio=request.negocio
-                    ).distinct()
+                    memberships__negocio=request.negocio,
+                    memberships__rol=Membership.Roles.CLIENTE,
+                    memberships__is_active=True
+                ).distinct()
             if db_field.name == "profesional":
                 kwargs["queryset"] = Profesional.objects.filter(negocio=request.negocio)
             if db_field.name == "servicio":
                 kwargs["queryset"] = Servicio.objects.filter(negocio=request.negocio)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 admin.site.register(Turno, TurnoAdmin)
 
 # =====================================================
@@ -355,7 +512,10 @@ class TurnoForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['cliente'].queryset = Usuario.objects.filter(role='cliente')
+        self.fields['cliente'].queryset = Usuario.objects.filter(
+            memberships__rol=Membership.Roles.CLIENTE,
+            memberships__is_active=True
+        ).distinct()
         self.fields['cliente'].empty_label = "Selecciona un cliente"
 
 # =====================================================

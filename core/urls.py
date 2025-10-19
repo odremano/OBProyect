@@ -33,6 +33,7 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/mis-negocios/', mis_negocios, name='mis-negocios'),
     path('auth/seleccionar-negocio/', seleccionar_negocio, name='seleccionar_negocio'),
+    path('auth/cambiar-negocio/', seleccionar_negocio, name='cambiar_negocio'),  # Alias
     
     # Perfil de usuario
     path('auth/perfil/', PerfilView.as_view(), name='perfil'),
