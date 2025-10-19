@@ -488,7 +488,7 @@ curl -X POST http://localhost:8000/api/v1/reservas/crear/ \
 |--------|----------|-------------|
 | `GET` | `/api/v1/servicios-publicos/` | Listar servicios activos |
 | `GET` | `/api/v1/profesionales-disponibles/` | Listar profesionales disponibles |
-| `GET` | `/api/v1/resumen-barberia/` | Estadísticas generales |
+| `GET` | `/api/v1/resumen-negocio/` | Estadísticas generales |
 
 ### 📅 Gestión de Reservas
 | Método | Endpoint | Descripción |
