@@ -92,7 +92,7 @@ const mapearTurnosAPI = (turnosResponse: MisTurnosResponse): Turno[] => {
 };
 
 export default function MisTurnosScreen({ navigation }: Props) {
-  const { tokens } = useContext(AuthContext);
+  const { tokens, user } = useContext(AuthContext);
   const { colors } = useTheme();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +109,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
     if (showLoading) setLoading(true);
 
     try {
-      const response = await fetchMisTurnos(tokens);
+      const response = await fetchMisTurnos(tokens, user?.negocio?.id ?? 0);
       const turnosMapeados = mapearTurnosAPI(response);
       setTurnos(turnosMapeados);
     } catch (error: any) {
@@ -151,7 +151,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
           onPress: async () => {
             try {
               // Llamada real a la API
-              await cancelarTurno(tokens, parseInt(turnoId));
+              await cancelarTurno(tokens, parseInt(turnoId), user?.negocio?.id ?? 0);
               
               // Refrescar la lista desde el servidor
               await cargarTurnos(false);

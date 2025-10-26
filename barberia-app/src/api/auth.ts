@@ -13,6 +13,27 @@ export interface ThemeColors {
   primaryDark: string;
 }
 
+// Interfaz para negocio en el array inicial
+export interface NegocioBasico {
+  id: number;
+  nombre: string;
+  logo_url?: string;
+  rol: string;
+}
+
+// Interfaz para negocio completo (después de seleccionar)
+export interface NegocioCompleto {
+  id: number;
+  nombre: string;
+  logo_url?: string;
+  logo_width?: number;
+  logo_height?: number;
+  theme_colors?: {
+    light: ThemeColors;
+    dark: ThemeColors;
+  };
+}
+
 // Define el tipo de respuesta esperada del backend
 export interface User {
   id: number;
@@ -25,17 +46,8 @@ export interface User {
   is_active: boolean;
   date_joined: string;
   profile_picture_url?: string;
-  negocio?: {
-    id: number;
-    nombre: string;
-    logo_url?: string;
-    logo_width?: number;
-    logo_height?: number;
-    theme_colors?: {
-      light: ThemeColors;
-      dark: ThemeColors;
-    };
-  };
+  negocios?: NegocioBasico[];
+  negocio?: NegocioCompleto;
 }
 
 export interface Tokens {
@@ -57,6 +69,21 @@ export interface LoginError {
 }
 
 export type LoginResult = LoginSuccess | LoginError;
+
+// Interfaz para seleccionar negocio
+export interface SeleccionarNegocioSuccess {
+  success: true;
+  message: string;
+  user: User; // Usuario con role y negocio completo
+}
+
+export interface SeleccionarNegocioError {
+  success: false;
+  message: string;
+}
+
+export type SeleccionarNegocioResult = SeleccionarNegocioSuccess | SeleccionarNegocioError;
+
 
 export async function login(username: string, password: string): Promise<LoginResult> {
   try {
@@ -93,3 +120,56 @@ export async function login(username: string, password: string): Promise<LoginRe
   }
 }
 
+// Función para seleccionar negocio
+export async function seleccionarNegocio(
+  negocioId: number,
+  accessToken: string
+): Promise<SeleccionarNegocioResult> {
+  try {
+    const response = await axios.post(
+      `${API_URL}/auth/seleccionar-negocio/`,
+      { negocio_id: negocioId },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+        if (response.data.success) {
+      const backendUser = response.data.user;
+      const backendNegocio = response.data.negocio;
+      
+      // Construir el usuario con la estructura correcta
+      const mappedUser: User = {
+        ...backendUser,
+        role: backendUser.rol_en_negocio || backendNegocio?.rol, // Mapear rol
+        negocio: backendNegocio, // Agregar negocio completo
+      };
+      
+      console.log('Usuario mapeado:');
+      console.log('- Rol:', mappedUser.role);
+      console.log('- Negocio:', mappedUser.negocio?.nombre);
+      
+      return {
+        success: true,
+        message: response.data.message,
+        user: mappedUser,
+      };
+    }
+    
+    
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'No se pudo seleccionar el negocio',
+      };
+    }
+    return {
+      success: false,
+      message: 'Error de red o servidor no disponible',
+    };
+  }
+}

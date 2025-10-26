@@ -13,7 +13,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmacionTurno'>;
 export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   
-  const { tokens } = useContext(AuthContext);
+  const { tokens, user } = useContext(AuthContext);
   const { profesional, servicio, fecha: fechaStr, hora } = route.params;
   const fecha = new Date(fechaStr); 
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
         profesional: profesional.id,
         servicio: servicio.id,
         start_datetime: fechaHoraFormateada,
-      });
+      }, user?.negocio?.id ?? 0);
       
       if (result.success) {
         // Pequeña pausa para mostrar el spinner en el botón

@@ -158,24 +158,24 @@ const SettingsScreen: React.FC = () => {
       >
         <View style={modalStyles.overlay}>
           <View style={[modalStyles.container, { backgroundColor: screenColors.background }]}>
-            <Text style={[modalStyles.title, { color: screenColors.primary }]}>Selecciona el tema</Text>
+            <Text style={[modalStyles.title, { color: mode === 'light' ? screenColors.primary : screenColors.text }]}>Selecciona el tema</Text>
             <TouchableOpacity
               style={modalStyles.option}
               onPress={() => handleSelectTheme('light')}
             >
-              <Text style={{ color: mode === 'light' ? screenColors.primaryDark : screenColors.text }}>Claro</Text>
+              <Text style={{ color: mode === 'light' ? screenColors.primary : screenColors.textSecondary }}>Claro</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={modalStyles.option}
               onPress={() => handleSelectTheme('dark')}
             >
-              <Text style={{ color: mode === 'dark' ? screenColors.primaryDark : screenColors.text }}>Oscuro</Text>
+              <Text style={{ color: mode === 'dark' ? screenColors.text : screenColors.textSecondary }}>Oscuro</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={modalStyles.option}
               onPress={() => handleSelectTheme('auto')}
             >
-              <Text style={{ color: mode === 'auto' ? screenColors.primaryDark : screenColors.text }}>Automático</Text>
+              <Text style={{ color: mode === 'auto' ? screenColors.primary : screenColors.textSecondary }}>Automático</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={modalStyles.cancel}
