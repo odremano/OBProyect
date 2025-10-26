@@ -33,7 +33,6 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     setLoginError(undefined);
     try {
-      // 1. Login inicial
       const loginData = await login(username, password);
       
       if (!loginData.success) {
@@ -42,15 +41,17 @@ const LoginScreen: React.FC = () => {
         return;
       }
 
-      console.log('Login exitoso, negocios disponibles:', loginData.user.negocios?.length);
+      const negociosDisponibles = loginData.user.negocios || [];
 
-      // 2. ✅ Si tiene negocios, seleccionar el primero automáticamente
-      if (loginData.user.negocios && loginData.user.negocios.length > 0) {
-        const primerNegocio = loginData.user.negocios[0];
+      if (negociosDisponibles.length === 0) {
+        setLoginError('No tienes acceso a ningún negocio');
+        setLoading(false);
+        return;
+      }
+
+      if (negociosDisponibles.length === 1) {
+        const primerNegocio = negociosDisponibles[0];
         
-        console.log('Seleccionando negocio automáticamente:', primerNegocio.nombre);
-        
-        // 3. Llamar a la API de seleccionar negocio
         const seleccionData = await seleccionarNegocio(
           primerNegocio.id,
           loginData.tokens.access
@@ -62,22 +63,24 @@ const LoginScreen: React.FC = () => {
           return;
         }
 
-        // 4. Guardar negocio_id en AsyncStorage (para header X-Negocio-ID)
         await AsyncStorage.setItem('negocio_id', primerNegocio.id.toString());
-        
-        console.log('✅ Negocio seleccionado correctamente:');
-        console.log('  - Negocio:', seleccionData.user.negocio?.nombre);
-        console.log('  - Rol:', seleccionData.user.role);
-
-        // 5. Login en el contexto con el usuario completo (con role y negocio)
         await contextLogin(seleccionData.user, loginData.tokens);
         
+        setLoginVisible(false);
       } else {
-        // Caso sin negocios (no debería pasar según tu backend)
         await contextLogin(loginData.user, loginData.tokens);
+        
+        navigation.reset({
+          index: 0,
+          routes: [
+            { 
+              name: 'SeleccionarNegocio',
+            }
+          ],
+        });
+        
+        setLoginVisible(false);
       }
-      
-      setLoginVisible(false);
 
     } catch (err: any) {
       setLoginError(err.message || 'Error de red');

@@ -148,15 +148,14 @@ export interface TurnoProfesional {
   puede_cancelar: boolean;
 }
 
-// Función para obtener turnos del profesional por fecha (para la agenda)
-export async function obtenerTurnosProfesional(tokens: Tokens, fecha: string): Promise<TurnoProfesional[]> {
+export async function obtenerTurnosProfesional(tokens: Tokens, fecha: string, negocioId: number): Promise<TurnoProfesional[]> {
   try {
-    const response = await axios.get(`${API_URL}/reservas/agenda-profesional/`, {
+    const response = await axios.get(`${API_URL}/reservas/agenda-profesional/?negocio_id=${negocioId}`, {
       headers: {
         Authorization: `Bearer ${tokens.access}`,
       },
       params: {
-        fecha: fecha, // YYYY-MM-DD
+        fecha: fecha,
       }
     });
     return response.data.turnos || [];
@@ -220,16 +219,15 @@ export async function cancelarTurnoProfesional(tokens: Tokens, turnoId: number) 
   }
 }
 
-// Función para obtener días con turnos en un mes específico
-export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: number): Promise<number[]> {
+export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: number, negocioId: number): Promise<number[]> {
   try {
-    const response = await axios.get(`${API_URL}/reservas/dias-con-turnos/`, {
+    const response = await axios.get(`${API_URL}/reservas/dias-con-turnos/?negocio_id=${negocioId}`, {
       headers: {
         Authorization: `Bearer ${tokens.access}`,
       },
       params: {
         año: año,
-        mes: mes + 1, // Mes en formato 1-12
+        mes: mes + 1,
       }
     });
     return response.data.dias || [];

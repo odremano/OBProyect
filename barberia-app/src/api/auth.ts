@@ -21,6 +21,16 @@ export interface NegocioBasico {
   rol: string;
 }
 
+// Interfaz para negocio detallado de la lista
+export interface NegocioDetallado {
+  id: number;
+  nombre: string;
+  logo_url?: string;
+  rol: string;
+  is_favorite?: boolean;
+  membership_id?: number;
+}
+
 // Interfaz para negocio completo (después de seleccionar)
 export interface NegocioCompleto {
   id: number;
@@ -83,6 +93,18 @@ export interface SeleccionarNegocioError {
 }
 
 export type SeleccionarNegocioResult = SeleccionarNegocioSuccess | SeleccionarNegocioError;
+
+export interface MisNegociosSuccess {
+  success: true;
+  negocios: NegocioDetallado[];
+}
+
+export interface MisNegociosError {
+  success: false;
+  message: string;
+}
+
+export type MisNegociosResult = MisNegociosSuccess | MisNegociosError;
 
 
 export async function login(username: string, password: string): Promise<LoginResult> {
@@ -165,6 +187,28 @@ export async function seleccionarNegocio(
       return {
         success: false,
         message: error.response.data.message || 'No se pudo seleccionar el negocio',
+      };
+    }
+    return {
+      success: false,
+      message: 'Error de red o servidor no disponible',
+    };
+  }
+}
+
+export async function misNegocios(accessToken: string): Promise<MisNegociosResult> {
+  try {
+    const response = await axios.get(`${API_URL}/auth/mis-negocios/`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'No se pudieron cargar los negocios',
       };
     }
     return {

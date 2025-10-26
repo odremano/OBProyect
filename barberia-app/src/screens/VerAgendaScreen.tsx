@@ -32,7 +32,7 @@ export const formatearPrecio = (precio: string | number) => {
 const VerAgendaScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { user, tokens } = useContext(AuthContext);
+  const { user, tokens, negocioId } = useContext(AuthContext);
   const { showSuccess, showError, showWarning } = useNotifications();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -112,9 +112,8 @@ const VerAgendaScreen = () => {
     };
   };
 
-  // Cargar turnos del día seleccionado
   const cargarTurnosDelDia = async (fecha: Date) => {
-    if (!tokens) return;
+    if (!tokens || !negocioId) return;
     
     setLoading(true);
     try {
@@ -123,7 +122,7 @@ const VerAgendaScreen = () => {
       const dia = String(fecha.getDate()).padStart(2, '0');
       const fechaStr = `${año}-${mes}-${dia}`;
       
-      const turnos = await obtenerTurnosProfesional(tokens, fechaStr);
+      const turnos = await obtenerTurnosProfesional(tokens, fechaStr, negocioId);
       const turnosConvertidos = turnos.map(convertirTurno);
       setTurnosDelDia(turnosConvertidos);
     } catch (error) {
@@ -134,12 +133,11 @@ const VerAgendaScreen = () => {
     }
   };
 
-  // Cargar días con turnos del mes
   const cargarDiasConTurnos = async (fecha: Date) => {
-    if (!tokens) return;
+    if (!tokens || !negocioId) return;
     
     try {
-      const dias = await obtenerDiasConTurnos(tokens, fecha.getFullYear(), fecha.getMonth());
+      const dias = await obtenerDiasConTurnos(tokens, fecha.getFullYear(), fecha.getMonth(), negocioId);
       setDiasConTurnos(dias);
     } catch (error) {
       console.error('Error cargando días con turnos:', error);
