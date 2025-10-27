@@ -233,9 +233,9 @@ export default function ProfesionalesScreen({ route, navigation }: Props) {
           >
             <View style={styles.cardContent}>
               <View style={styles.profesionalInfo}>
-                {item.profile_picture_url ? (
+                {item.user_details.profile_picture_url ? (
                   <Image
-                    source={{ uri: item.profile_picture_url }}
+                    source={{ uri: item.user_details.profile_picture_url }}
                     style={styles.foto}
                   />
                 ) : (

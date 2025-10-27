@@ -25,7 +25,7 @@ const MiDisponibilidadScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showError } = useNotifications();
-  const { tokens } = useContext(AuthContext);
+  const { tokens, negocioId } = useContext(AuthContext);
   
   const [loading, setLoading] = useState(true);
 
@@ -134,11 +134,11 @@ const MiDisponibilidadScreen = () => {
 
   useEffect(() => {
     const loadAvailability = async () => {
-      if (!tokens) return;
+      if (!tokens || !negocioId) return;
       
       try {
         setLoading(true);
-        const data = await fetchDisponibilidad(tokens);
+        const data = await fetchDisponibilidad(tokens, negocioId);
         
         const weekStructure = createWeekStructure();
         const updatedAvailability = weekStructure.map(day => {
@@ -165,11 +165,10 @@ const MiDisponibilidadScreen = () => {
     };
 
     loadAvailability();
-  }, [tokens]);
+  }, [tokens, negocioId]);
   
-  // Al guardar:
   const handleSave = async () => {
-    if (!tokens) return;
+    if (!tokens || !negocioId) return;
     
     const payload: DisponibilidadDia[] = availability
       .filter(day => day.enabled)
@@ -186,12 +185,11 @@ const MiDisponibilidadScreen = () => {
       });
       
     try {
-      await saveDisponibilidad(tokens, payload);
+      await saveDisponibilidad(tokens, payload, negocioId);
       showSuccess(
         'Disponibilidad guardada',
         'Tu disponibilidad se actualizó correctamente'
       );
-      // Resetear el stack para evitar volver con gesto de deslizar
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],

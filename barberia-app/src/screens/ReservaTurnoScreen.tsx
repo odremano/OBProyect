@@ -22,7 +22,7 @@ interface ProfesionalConDisponibilidad extends Profesional {
 
 export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
-  const { tokens, negocioId } = useContext(AuthContext);
+  const { tokens, user } = useContext(AuthContext);
   const profesionalIdParam = route.params?.profesionalId;
 
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
@@ -51,11 +51,11 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const [cargandoDisponibilidadInicial, setCargandoDisponibilidadInicial] = useState(false);
 
   useEffect(() => {
-    if (!tokens || negocioId == null) return;
+    if (!tokens || !user?.negocio?.id) return;
 
     Promise.all([
-      fetchProfesionales(tokens, negocioId),
-      fetchServicios(tokens, negocioId)
+      fetchProfesionales(tokens, user?.negocio?.id ?? 0),
+      fetchServicios(tokens, user?.negocio?.id ?? 0)
     ]).then(([profData, servData]) => {
       setProfesionales(profData);
       setServicios(servData);
@@ -88,7 +88,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   
   // Cargar horarios disponibles cuando se selecciona una fecha
   useEffect(() => {
-    if (selectedProfesional && selectedServicio && selectedDate && tokens && negocioId) {
+    if (selectedProfesional && selectedServicio && selectedDate && tokens && user?.negocio?.id) {
       const fechaStr = formatDateForAPI(selectedDate); // Usar función local
       
       setLoadingHorarios(true);
@@ -97,7 +97,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
       setProfesionalNoTrabaja(false);
       setSelectedTime(null);
       
-      obtenerHorariosDisponibles(tokens, selectedProfesional.id, fechaStr, selectedServicio.id, negocioId)
+      obtenerHorariosDisponibles(tokens, selectedProfesional.id, fechaStr, selectedServicio.id, user?.negocio?.id)
         .then((response: HorariosResponse) => {
           setHorariosDisponibles(response.horarios);
           setMensajeHorarios(response.mensaje || null);
@@ -149,7 +149,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
   // Nueva función para cargar días con disponibilidad para el calendario
   const cargarDiasConDisponibilidad = async (fecha: Date, profesional?: Profesional, servicio?: Servicio) => {
-    if (!tokens || negocioId == null) return;
+    if (!tokens) return;
     
     const prof = profesional || selectedProfesional;
     const serv = servicio || selectedServicio;
@@ -168,7 +168,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         año,
         mes, // Ya convertido a 1-12
         prof.id,
-        serv.id
+        serv.id,
         // Removido negocioId - la API ya no lo necesita como parámetro separado
       );
       
@@ -182,7 +182,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
   // Función simplificada para precargar disponibilidad
   const precargarDisponibilidad = async (profesional: Profesional) => {
-    if (!tokens || negocioId == null || servicios.length === 0) return;
+    if (!tokens || !user?.negocio?.id || servicios.length === 0) return;
 
     setCargandoDisponibilidadInicial(true);
 
@@ -217,7 +217,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
               profesional.id,
               fechaStr, 
               servicioId,
-              negocioId as number
+              user?.negocio?.id ?? 0
             );
 
             if (response.horarios.length > 0) {
@@ -253,7 +253,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         precargarDisponibilidad(selectedProfesional);
       }
     }
-  }, [selectedProfesional, servicios, tokens, negocioId, profesionales.length, profesionalIdParam, proximaDisponibilidad, cargandoDisponibilidadInicial]);
+  }, [selectedProfesional, servicios, tokens, user?.negocio?.id, profesionales.length, profesionalIdParam, proximaDisponibilidad, cargandoDisponibilidadInicial]);
 
   // Limpiar disponibilidad cuando cambie el profesional
   useEffect(() => {
@@ -263,14 +263,14 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
   // Cargar días con disponibilidad cuando cambien profesional o servicio
   useEffect(() => {
-    if (selectedProfesional && selectedServicio && tokens && negocioId) {
+    if (selectedProfesional && selectedServicio && tokens && user?.negocio?.id) {
       const currentDate = selectedDate || new Date();
       cargarDiasConDisponibilidad(currentDate, selectedProfesional, selectedServicio);
     } else {
       // Limpiar indicadores si no hay profesional o servicio seleccionado
       setDiasConDisponibilidad([]);
     }
-  }, [selectedProfesional?.id, selectedServicio?.id, tokens, negocioId]);
+  }, [selectedProfesional?.id, selectedServicio?.id, tokens, user?.negocio?.id]);
 
   if (loading) {
     return (
@@ -323,9 +323,9 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             {selectedProfesional ? (
               <View style={styles.selectedContent}>
                                 <View style={styles.selectedInfo}>
-                 {selectedProfesional.profile_picture_url ? (
+                 {selectedProfesional.user_details?.profile_picture_url ? (
                    <Image
-                     source={{ uri: selectedProfesional.profile_picture_url }}
+                     source={{ uri: selectedProfesional.user_details.profile_picture_url }}
                      style={styles.foto}
                    />
                  ) : (

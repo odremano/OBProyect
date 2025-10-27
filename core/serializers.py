@@ -176,7 +176,7 @@ class ProfesionalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profesional
-        fields = ['id', 'user', 'user_details', 'bio', 'profile_picture_url', 'is_available']
+        fields = ['id', 'user', 'user_details', 'bio', 'is_available']
         read_only_fields = ['user_details']
 
 
@@ -380,7 +380,7 @@ class MisTurnosSerializer(serializers.ModelSerializer):
     """
     profesional_name = serializers.CharField(source='profesional.user.get_full_name', read_only=True)
     profesional_bio = serializers.CharField(source='profesional.bio', read_only=True)
-    profesional_photo = serializers.CharField(source='profesional.profile_picture_url', read_only=True)
+    profesional_photo = serializers.CharField(source='profesional.user.profile_picture_url', read_only=True)
     
     servicio_name = serializers.CharField(source='servicio.name', read_only=True)
     servicio_description = serializers.CharField(source='servicio.description', read_only=True)
