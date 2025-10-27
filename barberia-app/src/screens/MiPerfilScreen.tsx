@@ -122,14 +122,18 @@ const MiPerfilScreen = () => {
   };
 
   const handleToggleSection = (sectionId: string) => {
-    if (sectionId === 'nuevo-negocio' || sectionId === 'eliminar-cuenta') {
+    if (sectionId === 'nuevo-negocio') {
+      navigation.navigate('SeleccionarNegocio', { fromPrivateArea: true });
+      return;
+    }
+    
+    if (sectionId === 'eliminar-cuenta') {
       showInfo('Próximamente', 'Esta funcionalidad estará disponible próximamente.');
       return;
     }
     
     const next = expandedSection === sectionId ? null : sectionId;
     setExpandedSection(next);
-    // Cerrar formularios inline si se colapsa o cambia de sección
     if (next !== 'datos-personales') {
       setEditingUsername(false);
       setEditingNames(false);
@@ -746,11 +750,11 @@ const MiPerfilScreen = () => {
             </View>
           </AccordionItem>
 
-          {/* Nuevo negocio */}
+          {/* Cambiar de negocio */}
           <AccordionItem
             id="nuevo-negocio"
-            title="Nuevo negocio"
-            subtitle="Súmate a otro negocio de Ordema"
+            title="Cambiar de negocio"
+            subtitle="Accede a otro de tus negocios"
             iconName="storefront"
             isExpanded={false}
             onToggle={handleToggleSection}

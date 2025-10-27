@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from datetime import timedelta
-from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno, Negocio
+from .models import Usuario, Servicio, Profesional, HorarioDisponibilidad, BloqueoHorario, Turno, Negocio, Membership
 
 
 # =============================================================================
@@ -26,37 +26,49 @@ class NegocioSerializer(serializers.ModelSerializer):
 
 class UsuarioSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    negocio = NegocioSerializer(read_only=True, context={'request': None})
 
     class Meta:
         model = Usuario
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'phone_number', 'role', 'is_active', 'date_joined', 'password',
-            'profile_picture_url', 'negocio'
+            'phone_number', 'is_active', 'date_joined', 'password',
+            'profile_picture_url'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
         }
-    
-    def to_representation(self, instance):
-        """Pasar el contexto de la request al serializer del negocio"""
-        representation = super().to_representation(instance)
-        if instance.negocio:
-            negocio_serializer = NegocioSerializer(
-                instance.negocio, 
-                context=self.context
-            )
-            representation['negocio'] = negocio_serializer.data
-        return representation
-    
+
     def create(self, validated_data):
-        """Crear un nuevo usuario con password encriptado"""
         password = validated_data.pop('password')
         user = Usuario.objects.create_user(**validated_data)
-        user.set_password(password)  # Encripta el password
+        user.set_password(password)
         user.save()
         return user
+
+# Nuevo serializer para login adaptado a Membership (Usuario registrado en múltiples negocios). 12/10/2025 Odreman.
+class UsuarioLoginSerializer(UsuarioSerializer):
+    negocios = serializers.SerializerMethodField()
+
+    class Meta(UsuarioSerializer.Meta):
+        fields = UsuarioSerializer.Meta.fields + ['negocios']
+
+    def get_negocios(self, obj):
+        memberships = Membership.objects.filter(user=obj).select_related('negocio')
+        return [
+            {
+                'id': m.negocio.id,
+                'nombre': m.negocio.nombre,
+                'logo_url': self._get_logo_url(m.negocio),
+                'rol': m.rol
+            } for m in memberships
+        ]
+
+    def _get_logo_url(self, negocio):
+        request = self.context.get('request')
+        if negocio.logo:
+            return request.build_absolute_uri(negocio.logo.url) if request else negocio.logo.url
+        return None
+
 
 
 class RegistroSerializer(serializers.ModelSerializer):
@@ -81,17 +93,27 @@ class RegistroSerializer(serializers.ModelSerializer):
         return data
     
     def validate_username(self, value):
-        """✅ Normalizar username a minúsculas"""
+        """Normalizar username a minúsculas"""
         return value.lower()
     
     def create(self, validated_data):
         """Crear un nuevo cliente"""
         validated_data.pop('password_confirm')
-        validated_data['role'] = 'cliente'  # Forzar rol de cliente
         password = validated_data.pop('password')
         user = Usuario.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
+
+        request = self.context.get('request')
+        if request and hasattr(request, 'negocio') and request.negocio:
+            from core.models import Membership
+            Membership.objects.create(
+                user=user,
+                negocio=request.negocio,
+                rol=Membership.Roles.CLIENTE,
+                is_active=True
+            )
+            
         return user
 
 class LoginSerializer(serializers.Serializer):
@@ -115,7 +137,7 @@ class LoginSerializer(serializers.Serializer):
         return data
 
     def validate_username(self, value):
-        # ✅ Normalizar a minúsculas en la validación
+        # Normalizar a minúsculas en la validación
         return value.lower()
 
 
@@ -137,7 +159,7 @@ class ServicioSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get('request')
         if request and not request.user.is_superuser:
-            validated_data['negocio'] = request.user.negocio
+            validated_data['negocio'] = request.negocio
         return super().create(validated_data)
 
 
@@ -154,7 +176,7 @@ class ProfesionalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profesional
-        fields = ['id', 'user', 'user_details', 'bio', 'profile_picture_url', 'is_available']
+        fields = ['id', 'user', 'user_details', 'bio', 'is_available']
         read_only_fields = ['user_details']
 
 
@@ -216,7 +238,10 @@ class CrearTurnoSerializer(serializers.ModelSerializer):
         # Obtener el usuario y negocio del contexto de la request
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            user_negocio = request.user.negocio
+            user_negocio = getattr(request, 'negocio', None)
+
+            if not user_negocio:
+                raise serializers.ValidationError('No se pudo determinar el negocio del usuario.')
             
             # Verificar que el profesional pertenezca al negocio del usuario
             if profesional.negocio != user_negocio:
@@ -355,7 +380,7 @@ class MisTurnosSerializer(serializers.ModelSerializer):
     """
     profesional_name = serializers.CharField(source='profesional.user.get_full_name', read_only=True)
     profesional_bio = serializers.CharField(source='profesional.bio', read_only=True)
-    profesional_photo = serializers.CharField(source='profesional.profile_picture_url', read_only=True)
+    profesional_photo = serializers.CharField(source='profesional.user.profile_picture_url', read_only=True)
     
     servicio_name = serializers.CharField(source='servicio.name', read_only=True)
     servicio_description = serializers.CharField(source='servicio.description', read_only=True)

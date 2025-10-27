@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, Image 
 import { useTheme } from '../context/ThemeContext';
 import LoginModal from '../components/LoginModal';
 import OrdemaBackground from '../components/OrdemaBackground';
-import { login } from '../api/auth';
+import { login, seleccionarNegocio } from '../api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
+
 
 const { width } = Dimensions.get('window');
 
@@ -32,21 +33,55 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     setLoginError(undefined);
     try {
-      const data = await login(username, password);
-      if (data.success) {
-        // Guarda los tokens en AsyncStorage (ya se hace en AuthContext, esto es redundante)
-        // await AsyncStorage.setItem('accessToken', data.tokens.access);
-        // await AsyncStorage.setItem('refreshToken', data.tokens.refresh);
+      const loginData = await login(username, password);
+      
+      if (!loginData.success) {
+        setLoginError(loginData.message || 'Error al iniciar sesión');
+        setLoading(false);
+        return;
+      }
+
+      const negociosDisponibles = loginData.user.negocios || [];
+
+      if (negociosDisponibles.length === 0) {
+        setLoginError('No tienes acceso a ningún negocio');
+        setLoading(false);
+        return;
+      }
+
+      if (negociosDisponibles.length === 1) {
+        const primerNegocio = negociosDisponibles[0];
         
-        // ✅ Actualiza el AuthContext - ahora usa solo user.negocio como fuente única
-        // ❌ ANTES: await contextLogin(data.user, data.tokens, data.negocio);
-        // ✅ DESPUÉS: Remover el tercer parámetro
-        await contextLogin(data.user, data.tokens);
+        const seleccionData = await seleccionarNegocio(
+          primerNegocio.id,
+          loginData.tokens.access
+        );
+
+        if (!seleccionData.success) {
+          setLoginError(seleccionData.message || 'Error al seleccionar negocio');
+          setLoading(false);
+          return;
+        }
+
+        await AsyncStorage.setItem('negocio_id', primerNegocio.id.toString());
+        await contextLogin(seleccionData.user, loginData.tokens);
         
         setLoginVisible(false);
       } else {
-        setLoginError(data.message || 'Error al iniciar sesión');
+        await contextLogin(loginData.user, loginData.tokens);
+        
+        navigation.reset({
+          index: 0,
+          routes: [
+            { 
+              name: 'SeleccionarNegocio',
+            }
+          ],
+        });
+        
+        setLoginVisible(false);
       }
+
     } catch (err: any) {
       setLoginError(err.message || 'Error de red');
     } finally {
@@ -97,28 +132,27 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoContainer: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+    marginTop: 100,
+    marginBottom: 60,
   },
   logo: {
-    width: 380,
+    width: width * 0.9,
     height: 165,
-    marginBottom: 45,
-    marginTop: 80,
-    marginLeft: -15,
-    // Sombra mejorada para el logo
+    maxWidth: 400,
+    marginBottom: 60,
+    marginTop: 100,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8, // Para Android
+    elevation: 8, 
   },
   title: {
     fontSize: 50,
     fontWeight: 'bold',
     textAlign: 'left',
-    // Agregar sombra para mejor legibilidad sobre el fondo
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
@@ -128,7 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: 'left',
     fontWeight: '500',
-    // Agregar sombra para mejor legibilidad sobre el fondo
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
@@ -139,8 +172,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: -25,
     textAlign: 'left',
-    fontStyle: 'italic', // ← Agregar esta línea para cursiva
-    // Agregar sombra para mejor legibilidad sobre el fondo
+    fontStyle: 'italic', 
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
@@ -148,18 +180,15 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 40,
+    paddingHorizontal: 10,
     alignItems: 'center',
     marginTop: 8,
     width: '100%',
-    maxWidth: 340,
-    // Agregar sombra para mejor definición sobre el fondo
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    // Agregar un borde sutil para mejor definición
     borderWidth: 0.3,
   },
   buttonText: {

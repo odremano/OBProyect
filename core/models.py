@@ -6,7 +6,8 @@ from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .constants import IONIC_ICON_CHOICES
-
+from django.db.models.signals import post_delete, pre_delete
+from django.dispatch import receiver
 
 
 # =====================================================
@@ -52,7 +53,34 @@ def get_default_theme():
         }
     }
 # =====================================================
-# 0.5. MODELO NEGOCIO (Múltiples negocios)
+# 0.5. MODELO MemberShip (Múltiples negocios por usuario)
+# =====================================================
+class Membership(models.Model):
+    class Roles(models.TextChoices):
+            CLIENTE = 'cliente', 'Cliente'
+            PROFESIONAL = 'profesional', 'Profesional'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
+    negocio = models.ForeignKey('core.Negocio', on_delete=models.CASCADE, related_name='memberships')
+    rol = models.CharField(
+        max_length=20,
+        choices=Roles.choices,
+        null=False,
+        db_index=True,
+        default=Roles.CLIENTE
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = (('user', 'negocio'),)
+
+    def __str__(self):
+        return f"{self.user} @ {self.negocio} ({self.rol})"
+
+# =====================================================
+# 1. MODELO NEGOCIO (Múltiples negocios de Ordema)
 # =====================================================
 class Negocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -68,7 +96,7 @@ class Negocio(models.Model):
         help_text="Alto del logo en píxeles (20-200px)"
     )
     propietario = models.ForeignKey(
-        'Usuario', # Referencia al modelo Usuario custom
+        'Usuario',
         related_name='negocios_propios',
         on_delete=models.CASCADE
     )
@@ -84,13 +112,29 @@ class Negocio(models.Model):
         return self.nombre
 
     def save(self, *args, **kwargs):
+        creating = self.pk is None
         super().save(*args, **kwargs)
-        if self.propietario.negocio != self:
-            self.propietario.negocio = self
-            self.propietario.save()
+
+        # Asegurar membership del propietario en este negocio (multi-negocio)
+        if self.propietario_id:
+            m, created = Membership.objects.get_or_create(
+                user=self.propietario,
+                negocio=self,
+                defaults={'rol': 'admin', 'is_active': True},
+            )
+            # Si ya existía, lo normalizamos (opcional pero recomendable)
+            update_fields = []
+            if not m.is_active:
+                m.is_active = True
+                update_fields.append('is_active')
+            if getattr(m, 'rol', None) != 'admin':
+                m.rol = 'admin'
+                update_fields.append('rol')
+            if update_fields:
+                m.save(update_fields=update_fields)
 
 # =====================================================
-# 1. MODELO USUARIO (Custom User Model)
+# 2. MODELO USUARIO (Custom User Model)
 # =====================================================
 # Heredamos de AbstractUser para incluir todas las funcionalidades de usuario de Django
 # y añadimos nuestros campos personalizados como 'role' y 'phone_number'.
@@ -100,25 +144,12 @@ class Usuario(AbstractUser):
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
 
-    # Definimos las opciones para el campo 'role'
-    ROLE_CHOICES = (
-        ('cliente', 'Cliente'),
-        ('profesional', 'Profesional'),
-        ('administrador', 'Administrador'),
-    )
-    role = models.CharField(
-        max_length=20,
-        choices=ROLE_CHOICES,
-        default='cliente',
-        help_text="Rol del usuario en el sistema."
-    )
-
     # Añadimos los campos de timestamp que tienes en tu SQL
     created_at = models.DateTimeField(auto_now_add=True) # Se establece automáticamente en la creación
     updated_at = models.DateTimeField(auto_now=True)    # Se actualiza automáticamente en cada guardado
     
     # Campo para multi-tenant (vinculación al negocio)
-    negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE, null=True, blank=True)
+    # negocio = models.ForeignKey('Negocio', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         # Esto le dice a Django que este modelo se mapea a la tabla 'usuario' en tu base de datos
@@ -131,13 +162,29 @@ class Usuario(AbstractUser):
         return self.username
 
     def save(self, *args, **kwargs):
-        # ✅ Validar que username existe antes de aplicar .lower()
+        # Validar que username existe antes de aplicar .lower()
         if self.username:
             self.username = self.username.lower()
         super().save(*args, **kwargs)
 
+    def get_rol_en_negocio(self, negocio):
+        """Helper para obtener el rol del usuario en un negocio específico"""
+        try:
+            membership = self.memberships.get(negocio=negocio, is_active=True)
+            return membership.rol
+        except Membership.DoesNotExist:
+            return None
+    
+    def es_profesional_en(self, negocio):
+        """Verifica si el usuario es profesional en un negocio"""
+        return self.get_rol_en_negocio(negocio) == Membership.Roles.PROFESIONAL
+    
+    def es_cliente_en(self, negocio):
+        """Verifica si el usuario es cliente en un negocio"""
+        return self.get_rol_en_negocio(negocio) == Membership.Roles.CLIENTE
+
 # =====================================================
-# 2. MODELO SERVICIO (Service)
+# 3. MODELO SERVICIO (Service)
 # =====================================================
 class Servicio(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -172,17 +219,17 @@ class Servicio(models.Model):
         return self.name
 
 # =====================================================
-# 3. MODELO PROFESIONAL (Professional)
+# 4. MODELO PROFESIONAL (Professional)
 # =====================================================
 class Profesional(models.Model):
     # Relación uno a uno con nuestro Custom User Model (Usuario)
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, # Referencia al modelo de usuario configurado en settings.py
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        unique=True  # Para mantener la relación uno a uno
+        related_name='perfiles_profesional'
     )
     bio = models.TextField(null=True, blank=True)
-    profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
+    # profile_picture_url = models.CharField(max_length=500, null=True, blank=True)
     is_available = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -194,14 +241,20 @@ class Profesional(models.Model):
         db_table = 'profesional'
         verbose_name = 'Profesional del Servicio'
         verbose_name_plural = 'Profesionales del Servicio'
+        unique_together = [['user', 'negocio']]
 
     def __str__(self):
         # Muestra el nombre y apellido del usuario asociado al profesional
         return f"{self.user.first_name} {self.user.last_name}"
+    
+    @property
+    def profile_picture(self):
+        """Helper para obtener la foto de perfil desde Usuario"""
+        return self.user.profile_picture_url
 
 
 # =====================================================
-# 4. MODELO HORARIO_DISPONIBILIDAD (AvailabilitySchedule)
+# 5. MODELO HORARIO_DISPONIBILIDAD (AvailabilitySchedule)
 # =====================================================
 class HorarioDisponibilidad(models.Model):
     profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE)
@@ -245,7 +298,7 @@ class HorarioDisponibilidad(models.Model):
 
 
 # =====================================================
-# 5. MODELO BLOQUEO_HORARIO (TimeBlock)
+# 6. MODELO BLOQUEO_HORARIO (TimeBlock)
 # =====================================================
 class BloqueoHorario(models.Model):
     profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE)
@@ -271,7 +324,7 @@ class BloqueoHorario(models.Model):
 
 
 # =====================================================
-# 6. MODELO TURNO (Appointment)
+# 7. MODELO TURNO (Appointment)
 # =====================================================
 class Turno(models.Model):
     # Relación con nuestro Custom User Model (el cliente que reserva)
@@ -324,7 +377,64 @@ class Turno(models.Model):
 
 @receiver(post_save, sender=Negocio)
 def asignar_negocio_a_propietario(sender, instance, created, **kwargs):
-    propietario = instance.propietario
-    if propietario.negocio != instance:
-        propietario.negocio = instance
-        propietario.save()
+    propietario = getattr(instance, "propietario", None)
+    if not propietario:
+        return
+    Membership.objects.get_or_create(
+        user=propietario,
+        negocio=instance,
+        defaults={"rol": "admin", "is_active": True},
+    )
+
+@receiver(pre_delete, sender=Profesional)
+def sync_membership_on_profesional_delete(sender, instance, **kwargs):
+    """
+    Al eliminar un Profesional, cambia automáticamente el Membership.rol a 'cliente'.
+    
+    Usa pre_delete (antes de eliminar) para tener acceso a user y negocio.
+    """
+    try:
+        membership = Membership.objects.get(
+            user=instance.user,
+            negocio=instance.negocio,
+            is_active=True
+        )
+        
+        # Cambiar rol a cliente
+        membership.rol = Membership.Roles.CLIENTE
+        membership.save()
+        
+        print(f"Membership actualizado: {instance.user.username} ahora es cliente en {instance.negocio.nombre}")
+        
+    except Membership.DoesNotExist:
+        # Si no existe Membership, no hacer nada (caso edge)
+        print(f"No se encontró Membership para {instance.user.username} en {instance.negocio.nombre}")
+
+@receiver(pre_delete, sender=Membership)
+def sync_profesional_on_membership_delete(sender, instance, **kwargs):
+    """
+    Al eliminar un Membership con rol 'profesional', elimina automáticamente el perfil Profesional.
+    
+    Usa pre_delete (antes de eliminar) para tener acceso a user y negocio.
+    """
+    # Solo actuar si el rol era 'profesional'
+    if instance.rol != Membership.Roles.PROFESIONAL:
+        print(f"[SYNC] Membership de cliente eliminado, no hay perfil profesional que borrar.")
+        return
+    
+    try:
+        # Buscar el perfil profesional asociado
+        profesional = Profesional.objects.get(
+            user=instance.user,
+            negocio=instance.negocio
+        )
+        
+        # Eliminar el perfil profesional
+        profesional.delete()
+        
+        print(f"[SYNC] Perfil profesional eliminado: {instance.user.username} en {instance.negocio.nombre}")
+        
+    except Profesional.DoesNotExist:
+        print(f"[SYNC] No se encontró perfil Profesional para {instance.user.username} en {instance.negocio.nombre}")
+    except Exception as e:
+        print(f" [SYNC ERROR] {str(e)}")
