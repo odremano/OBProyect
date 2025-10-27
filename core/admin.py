@@ -159,7 +159,7 @@ class MembershipAdmin(admin.ModelAdmin):
 
 # --- Usuario ---
 class UsuarioAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'is_staff', 'profile_picture_preview')  # ✅ Agregar preview
+    list_display = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'is_staff', 'profile_picture_preview')  # Agregar preview
     search_fields = ('username', 'email', 'first_name', 'last_name', 'phone_number')
 
     def profile_picture_preview(self, obj):
@@ -309,10 +309,10 @@ admin.site.register(Servicio, ServicioAdmin)
 
 # --- Profesional ---
 class ProfesionalAdmin(admin.ModelAdmin):
-    list_display = ('user', 'negocio', 'bio', 'is_available', 'profile_picture_preview', 'created_at')  # ✅ Agregar preview
+    list_display = ('user', 'negocio', 'bio', 'is_available', 'profile_picture_preview', 'created_at')  # Agregar preview
     list_filter = ('is_available', 'negocio', 'created_at')
     search_fields = ('user__username', 'user__email', 'negocio__nombre')
-    readonly_fields = ('created_at', 'updated_at', 'profile_picture_display')  # ✅ Agregar campo readonly
+    readonly_fields = ('created_at', 'updated_at', 'profile_picture_display')  # Agregar campo readonly
     
     fieldsets = (
         ('Información Básica', {
