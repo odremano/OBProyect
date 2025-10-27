@@ -37,8 +37,8 @@ export interface MisTurnosResponse {
   total_turnos: number;
 }
 
-export async function fetchMisTurnos(tokens: Tokens): Promise<MisTurnosResponse> {
-  const response = await axios.get<MisTurnosResponse>(`${API_URL}/reservas/mis-turnos/`, {
+export async function fetchMisTurnos(tokens: Tokens, negocioId: number): Promise<MisTurnosResponse> {
+  const response = await axios.get<MisTurnosResponse>(`${API_URL}/reservas/mis-turnos/?negocio_id=${negocioId}`, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
     },
@@ -47,10 +47,11 @@ export async function fetchMisTurnos(tokens: Tokens): Promise<MisTurnosResponse>
   return response.data;
 }
 
-export async function cancelarTurno(tokens: Tokens, turnoId: number) {
+export async function cancelarTurno(tokens: Tokens, turnoId: number, negocioId: number) {
   console.log('Cancelando turno con ID:', turnoId, 'y tokens:', tokens);
   try {
     const response = await axios.post(`${API_URL}/reservas/cancelar/${turnoId}/`, {}, {
+      params: { negocio_id: negocioId },
       headers: {
         Authorization: `Bearer ${tokens.access}`,
         'Content-Type': 'application/json',

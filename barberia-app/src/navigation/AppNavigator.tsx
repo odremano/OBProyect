@@ -18,6 +18,7 @@ import MiDisponibilidadScreen from '../screens/MiDisponibilidadScreen';
 import GananciasScreen from '../screens/GananciasScreen';
 import VerAgendaScreen from '../screens/VerAgendaScreen';
 import MiPerfilScreen from '../screens/MiPerfilScreen';
+import SeleccionarNegocioScreen from '../screens/SeleccionarNegocioScreen';
 
 export type RootStackParamList = {
   MainTabs: { screen?: string; params?: { showConfirmationBanner?: boolean } } | undefined;
@@ -27,10 +28,11 @@ export type RootStackParamList = {
   ConfirmacionTurno: {
     profesional: any;
     servicio: any;
-    fecha: string; // ✅ Cambiado de Date a string
+    fecha: string;
     hora: string;
   };
   Login: undefined;
+  SeleccionarNegocio: { fromPrivateArea?: boolean } | undefined;
   MisTurnos: undefined;
   More: { isAuthenticated?: boolean; userName?: string } | undefined;
   Settings: undefined;
@@ -62,8 +64,6 @@ export default function AppNavigator() {
   if (!appReady || loading) {
     return <CustomSplashScreen onFinish={() => setAppReady(true)} />;
   }
-
-  console.log('Pantallas registradas en el stack: Home, Servicios, Profesionales, ReservaTurno, Login, MisTurnos');
 
   return (
     <NavigationContainer>
@@ -142,6 +142,15 @@ export default function AppNavigator() {
           }} 
         />
         <Stack.Screen name="MiPerfil" component={MiPerfilScreen} options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="SeleccionarNegocio" 
+          component={SeleccionarNegocioScreen} 
+          options={{ 
+            headerShown: false,
+            presentation: 'transparentModal',
+            animation: 'fade',
+          }} 
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

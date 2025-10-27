@@ -10,8 +10,8 @@ export interface DisponibilidadDia {
   is_recurring: boolean;
 }
 
-export async function fetchDisponibilidad(tokens: Tokens): Promise<DisponibilidadDia[]> {
-  const response = await axios.get<DisponibilidadDia[]>(`${API_URL}/disponibilidad/`, {
+export async function fetchDisponibilidad(tokens: Tokens, negocioId: number): Promise<DisponibilidadDia[]> {
+  const response = await axios.get<DisponibilidadDia[]>(`${API_URL}/disponibilidad/?negocio_id=${negocioId}`, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
     },
@@ -19,8 +19,8 @@ export async function fetchDisponibilidad(tokens: Tokens): Promise<Disponibilida
   return response.data;
 }
 
-export async function saveDisponibilidad(tokens: Tokens, disponibilidad: DisponibilidadDia[]): Promise<DisponibilidadDia[]> {
-  const response = await axios.put<DisponibilidadDia[]>(`${API_URL}/disponibilidad/`, disponibilidad, {
+export async function saveDisponibilidad(tokens: Tokens, disponibilidad: DisponibilidadDia[], negocioId: number): Promise<DisponibilidadDia[]> {
+  const response = await axios.put<DisponibilidadDia[]>(`${API_URL}/disponibilidad/?negocio_id=${negocioId}`, disponibilidad, {
     headers: {
       Authorization: `Bearer ${tokens.access}`,
       'Content-Type': 'application/json',
