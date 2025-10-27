@@ -695,14 +695,8 @@ def consultar_disponibilidad(request):
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def disponibilidad_profesional(request):
-    if not request.negocio:
-        return Response({
-            'success': False,
-            'message': 'No se pudo determinar el negocio'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
     try:
-        profesional = Profesional.objects.get(user=request.user, negocio=request.negocio)
+        profesional = Profesional.objects.get(user=request.user)
     except Profesional.DoesNotExist:
         return Response({'detail': 'No eres un profesional.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -712,6 +706,7 @@ def disponibilidad_profesional(request):
         return Response(serializer.data)
 
     if request.method == 'PUT':
+        # El frontend debe enviar una lista de objetos con day_of_week, start_time, end_time
         HorarioDisponibilidad.objects.filter(profesional=profesional).delete()
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         for item in data:

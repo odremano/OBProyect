@@ -323,9 +323,9 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             {selectedProfesional ? (
               <View style={styles.selectedContent}>
                                 <View style={styles.selectedInfo}>
-                 {selectedProfesional.profile_picture_url ? (
+                 {selectedProfesional.user_details?.profile_picture_url ? (
                    <Image
-                     source={{ uri: selectedProfesional.profile_picture_url }}
+                     source={{ uri: selectedProfesional.user_details.profile_picture_url }}
                      style={styles.foto}
                    />
                  ) : (

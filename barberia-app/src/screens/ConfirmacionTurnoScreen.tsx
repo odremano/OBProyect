@@ -108,9 +108,9 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
           <View style={styles.infoSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Profesional</Text>
             <View style={styles.professionalInfo}>
-              {profesional.profile_picture_url ? (
+              {profesional.user_details.profile_picture_url ? (
                 <Image
-                  source={{ uri: profesional.profile_picture_url }}
+                  source={{ uri: profesional.user_details.profile_picture_url }}
                   style={styles.professionalPhoto}
                 />
               ) : (

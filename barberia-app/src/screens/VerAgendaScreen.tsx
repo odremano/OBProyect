@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, PanResponder } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -9,6 +9,7 @@ import { AuthContext } from '../context/AuthContext';
 import { obtenerTurnosProfesional, obtenerDiasConTurnos, cancelarTurnoProfesional, marcarTurnoCompletado, TurnoProfesional } from '../api/turnos';
 import { useNotifications } from '../hooks/useNotifications';
 import { CalendarModal } from '../components/CalendarModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface TurnoAgenda {
   id: number;
@@ -41,6 +42,9 @@ const VerAgendaScreen = () => {
   const [turnosDelDia, setTurnosDelDia] = useState<TurnoAgenda[]>([]);
   const [diasConTurnos, setDiasConTurnos] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState<TurnoAgenda | null>(null);
 
   // Configurar gestos de deslizamiento
   const panResponder = PanResponder.create({
@@ -176,84 +180,77 @@ const VerAgendaScreen = () => {
   };
 
   const manejarCancelarTurno = async (turno: TurnoAgenda) => {
-    Alert.alert(
-      'Cancelar turno',
-      `¿Estás seguro de que quieres cancelar el turno de ${turno.hora} con ${turno.cliente}?`,
-      [
-        { text: 'No', style: 'cancel' },
-        { 
-          text: 'Sí, cancelar', 
-          style: 'destructive',
-          onPress: async () => {
-            if (!tokens) return;
-            
-            try {
-              await cancelarTurnoProfesional(tokens, turno.id);
-              
-              // Actualizar el estado local inmediatamente
-              setTurnosDelDia(prev => 
-                prev.map(t => 
-                  t.id === turno.id 
-                    ? { ...t, status: 'cancelado' as const }
-                    : t
-                )
-              );
-              
-              showSuccess('Turno cancelado', 'El turno se canceló correctamente');
-              // Recargar datos del servidor para sincronizar
-              cargarTurnosDelDia(selectedDate);
-              cargarDiasConTurnos(currentMonth);
-            } catch (error: any) {
-              if (error.response && error.response.status === 400) {
-                showWarning(
-                  'Ya no puedes cancelar este turno',
-                  'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitas ayuda, comunícate con el cliente.'
-                );
-              } else {
-                showError('Error al cancelar turno', 'No se pudo cancelar el turno');
-                console.error('Error cancelando turno:', error);
-              }
-            }
-          }
-        }
-      ]
-    );
+    setTurnoSeleccionado(turno);
+    setShowCancelDialog(true);
+  };
+
+  const confirmarCancelacion = async () => {
+    if (!turnoSeleccionado || !tokens) return;
+
+    setShowCancelDialog(false);
+    
+    try {
+      await cancelarTurnoProfesional(tokens, turnoSeleccionado.id);
+      
+      // Actualizar el estado local inmediatamente
+      setTurnosDelDia(prev => 
+        prev.map(t => 
+          t.id === turnoSeleccionado.id 
+            ? { ...t, status: 'cancelado' as const }
+            : t
+        )
+      );
+      
+      showSuccess('Turno cancelado', 'El turno se canceló correctamente');
+      // Recargar datos del servidor para sincronizar
+      cargarTurnosDelDia(selectedDate);
+      cargarDiasConTurnos(currentMonth);
+    } catch (error: any) {
+      if (error.response && error.response.status === 400) {
+        showWarning(
+          'Ya no puedes cancelar este turno',
+          'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitas ayuda, comunícate con el cliente.'
+        );
+      } else {
+        showError('Error al cancelar turno', 'No se pudo cancelar el turno');
+        console.error('Error cancelando turno:', error);
+      }
+    } finally {
+      setTurnoSeleccionado(null);
+    }
   };
 
   const manejarRealizarTurno = async (turno: TurnoAgenda) => {
-    Alert.alert(
-      'Marcar como realizado',
-      `¿El turno de ${turno.hora} con ${turno.cliente} fue completado?`,
-      [
-        { text: 'No', style: 'cancel' },
-        { 
-          text: 'Sí, completado',
-          onPress: async () => {
-            if (!tokens) return;
-            
-            try {
-              await marcarTurnoCompletado(tokens, turno.id);
-              
-              // Actualizar el estado local inmediatamente
-              setTurnosDelDia(prev => 
-                prev.map(t => 
-                  t.id === turno.id 
-                    ? { ...t, status: 'completado' as const }
-                    : t
-                )
-              );
-              
-              showSuccess('Turno completado', 'El turno se marcó como realizado correctamente');
-              // Recargar datos del servidor para sincronizar
-              cargarTurnosDelDia(selectedDate);
-            } catch (error: any) {
-              showError('Error al completar turno', 'No se pudo marcar el turno como completado');
-              console.error('Error completando turno:', error);
-            }
-          }
-        }
-      ]
-    );
+    setTurnoSeleccionado(turno);
+    setShowCompleteDialog(true);
+  };
+
+  const confirmarCompletado = async () => {
+    if (!turnoSeleccionado || !tokens) return;
+
+    setShowCompleteDialog(false);
+    
+    try {
+      await marcarTurnoCompletado(tokens, turnoSeleccionado.id);
+      
+      // Actualizar el estado local inmediatamente
+      setTurnosDelDia(prev => 
+        prev.map(t => 
+          t.id === turnoSeleccionado.id 
+            ? { ...t, status: 'completado' as const }
+            : t
+        )
+      );
+      
+      showSuccess('Turno completado', 'El turno se marcó como realizado correctamente');
+      // Recargar datos del servidor para sincronizar
+      cargarTurnosDelDia(selectedDate);
+    } catch (error: any) {
+      showError('Error al completar turno', 'No se pudo marcar el turno como completado');
+      console.error('Error completando turno:', error);
+    } finally {
+      setTurnoSeleccionado(null);
+    }
   };
 
   const hayTurnosDelDia = turnosDelDia.length > 0;
@@ -383,6 +380,46 @@ const VerAgendaScreen = () => {
         onSelectDate={setSelectedDate}
         diasConIndicadores={diasConTurnos}
         title="Seleccionar fecha"
+      />
+
+      {/* Diálogo de cancelación */}
+      <ConfirmDialog
+        visible={showCancelDialog}
+        title="Cancelar turno"
+        message={turnoSeleccionado 
+          ? `¿Estás seguro de que quieres cancelar el turno de las ${turnoSeleccionado.hora}hs con ${turnoSeleccionado.cliente}?`
+          : '¿Estás seguro de que quieres cancelar este turno?'
+        }
+        confirmText="Sí, cancelar"
+        cancelText="No"
+        variant="danger"
+        icon="calendar-outline"
+        iconColor={colors.text}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => {
+          setShowCancelDialog(false);
+          setTurnoSeleccionado(null);
+        }}
+      />
+
+      {/* Diálogo de completado */}
+      <ConfirmDialog
+        visible={showCompleteDialog}
+        title="Marcar como realizado"
+        message={turnoSeleccionado 
+          ? `¿El turno de las ${turnoSeleccionado.hora}hs con ${turnoSeleccionado.cliente} fue completado?`
+          : '¿Este turno fue completado?'
+        }
+        confirmText="Sí, completado"
+        cancelText="No"
+        variant="success"
+        icon="checkmark-circle"
+        iconColor={colors.success}
+        onConfirm={confirmarCompletado}
+        onCancel={() => {
+          setShowCompleteDialog(false);
+          setTurnoSeleccionado(null);
+        }}
       />
     </View>
   );

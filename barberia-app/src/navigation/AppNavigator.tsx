@@ -65,8 +65,6 @@ export default function AppNavigator() {
     return <CustomSplashScreen onFinish={() => setAppReady(true)} />;
   }
 
-  console.log('Pantallas registradas en el stack: Home, Servicios, Profesionales, ReservaTurno, Login, MisTurnos');
-
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -149,10 +147,8 @@ export default function AppNavigator() {
           component={SeleccionarNegocioScreen} 
           options={{ 
             headerShown: false,
-            presentation: 'modal',
-            animationTypeForReplace: 'push',
-            animation: 'slide_from_bottom',
-            animationDuration: 300
+            presentation: 'transparentModal',
+            animation: 'fade',
           }} 
         />
       </Stack.Navigator>

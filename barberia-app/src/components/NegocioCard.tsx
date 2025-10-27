@@ -20,6 +20,8 @@ interface NegocioCardProps {
   onToggleFavorite: () => void;
   onRemove: () => void;
   loading?: boolean;
+  menuVisible?: boolean;
+  onMenuToggle?: () => void;
 }
 
 const NegocioCard: React.FC<NegocioCardProps> = ({
@@ -28,23 +30,26 @@ const NegocioCard: React.FC<NegocioCardProps> = ({
   onToggleFavorite,
   onRemove,
   loading = false,
+  menuVisible = false,
+  onMenuToggle,
 }) => {
   const { colors } = useTheme();
-  const [menuVisible, setMenuVisible] = useState(false);
 
   const getRolBadgeColor = (rol: string) => {
     switch (rol.toLowerCase()) {
       case 'profesional':
-        return '#10B981';
+        return '#5EEA5E';
       case 'cliente':
-        return colors.primary;
+        return '#287FBD';
       default:
         return colors.dark2;
     }
   };
 
   const handleMenuPress = () => {
-    setMenuVisible(!menuVisible);
+    if (onMenuToggle) {
+      onMenuToggle();
+    }
   };
 
   const handleCardPress = () => {
@@ -119,7 +124,7 @@ const NegocioCard: React.FC<NegocioCardProps> = ({
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
-              setMenuVisible(false);
+              if (onMenuToggle) onMenuToggle();
               onToggleFavorite();
             }}
           >
@@ -136,7 +141,7 @@ const NegocioCard: React.FC<NegocioCardProps> = ({
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
-              setMenuVisible(false);
+              if (onMenuToggle) onMenuToggle();
               onRemove();
             }}
           >
@@ -176,7 +181,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     width: 64,
-    height: 64,
+    height: 50,
     borderRadius: 8,
     overflow: 'hidden',
   },

@@ -18,6 +18,7 @@ interface ConfirmDialogProps {
   confirmColor?: string;
   variant?: Variant;
   icon?: string;
+  iconColor?: string;
   singleButton?: boolean;
 }
 
@@ -32,6 +33,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmColor,
   variant,
   icon,
+  iconColor,
   singleButton = false,
 }) => {
   const { colors } = useTheme();
@@ -41,11 +43,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     
     switch (variant) {
       case 'danger':
-        return '#EF4444';
+        return colors.error;
       case 'warning':
         return '#F59E0B';
       case 'success':
-        return '#10B981';
+        return colors.success;
       case 'info':
       default:
         return colors.primary;
@@ -71,6 +73,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const variantColor = getVariantColor();
   const variantIcon = getVariantIcon();
+  const finalIconColor = iconColor || variantColor;
 
   return (
     <Modal
@@ -83,7 +86,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           {variantIcon && (
             <View style={styles.iconContainer}>
-              <Icon name={variantIcon} size={48} color={variantColor} />
+              <Icon name={variantIcon} size={48} color={finalIconColor} />
             </View>
           )}
           

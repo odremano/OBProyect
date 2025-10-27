@@ -12,6 +12,7 @@ export interface UserDetails {
   role: string;
   is_active: boolean;
   date_joined: string;
+  profile_picture_url?: string;
 }
 
 export interface Profesional {

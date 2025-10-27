@@ -36,6 +36,7 @@ const SeleccionarNegocioScreen: React.FC = () => {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [negocioToRemove, setNegocioToRemove] = useState<NegocioDetallado | null>(null);
+  const [menuAbiertoId, setMenuAbiertoId] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -180,6 +181,10 @@ const SeleccionarNegocioScreen: React.FC = () => {
     });
   };
 
+  const handleToggleMenu = (negocioId: number) => {
+    setMenuAbiertoId(menuAbiertoId === negocioId ? null : negocioId);
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -236,6 +241,8 @@ const SeleccionarNegocioScreen: React.FC = () => {
             onToggleFavorite={() => handleToggleFavorite(negocio)}
             onRemove={() => handleRemoveNegocio(negocio)}
             loading={loadingNegocioId === negocio.id}
+            menuVisible={menuAbiertoId === negocio.id}
+            onMenuToggle={() => handleToggleMenu(negocio.id)}
           />
         ))}
       </ScrollView>
@@ -281,7 +288,7 @@ const SeleccionarNegocioScreen: React.FC = () => {
         cancelText="No"
         onConfirm={confirmarSalida}
         onCancel={() => setShowExitDialog(false)}
-        confirmColor="#EF4444"
+        confirmColor={colors.error}
       />
 
       <ConfirmDialog
@@ -295,7 +302,7 @@ const SeleccionarNegocioScreen: React.FC = () => {
           setShowRemoveDialog(false);
           setNegocioToRemove(null);
         }}
-        confirmColor="#EF4444"
+        confirmColor={colors.error}
       />
     </View>
   );
@@ -328,7 +335,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   centerContainer: {
     flex: 1,
@@ -379,6 +386,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 16,
+    paddingBottom: 32,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
