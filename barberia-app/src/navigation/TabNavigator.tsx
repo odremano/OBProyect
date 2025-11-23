@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import HandleTabBar from '../components/HandleTabBar';
 import { View, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
 
@@ -17,23 +18,29 @@ export default function TabNavigator() {
   const { user, logout } = useContext(AuthContext);
   const isAuthenticated = !!user;
   const userName = user?.first_name || user?.username || 'Usuario';
+  
+
 
   // Usar colores del contexto siempre
   const tabColors = themeColors;
+  const insets = useSafeAreaInsets();
+
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: tabColors.primaryDark,
-          height: 85,
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: tabColors.primaryDark,
+        minHeight: 80, 
+        height: Math.max(90, 40 + insets.bottom), 
+        paddingBottom: Math.max(10, insets.bottom),
+        borderTopLeftRadius: insets.bottom > 0 ? 0 : 8,
+        borderTopRightRadius: insets.bottom > 0 ? 0 : 8,
           elevation: 12,
           borderTopWidth: 0,
           shadowColor: '#000',

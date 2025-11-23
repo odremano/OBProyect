@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, PanResponder } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -8,6 +8,8 @@ import { useTheme } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { obtenerTurnosProfesional, obtenerDiasConTurnos, cancelarTurnoProfesional, marcarTurnoCompletado, TurnoProfesional } from '../api/turnos';
 import { useNotifications } from '../hooks/useNotifications';
+import { CalendarModal } from '../components/CalendarModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface TurnoAgenda {
   id: number;
@@ -31,7 +33,7 @@ export const formatearPrecio = (precio: string | number) => {
 const VerAgendaScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { user, tokens } = useContext(AuthContext);
+  const { user, tokens, negocioId } = useContext(AuthContext);
   const { showSuccess, showError, showWarning } = useNotifications();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -40,15 +42,15 @@ const VerAgendaScreen = () => {
   const [turnosDelDia, setTurnosDelDia] = useState<TurnoAgenda[]>([]);
   const [diasConTurnos, setDiasConTurnos] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState<TurnoAgenda | null>(null);
 
   // Configurar gestos de deslizamiento
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (evt, gestureState) => {
       // Solo activar si el deslizamiento es principalmente horizontal
       return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
-    },
-    onPanResponderMove: (evt, gestureState) => {
-      // Opcional: agregar feedback visual durante el deslizamiento
     },
     onPanResponderRelease: (evt, gestureState) => {
       const { dx } = gestureState;
@@ -114,14 +116,17 @@ const VerAgendaScreen = () => {
     };
   };
 
-  // Cargar turnos del día seleccionado
   const cargarTurnosDelDia = async (fecha: Date) => {
-    if (!tokens) return;
+    if (!tokens || !negocioId) return;
     
     setLoading(true);
     try {
-      const fechaStr = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
-      const turnos = await obtenerTurnosProfesional(tokens, fechaStr);
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      const fechaStr = `${año}-${mes}-${dia}`;
+      
+      const turnos = await obtenerTurnosProfesional(tokens, fechaStr, negocioId);
       const turnosConvertidos = turnos.map(convertirTurno);
       setTurnosDelDia(turnosConvertidos);
     } catch (error) {
@@ -132,12 +137,11 @@ const VerAgendaScreen = () => {
     }
   };
 
-  // Cargar días con turnos del mes
   const cargarDiasConTurnos = async (fecha: Date) => {
-    if (!tokens) return;
+    if (!tokens || !negocioId) return;
     
     try {
-      const dias = await obtenerDiasConTurnos(tokens, fecha.getFullYear(), fecha.getMonth());
+      const dias = await obtenerDiasConTurnos(tokens, fecha.getFullYear(), fecha.getMonth(), negocioId);
       setDiasConTurnos(dias);
     } catch (error) {
       console.error('Error cargando días con turnos:', error);
@@ -159,7 +163,6 @@ const VerAgendaScreen = () => {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  const diasSemana = ['LU', 'MA', 'MI', 'JU', 'VI', 'SA', 'DO'];
   const diasSemanaCompletos = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   const formatearFechaCompleta = (fecha: Date) => {
@@ -176,129 +179,78 @@ const VerAgendaScreen = () => {
     return `${mes} ${año}`;
   };
 
-  const obtenerDiasDelMes = (fecha: Date) => {
-    const año = fecha.getFullYear();
-    const mes = fecha.getMonth();
-    
-    // Primer día del mes
-    const primerDia = new Date(año, mes, 1);
-    // Último día del mes
-    const ultimoDia = new Date(año, mes + 1, 0);
-    
-    // Día de la semana del primer día (0 = domingo, pero queremos 0 = lunes)
-    let primerDiaSemana = primerDia.getDay();
-    primerDiaSemana = primerDiaSemana === 0 ? 6 : primerDiaSemana - 1; // Convertir domingo a 6
-    
-    const diasDelMes = [];
-    
-    // Días vacíos al inicio
-    for (let i = 0; i < primerDiaSemana; i++) {
-      diasDelMes.push(null);
-    }
-    
-    // Días del mes
-    for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
-      diasDelMes.push(dia);
-    }
-    
-    return diasDelMes;
-  };
-
-  const seleccionarDia = (dia: number) => {
-    const nuevaFecha = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dia);
-    setSelectedDate(nuevaFecha);
-    setShowCalendar(false);
-  };
-
-  const cambiarMes = (direccion: 'anterior' | 'siguiente') => {
-    const nuevoMes = new Date(currentMonth);
-    if (direccion === 'anterior') {
-      nuevoMes.setMonth(nuevoMes.getMonth() - 1);
-    } else {
-      nuevoMes.setMonth(nuevoMes.getMonth() + 1);
-    }
-    setCurrentMonth(nuevoMes);
-  };
-
   const manejarCancelarTurno = async (turno: TurnoAgenda) => {
-    Alert.alert(
-      'Cancelar turno',
-      `¿Estás seguro de que quieres cancelar el turno de ${turno.hora} con ${turno.cliente}?`,
-      [
-        { text: 'No', style: 'cancel' },
-        { 
-          text: 'Sí, cancelar', 
-          style: 'destructive',
-          onPress: async () => {
-            if (!tokens) return;
-            
-            try {
-              await cancelarTurnoProfesional(tokens, turno.id);
-              
-              // Actualizar el estado local inmediatamente
-              setTurnosDelDia(prev => 
-                prev.map(t => 
-                  t.id === turno.id 
-                    ? { ...t, status: 'cancelado' as const }
-                    : t
-                )
-              );
-              
-              showSuccess('Turno cancelado', 'El turno se canceló correctamente');
-              // Recargar datos del servidor para sincronizar
-              cargarTurnosDelDia(selectedDate);
-              cargarDiasConTurnos(currentMonth);
-            } catch (error: any) {
-              if (error.response && error.response.status === 400) {
-                showWarning(
-                  'Ya no puedes cancelar este turno',
-                  'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitas ayuda, comunícate con el cliente.'
-                );
-              } else {
-                showError('Error al cancelar turno', 'No se pudo cancelar el turno');
-                console.error('Error cancelando turno:', error);
-              }
-            }
-          }
-        }
-      ]
-    );
+    setTurnoSeleccionado(turno);
+    setShowCancelDialog(true);
+  };
+
+  const confirmarCancelacion = async () => {
+    if (!turnoSeleccionado || !tokens) return;
+
+    setShowCancelDialog(false);
+    
+    try {
+      await cancelarTurnoProfesional(tokens, turnoSeleccionado.id);
+      
+      // Actualizar el estado local inmediatamente
+      setTurnosDelDia(prev => 
+        prev.map(t => 
+          t.id === turnoSeleccionado.id 
+            ? { ...t, status: 'cancelado' as const }
+            : t
+        )
+      );
+      
+      showSuccess('Turno cancelado', 'El turno se canceló correctamente');
+      // Recargar datos del servidor para sincronizar
+      cargarTurnosDelDia(selectedDate);
+      cargarDiasConTurnos(currentMonth);
+    } catch (error: any) {
+      if (error.response && error.response.status === 400) {
+        showWarning(
+          'Ya no puedes cancelar este turno',
+          'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitas ayuda, comunícate con el cliente.'
+        );
+      } else {
+        showError('Error al cancelar turno', 'No se pudo cancelar el turno');
+        console.error('Error cancelando turno:', error);
+      }
+    } finally {
+      setTurnoSeleccionado(null);
+    }
   };
 
   const manejarRealizarTurno = async (turno: TurnoAgenda) => {
-    Alert.alert(
-      'Marcar como realizado',
-      `¿El turno de ${turno.hora} con ${turno.cliente} fue completado?`,
-      [
-        { text: 'No', style: 'cancel' },
-        { 
-          text: 'Sí, completado',
-          onPress: async () => {
-            if (!tokens) return;
-            
-            try {
-              await marcarTurnoCompletado(tokens, turno.id);
-              
-              // Actualizar el estado local inmediatamente
-              setTurnosDelDia(prev => 
-                prev.map(t => 
-                  t.id === turno.id 
-                    ? { ...t, status: 'completado' as const }
-                    : t
-                )
-              );
-              
-              showSuccess('Turno completado', 'El turno se marcó como realizado correctamente');
-              // Recargar datos del servidor para sincronizar
-              cargarTurnosDelDia(selectedDate);
-            } catch (error: any) {
-              showError('Error al completar turno', 'No se pudo marcar el turno como completado');
-              console.error('Error completando turno:', error);
-            }
-          }
-        }
-      ]
-    );
+    setTurnoSeleccionado(turno);
+    setShowCompleteDialog(true);
+  };
+
+  const confirmarCompletado = async () => {
+    if (!turnoSeleccionado || !tokens) return;
+
+    setShowCompleteDialog(false);
+    
+    try {
+      await marcarTurnoCompletado(tokens, turnoSeleccionado.id);
+      
+      // Actualizar el estado local inmediatamente
+      setTurnosDelDia(prev => 
+        prev.map(t => 
+          t.id === turnoSeleccionado.id 
+            ? { ...t, status: 'completado' as const }
+            : t
+        )
+      );
+      
+      showSuccess('Turno completado', 'El turno se marcó como realizado correctamente');
+      // Recargar datos del servidor para sincronizar
+      cargarTurnosDelDia(selectedDate);
+    } catch (error: any) {
+      showError('Error al completar turno', 'No se pudo marcar el turno como completado');
+      console.error('Error completando turno:', error);
+    } finally {
+      setTurnoSeleccionado(null);
+    }
   };
 
   const hayTurnosDelDia = turnosDelDia.length > 0;
@@ -346,9 +298,9 @@ const VerAgendaScreen = () => {
       {/* Contenido principal */}
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
         {loading ? (
-          <View style={styles.loadingState}>
-            <Text style={[styles.loadingMessage, { color: colors.text }]}>Cargando turnos...</Text>
-          </View>
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
         ) : hayTurnosDelDia ? (
           <ScrollView 
             style={styles.content}
@@ -420,90 +372,55 @@ const VerAgendaScreen = () => {
         )}
       </View>
 
-      {/* Modal del calendario */}
-      <Modal
+      {/* Calendario Modal */}
+      <CalendarModal
         visible={showCalendar}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCalendar(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.calendarModal, { backgroundColor: colors.background }]}>
-            {/* Header del calendario */}
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity onPress={() => cambiarMes('anterior')}>
-                <Icon name="chevron-back" size={24} color={colors.text} />
-              </TouchableOpacity>
-              <Text style={[styles.calendarTitle, { color: colors.text }]}>
-                {formatearMesAño(currentMonth)}
-              </Text>
-              <TouchableOpacity onPress={() => cambiarMes('siguiente')}>
-                <Icon name="chevron-forward" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+        onClose={() => setShowCalendar(false)}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        diasConIndicadores={diasConTurnos}
+        title="Seleccionar fecha"
+      />
 
-            {/* Días de la semana */}
-            <View style={styles.diasSemanaContainer}>
-              {diasSemana.map((dia) => (
-                <Text key={dia} style={[styles.diaSemana, { color: colors.text }]}>{dia}</Text>
-              ))}
-            </View>
+      {/* Diálogo de cancelación */}
+      <ConfirmDialog
+        visible={showCancelDialog}
+        title="Cancelar turno"
+        message={turnoSeleccionado 
+          ? `¿Estás seguro de que quieres cancelar el turno de las ${turnoSeleccionado.hora}hs con ${turnoSeleccionado.cliente}?`
+          : '¿Estás seguro de que quieres cancelar este turno?'
+        }
+        confirmText="Sí, cancelar"
+        cancelText="No"
+        variant="danger"
+        icon="calendar-outline"
+        iconColor={colors.text}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => {
+          setShowCancelDialog(false);
+          setTurnoSeleccionado(null);
+        }}
+      />
 
-            {/* Días del mes */}
-            <View style={styles.diasContainer}>
-              {obtenerDiasDelMes(currentMonth).map((dia, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.diaButton,
-                    dia === selectedDate.getDate() && 
-                    currentMonth.getMonth() === selectedDate.getMonth() && 
-                    currentMonth.getFullYear() === selectedDate.getFullYear() && 
-                    { backgroundColor: colors.primaryDark }
-                  ]}
-                  onPress={() => dia && seleccionarDia(dia)}
-                  disabled={!dia}
-                >
-                  {dia && (
-                    <>
-                      <Text style={[
-                        styles.diaTexto,
-                        { color: dia === selectedDate.getDate() && 
-                          currentMonth.getMonth() === selectedDate.getMonth() && 
-                          currentMonth.getFullYear() === selectedDate.getFullYear() 
-                          ? colors.white : colors.text 
-                        }
-                      ]}>
-                        {dia}
-                      </Text>
-                      {diasConTurnos.includes(dia) && (
-                        <View style={[
-                          styles.puntito, 
-                          { 
-                            backgroundColor: dia === selectedDate.getDate() && 
-                              currentMonth.getMonth() === selectedDate.getMonth() && 
-                              currentMonth.getFullYear() === selectedDate.getFullYear() 
-                              ? colors.light2  // Color del puntito cuando está seleccionado
-                              : colors.primary        // Color del puntito normal
-                          }
-                        ]} />
-                      )}
-                    </>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Botón cerrar */}
-            <TouchableOpacity 
-              style={[styles.closeCalendarButton, { backgroundColor: colors.white }]}
-              onPress={() => setShowCalendar(false)}
-            >
-              <Text style={[styles.closeCalendarText, { color: colors.primaryDark }]}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Diálogo de completado */}
+      <ConfirmDialog
+        visible={showCompleteDialog}
+        title="Marcar como realizado"
+        message={turnoSeleccionado 
+          ? `¿El turno de las ${turnoSeleccionado.hora}hs con ${turnoSeleccionado.cliente} fue completado?`
+          : '¿Este turno fue completado?'
+        }
+        confirmText="Sí, completado"
+        cancelText="No"
+        variant="success"
+        icon="checkmark-circle"
+        iconColor={colors.success}
+        onConfirm={confirmarCompletado}
+        onCancel={() => {
+          setShowCompleteDialog(false);
+          setTurnoSeleccionado(null);
+        }}
+      />
     </View>
   );
 };
@@ -648,73 +565,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarModal: {
-    margin: 20,
-    borderRadius: 16,
-    padding: 20,
-    width: '85%',
-    maxWidth: 350,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  diasSemanaContainer: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  diaSemana: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    width: '14.28%', // 100% / 7 días = 14.28%
-  },
-  diasContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  diaButton: {
-    width: '14.28%', // 100% / 7 días = 14.28%
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    position: 'relative',
-  },
-  diaTexto: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  puntito: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    position: 'absolute',
-    bottom: 4,
-  },
-  closeCalendarButton: {
-    marginTop: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeCalendarText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
 });
 
-export default VerAgendaScreen; 
+export default VerAgendaScreen;

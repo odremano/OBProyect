@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Modal, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -25,16 +25,21 @@ const MiDisponibilidadScreen = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showError } = useNotifications();
+  const { tokens, negocioId } = useContext(AuthContext);
   
-  const [availability, setAvailability] = useState<DayAvailability[]>([
-    { id: 0, name: 'Lunes', enabled: true, startTime: new Date(1970, 0, 1, 10, 0, 0, 0), endTime: new Date(1970, 0, 1, 21, 0, 0, 0) },
-    { id: 1, name: 'Martes', enabled: true, startTime: new Date(1970, 0, 1, 10, 0, 0, 0), endTime: new Date(1970, 0, 1, 21, 0, 0, 0) },
-    { id: 2, name: 'Miércoles', enabled: false, startTime: new Date(1970, 0, 1, 9, 0, 0, 0), endTime: new Date(1970, 0, 1, 18, 0, 0, 0) },
-    { id: 3, name: 'Jueves', enabled: true, startTime: new Date(1970, 0, 1, 10, 0, 0, 0), endTime: new Date(1970, 0, 1, 21, 0, 0, 0) },
-    { id: 4, name: 'Viernes', enabled: false, startTime: new Date(1970, 0, 1, 9, 0, 0, 0), endTime: new Date(1970, 0, 1, 18, 0, 0, 0) },
-    { id: 5, name: 'Sábado', enabled: true, startTime: new Date(1970, 0, 1, 11, 0, 0, 0), endTime: new Date(1970, 0, 1, 22, 0, 0, 0) },
-    { id: 6, name: 'Domingo', enabled: false, startTime: new Date(1970, 0, 1, 9, 0, 0, 0), endTime: new Date(1970, 0, 1, 18, 0, 0, 0) },
-  ]);
+  const [loading, setLoading] = useState(true);
+
+  const createWeekStructure = (): DayAvailability[] => [
+    { id: 0, name: 'Lunes', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+    { id: 1, name: 'Martes', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+    { id: 2, name: 'Miércoles', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+    { id: 3, name: 'Jueves', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+    { id: 4, name: 'Viernes', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+    { id: 5, name: 'Sábado', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+    { id: 6, name: 'Domingo', enabled: false, startTime: new Date(1970, 0, 1, 9, 0), endTime: new Date(1970, 0, 1, 18, 0) },
+  ];
+  
+  const [availability, setAvailability] = useState<DayAvailability[]>([]);
 
   const [showTimePicker, setShowTimePicker] = useState<{
     visible: boolean;
@@ -42,9 +47,7 @@ const MiDisponibilidadScreen = () => {
     field: 'startTime' | 'endTime';
   }>({ visible: false, dayId: -1, field: 'startTime' });
 
-  // Estado temporal para la hora seleccionada en el picker
   const [tempTime, setTempTime] = useState<Date | null>(null);
-  // Nuevo estado para Android: mostrar picker nativo sin modal
   const [androidPicker, setAndroidPicker] = useState<{
     visible: boolean;
     dayId: number;
@@ -78,14 +81,12 @@ const MiDisponibilidadScreen = () => {
     }
   };
 
-  // iOS: solo actualiza el estado temporal
   const onTimeChangeIOS = (event: any, selectedTime?: Date) => {
     if (selectedTime) {
       setTempTime(selectedTime);
     }
   };
 
-  // Android: guarda y cierra automáticamente
   const onTimeChangeAndroid = (event: any, selectedTime?: Date) => {
     if (event?.type === 'dismissed') {
       setAndroidPicker({ visible: false, dayId: -1, field: 'startTime' });
@@ -131,14 +132,16 @@ const MiDisponibilidadScreen = () => {
     return result;
   };
 
-  const { tokens } = useContext(AuthContext);
-
-  // Al montar:
   useEffect(() => {
-    if (!tokens) return;
-    fetchDisponibilidad(tokens).then(data => {
-      setAvailability(prev =>
-        prev.map(day => {
+    const loadAvailability = async () => {
+      if (!tokens || !negocioId) return;
+      
+      try {
+        setLoading(true);
+        const data = await fetchDisponibilidad(tokens, negocioId);
+        
+        const weekStructure = createWeekStructure();
+        const updatedAvailability = weekStructure.map(day => {
           const found = data.find(d => d.day_of_week === day.id);
           if (found) {
             return {
@@ -147,17 +150,25 @@ const MiDisponibilidadScreen = () => {
               startTime: stringToDate(found.start_time),
               endTime: stringToDate(found.end_time),
             };
-          } else {
-            return { ...day, enabled: false };
           }
-        })
-      );
-    });
-  }, [tokens]);
+          return day;
+        });
+        
+        setAvailability(updatedAvailability);
+      } catch (error) {
+        console.error('Error loading availability:', error);
+        setAvailability(createWeekStructure());
+        showError('Error al cargar la disponibilidad');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAvailability();
+  }, [tokens, negocioId]);
   
-  // Al guardar:
   const handleSave = async () => {
-    if (!tokens) return;
+    if (!tokens || !negocioId) return;
     
     const payload: DisponibilidadDia[] = availability
       .filter(day => day.enabled)
@@ -174,12 +185,11 @@ const MiDisponibilidadScreen = () => {
       });
       
     try {
-      await saveDisponibilidad(tokens, payload);
+      await saveDisponibilidad(tokens, payload, negocioId);
       showSuccess(
         'Disponibilidad guardada',
         'Tu disponibilidad se actualizó correctamente'
       );
-      // Resetear el stack para evitar volver con gesto de deslizar
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
@@ -190,9 +200,19 @@ const MiDisponibilidadScreen = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header fijo */}
+      {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.primaryDark }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
@@ -249,7 +269,7 @@ const MiDisponibilidadScreen = () => {
         ))}
       </ScrollView>
 
-      {/* Time Picker Modal solo en iOS */}
+      {/* Time Picker Modal de iOS */}
       {Platform.OS === 'ios' && (
         <Modal
           visible={showTimePicker.visible}
@@ -326,6 +346,11 @@ const MiDisponibilidadScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

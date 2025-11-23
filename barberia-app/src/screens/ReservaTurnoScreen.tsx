@@ -1,27 +1,17 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, SafeAreaView, Image, Platform } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchProfesionales, Profesional } from '../api/profesionales';
 import { fetchServicios, Servicio } from '../api/servicios';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { reservarTurno, obtenerHorariosDisponibles, HorariosResponse } from '../api/turnos';
+import { reservarTurno, obtenerHorariosDisponibles, HorariosResponse, obtenerDiasConDisponibilidadOptimizada } from '../api/turnos';
 import { formatearPrecio } from './VerAgendaScreen';
 import { mostrarEstadoDisponibilidad } from '../utils/disponibilidadUtils';
+import { CalendarModal } from '../components/CalendarModal';
 
-
-// Import condicional de react-native-date-picker
-let DatePicker: any = null;
-try {
-  DatePicker = require('react-native-date-picker').default;
-} catch (error) {
-  // react-native-date-picker no está disponible (Expo Go)
-  DatePicker = null;
-}
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReservaTurno'>;
 
@@ -30,14 +20,9 @@ interface ProfesionalConDisponibilidad extends Profesional {
   cargandoDisponibilidad?: boolean;
 }
 
-// Función para detectar si estamos en Expo Go
-const isExpoGo = () => {
-  return Constants.executionEnvironment === 'storeClient';
-};
-
 export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
-  const { tokens, negocioId } = useContext(AuthContext);
+  const { tokens, user } = useContext(AuthContext);
   const profesionalIdParam = route.params?.profesionalId;
 
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
@@ -57,17 +42,20 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   const [loadingHorarios, setLoadingHorarios] = useState(false);
   const [mensajeHorarios, setMensajeHorarios] = useState<string | null>(null);
   const [profesionalNoTrabaja, setProfesionalNoTrabaja] = useState(false);
+  
+  // Estado para los días con disponibilidad del calendario
+  const [diasConDisponibilidad, setDiasConDisponibilidad] = useState<number[]>([]);
+
+  // Solo agregar estos estados mínimos
+  const [proximaDisponibilidad, setProximaDisponibilidad] = useState<string | null>(null);
+  const [cargandoDisponibilidadInicial, setCargandoDisponibilidadInicial] = useState(false);
 
   useEffect(() => {
-    if (!tokens || negocioId == null) return;
-
-    // Logs para debug
-    console.log('tokens:', tokens);
-    console.log('negocioId:', negocioId);
+    if (!tokens || !user?.negocio?.id) return;
 
     Promise.all([
-      fetchProfesionales(tokens, negocioId),
-      fetchServicios(tokens, negocioId)
+      fetchProfesionales(tokens, user?.negocio?.id ?? 0),
+      fetchServicios(tokens, user?.negocio?.id ?? 0)
     ]).then(([profData, servData]) => {
       setProfesionales(profData);
       setServicios(servData);
@@ -100,7 +88,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
   
   // Cargar horarios disponibles cuando se selecciona una fecha
   useEffect(() => {
-    if (selectedProfesional && selectedServicio && selectedDate && tokens && negocioId) {
+    if (selectedProfesional && selectedServicio && selectedDate && tokens && user?.negocio?.id) {
       const fechaStr = formatDateForAPI(selectedDate); // Usar función local
       
       setLoadingHorarios(true);
@@ -109,7 +97,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
       setProfesionalNoTrabaja(false);
       setSelectedTime(null);
       
-      obtenerHorariosDisponibles(tokens, selectedProfesional.id, fechaStr, selectedServicio.id, negocioId)
+      obtenerHorariosDisponibles(tokens, selectedProfesional.id, fechaStr, selectedServicio.id, user?.negocio?.id)
         .then((response: HorariosResponse) => {
           setHorariosDisponibles(response.horarios);
           setMensajeHorarios(response.mensaje || null);
@@ -123,19 +111,6 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         .finally(() => setLoadingHorarios(false));
     }
   }, [selectedProfesional, selectedServicio, selectedDate, tokens]);
-
-  const handleDateChange = (event: any, selectedDatePicker?: Date) => {
-    // 1. Ocultar el picker inmediatamente
-    setShowDatePicker(false);
-
-    // 2. Si se seleccionó una fecha, actualizar el estado
-    if (selectedDatePicker) {
-      // Actualizar la fecha seleccionada
-      setSelectedDate(selectedDatePicker);
-      setSelectedTime(null); // Reset time when date changes
-      setHorariosDisponibles([]); // Clear previous times
-    }
-  };
 
   const formatDate = (date: Date) => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -163,27 +138,145 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
 
   const handleTimeSelection = () => {
     if (selectedDate) {
-      // Si el profesional no trabaja este día, no cargar horarios simulados
+      // Si el profesional no trabaja este día, mostrar el modal con mensaje
       if (profesionalNoTrabaja) {
         setShowTimePicker(true);
-      return;
+        return;
       }
-      
-      // Si no hay horarios de la API y el profesional sí trabaja, usar horarios simulados
-      if (horariosDisponibles.length === 0 && !loadingHorarios) {
-        const horariosSimulados = ['10:00', '10:30', '11:00', '11:30', '12:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
-        setHorariosDisponibles(horariosSimulados);
-      }
-      
       setShowTimePicker(true);
     }
   };
+
+  // Nueva función para cargar días con disponibilidad para el calendario
+  const cargarDiasConDisponibilidad = async (fecha: Date, profesional?: Profesional, servicio?: Servicio) => {
+    if (!tokens) return;
+    
+    const prof = profesional || selectedProfesional;
+    const serv = servicio || selectedServicio;
+    
+    if (!prof || !serv) {
+      console.log(' No se puede cargar disponibilidad - falta profesional o servicio');
+      setDiasConDisponibilidad([]);
+      return;
+    }
+
+    try {
+      const año = fecha.getFullYear();
+      const mes = fecha.getMonth() + 1; // Convertir 0-11 a 1-12 para el backend
+      
+      const diasDisponibles = await obtenerDiasConDisponibilidadOptimizada(
+        año,
+        mes, // Ya convertido a 1-12
+        prof.id,
+        serv.id,
+        // Removido negocioId - la API ya no lo necesita como parámetro separado
+      );
+      
+      setDiasConDisponibilidad(diasDisponibles);
+      console.log(`Días con disponibilidad para ${año}/${mes}:`, diasDisponibles);
+      
+    } catch (error: any) {
+      console.error('Error cargando días con disponibilidad:', error);
+      setDiasConDisponibilidad([]);}
+  };
+
+  // Función simplificada para precargar disponibilidad
+  const precargarDisponibilidad = async (profesional: Profesional) => {
+    if (!tokens || !user?.negocio?.id || servicios.length === 0) return;
+
+    setCargandoDisponibilidadInicial(true);
+
+    try {
+      // Próximos 7 días
+      const fechas = [];
+      for (let i = 0; i < 7; i++) {
+        const fecha = new Date();
+        fecha.setDate(fecha.getDate() + i);
+        
+        let label;
+        if (i === 0) label = 'Hoy';
+        else if (i === 1) label = 'Mañana';
+        else {
+          const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          label = diasSemana[fecha.getDay()];
+        }
+        
+        fechas.push({ fecha, label });
+      }
+
+      // Usar primeros 3 servicios para eficiencia
+      const serviciosAProbar = servicios.slice(0, 3).map(s => s.id);
+
+      for (const { fecha, label } of fechas) {
+        const fechaStr = formatDateForAPI(fecha);
+
+        for (const servicioId of serviciosAProbar) {
+          try {
+            const response = await obtenerHorariosDisponibles(
+              tokens, 
+              profesional.id,
+              fechaStr, 
+              servicioId,
+              user?.negocio?.id ?? 0
+            );
+
+            if (response.horarios.length > 0) {
+              const primerHorario = response.horarios[0];
+              setProximaDisponibilidad(`${label} ${primerHorario}`);
+              return; // Salir cuando encuentra disponibilidad
+            }
+
+            if (response.profesionalNoTrabaja) break;
+          } catch (error) {
+            continue;
+          }
+        }
+      }
+
+      // Si no encuentra disponibilidad
+      setProximaDisponibilidad('Consultar disponibilidad');
+
+    } catch (error) {
+      setProximaDisponibilidad('Consultar disponibilidad');
+    } finally {
+      setCargandoDisponibilidadInicial(false);
+    }
+  };
+
+  // Efecto corregido con dependencias completas
+  useEffect(() => {
+    if (selectedProfesional && servicios.length > 0 && !proximaDisponibilidad && !cargandoDisponibilidadInicial) {
+      // Solo precargar si fue autoseleccionado (no viene por parámetro de navegación)
+      const fuePrecargado = profesionales.length === 1 && !profesionalIdParam;
+      
+      if (fuePrecargado) {
+        precargarDisponibilidad(selectedProfesional);
+      }
+    }
+  }, [selectedProfesional, servicios, tokens, user?.negocio?.id, profesionales.length, profesionalIdParam, proximaDisponibilidad, cargandoDisponibilidadInicial]);
+
+  // Limpiar disponibilidad cuando cambie el profesional
+  useEffect(() => {
+    setProximaDisponibilidad(null);
+    setCargandoDisponibilidadInicial(false);
+  }, [selectedProfesional?.id]);
+
+  // Cargar días con disponibilidad cuando cambien profesional o servicio
+  useEffect(() => {
+    if (selectedProfesional && selectedServicio && tokens && user?.negocio?.id) {
+      const currentDate = selectedDate || new Date();
+      cargarDiasConDisponibilidad(currentDate, selectedProfesional, selectedServicio);
+    } else {
+      // Limpiar indicadores si no hay profesional o servicio seleccionado
+      setDiasConDisponibilidad([]);
+    }
+  }, [selectedProfesional?.id, selectedServicio?.id, tokens, user?.negocio?.id]);
 
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: colors.text }]}>Cargando...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -209,7 +302,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContentContainer}
       >
-        {/* Step 1: Seleccionar Profesional */}
+        {/* 1: Seleccionar Profesional */}
         <View style={styles.stepContainer}>
           <Text style={[styles.stepTitle, { color: colors.text }]}>Profesional</Text>
           <TouchableOpacity
@@ -230,9 +323,9 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             {selectedProfesional ? (
               <View style={styles.selectedContent}>
                                 <View style={styles.selectedInfo}>
-                 {selectedProfesional.profile_picture_url ? (
+                 {selectedProfesional.user_details?.profile_picture_url ? (
                    <Image
-                     source={{ uri: selectedProfesional.profile_picture_url }}
+                     source={{ uri: selectedProfesional.user_details.profile_picture_url }}
                      style={styles.foto}
                    />
                  ) : (
@@ -260,7 +353,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Step 2: Seleccionar Servicio */}
+        {/* 2: Seleccionar Servicio */}
         <View style={[styles.stepContainer, !isStep1Complete && styles.stepDisabled]}>
           <Text style={[styles.stepTitle, { color: colors.text }, !isStep1Complete && { color: colors.dark3 }]}>Servicio</Text>
           <TouchableOpacity
@@ -334,7 +427,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Step 3: Seleccionar Horario */}
+        {/* 3: Seleccionar Horario */}
         <View style={[styles.stepContainer, !isStep2Complete && styles.stepDisabled]}>
           <Text style={[styles.stepTitle, { color: colors.text }, !isStep2Complete && { color: colors.dark3 }]}>Fecha y horario</Text>
           
@@ -347,10 +440,25 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
           ]}>
             
             {/* Información de disponibilidad del profesional */}
-            {selectedProfesional && mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad) && (
+            {selectedProfesional && (proximaDisponibilidad || cargandoDisponibilidadInicial) && (
               <View style={styles.disponibilidadContainer}>
                 <Icon name="time" size={12} color={colors.primary} />
-                <Text style={[styles.disponibilidadText, { color: colors.primary }]}>
+                <Text style={[styles.disponibilidadText, { color: colors.primary }]}
+                >
+                  {cargandoDisponibilidadInicial 
+                    ? 'Cargando disponibilidad...' 
+                    : `Próximo turno: ${proximaDisponibilidad}`}
+                </Text>
+              </View>
+            )}
+
+            {/* Mostrar disponibilidad si viene de ProfesionalesScreen */}
+            {selectedProfesional && !proximaDisponibilidad && !cargandoDisponibilidadInicial && 
+             mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad) && (
+              <View style={styles.disponibilidadContainer}>
+                <Icon name="time" size={12} color={colors.primary} />
+                <Text style={[styles.disponibilidadText, { color: colors.primary }]}
+                >
                   {mostrarEstadoDisponibilidad(selectedProfesional as ProfesionalConDisponibilidad)}
                 </Text>
               </View>
@@ -421,7 +529,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         </View>
 
         {/* Bottom Button */}
-        <View style={styles.bottomContainer}>
+        <View>
           <TouchableOpacity
             style={[
               styles.nextButton,
@@ -451,51 +559,30 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
         </View>
       </ScrollView>
 
-      {/* Date Picker Modal - Inteligente según entorno */}
-      {showDatePicker && (
-        <>
-          {isExpoGo() || !DatePicker ? (
-            // Expo Go: Usar @react-native-community/datetimepicker
-            <View style={styles.datePickerOverlay}>
-              <View style={[styles.datePickerContainer, { backgroundColor: colors.background }]}>
-                <DateTimePicker
-                  testID="dateTimePicker"
-                  value={selectedDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
-                  minimumDate={new Date()}
-                  maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
-                />
-              </View>
-            </View>
-          ) : (
-            // Development Build: Usar react-native-date-picker
-            <DatePicker
-              modal
-              open={showDatePicker}
-              date={selectedDate || new Date()}
-              mode="date"
-              minimumDate={new Date()}
-              maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
-              onConfirm={(date: Date) => {
-                setShowDatePicker(false);
-                setSelectedDate(date);
-                setHorariosDisponibles([]);
-                setSelectedTime(null);
-                setLoadingHorarios(false);
-              }}
-              onCancel={() => {
-                setShowDatePicker(false);
-              }}
-              theme={colors.background === '#181818' ? 'dark' : 'light'}
-              title="Seleccionar fecha"
-              confirmText="Confirmar"
-              cancelText="Cancelar"
-            />
-          )}
-        </>
-      )}
+      {/* Calendario Modal */}
+      <CalendarModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={selectedDate || new Date()}
+        onSelectDate={(date: Date) => {
+          setSelectedDate(date);
+          setHorariosDisponibles([]);
+          setSelectedTime(null);
+          setLoadingHorarios(false);
+        }}
+        onMonthChange={(date: Date) => {
+          // Recargar disponibilidad cuando cambie de mes
+          cargarDiasConDisponibilidad(date);
+        }}
+        diasConIndicadores={diasConDisponibilidad} // Usar el estado con días disponibles
+        title="Seleccionar fecha"
+        minimumDate={(() => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Medianoche
+          return today;
+        })()}
+        maximumDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
+      />
 
       {/* Time Picker Modal */}
       {showTimePicker && (
@@ -514,7 +601,7 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
             <ScrollView style={styles.timePickerContent} showsVerticalScrollIndicator={false}>
               {profesionalNoTrabaja ? (
                 <View style={styles.noWorkDayContainer}>
-                  <Icon name="calendar-outline" size={48} color={colors.primary} style={styles.noWorkDayIcon} />
+                  <Icon name="calendar-outline" size={48} color={colors.primary} style={styles.noTimesIcon} />
                   <Text style={[styles.noWorkDayMessage, { color: colors.text }]}>
                     {mensajeHorarios || 'El profesional no trabaja este día'}
                   </Text>
@@ -524,12 +611,12 @@ export default function ReservaTurnoScreen({ route, navigation }: Props) {
                 </View>
               ) : horariosDisponibles.length === 0 && !loadingHorarios ? (
                 <View style={styles.noTimesContainer}>
-                  <Icon name="time-outline" size={48} color={colors.light3} style={styles.noTimesIcon} />
+                  <Icon name="calendar-outline" size={48} color={colors.primary} style={styles.noTimesIcon} />
                   <Text style={[styles.noTimesMessage, { color: colors.text }]}>
-                    No hay horarios disponibles para esta fecha
+                    Se agotaron los turnos de este día
                   </Text>
                   <Text style={[styles.noTimesSubMessage, { color: colors.primary }]}>
-                    Intenta con otra fecha
+                    Por favor selecciona otra fecha
                   </Text>
                 </View>
               ) : (
@@ -702,9 +789,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  bottomContainer: {
-    // Sin padding adicional ya que está en contentContainerStyle
-  },
+
   nextButton: {
     borderRadius: 12,
     paddingVertical: 16,
@@ -719,20 +804,6 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 24,
     marginRight: 16,
-  },
-  datePickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  datePickerContainer: {
-    padding: 20,
-    borderRadius: 12,
   },
   timePickerOverlay: {
     position: 'absolute',
@@ -754,7 +825,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 5,
   },
   timePickerTitle: {
     fontSize: 18,
