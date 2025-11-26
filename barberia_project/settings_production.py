@@ -16,17 +16,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [
-    config('RENDER_EXTERNAL_HOSTNAME', default=''),
-    'localhost',
-    '127.0.0.1',
-    "ordema-backend.onrender.com",
-    "ordema.app", 
-    "www.ordema.app"
-    "ordema-backend.onrender.com",
-    "ordema.app", 
-    "www.ordema.app"
-]
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
