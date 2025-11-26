@@ -18,6 +18,12 @@ DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
+# Permite que Cloudflare y tu dominio envíen formularios
+CSRF_TRUSTED_ORIGINS = [
+    'https://ordema.app',
+    'https://www.ordema.app'
+]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
