@@ -20,7 +20,7 @@ from .serializers import (
     UsuarioSerializer, UsuarioLoginSerializer, RegistroSerializer, LoginSerializer,
     ServicioSerializer, ProfesionalSerializer, TurnoBasicoSerializer,
     CrearTurnoSerializer, DisponibilidadConsultaSerializer, MisTurnosSerializer, HorarioDisponibilidadSerializer,
-    AgendaProfesionalSerializer, CambiarContrasenaSerializer
+    AgendaProfesionalSerializer, CambiarContrasenaSerializer, NegocioSerializer
 )
 
 
@@ -96,6 +96,25 @@ class LoginView(APIView):
                 'message': 'Credenciales inválidas'
             }, status=status.HTTP_401_UNAUTHORIZED)
 
+        if not user.is_active:
+            return Response({
+                'success': False,
+                'message': 'La cuenta está desactivada'
+            }, status=status.HTTP_403_FORBIDDEN) #Pendiente de integrar respuesta de "Usuario inactivo" en el FE
+        
+        membership = Membership.objects.filter(
+            user=user,
+            is_active=True
+        ).select_related('negocio').first()
+
+        if not membership:
+            return Response({
+                'success': False,
+                'message': 'No tienes acceso a ningún negocio',
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        request.negocio = membership.negocio
+
         # Generar tokens JWT
         refresh = RefreshToken.for_user(user)
 
@@ -168,11 +187,19 @@ def seleccionar_negocio(request):
             'success': False,
             'message': 'Se requiere el parámetro negocio_id'
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        negocio = Negocio.objects.get(id=negocio_id)
+    except Negocio.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Negocio no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
 
     try:
         membership = Membership.objects.select_related('negocio').get(
             user=request.user,
-            negocio_id=negocio_id,
+            negocio=negocio,
             is_active=True
         )
     except Membership.DoesNotExist:
@@ -181,26 +208,16 @@ def seleccionar_negocio(request):
             'message': 'No tienes acceso a este negocio'
         }, status=status.HTTP_403_FORBIDDEN)
 
-    negocio = membership.negocio
-
+    request.negocio = negocio
+    user_data = UsuarioSerializer(request.user, context={'request': request}).data
+    negocio_data = NegocioSerializer(negocio, context={'request': request}).data
+    user_data['rol_en_negocio'] = membership.rol
     # Respuesta completa con toda la info del negocio
     return Response({
         'success': True,
         'message': 'Negocio seleccionado correctamente',
-        'negocio': {
-            'id': negocio.id,
-            'nombre': negocio.nombre,
-            'logo_url': request.build_absolute_uri(negocio.logo.url) if negocio.logo else None,
-            'logo_width': negocio.logo_width,
-            'logo_height': negocio.logo_height,
-            'theme_colors': negocio.theme_colors,
-            'rol': membership.rol,  # IMPORTANTE: Incluir el rol del usuario
-        },
-        'user': {
-            'id': request.user.id,
-            'username': request.user.username,
-            'rol_en_negocio': membership.rol,  # Para que el frontend sepa si es cliente o profesional
-        }
+        'user': user_data,
+        'negocio': negocio_data,
     }, status=status.HTTP_200_OK)
 
 class LogoutView(APIView):
@@ -1089,7 +1106,8 @@ class DiasConDisponibilidadView(APIView):
         dia_semana = fecha.weekday()
         horario_trabajo = HorarioDisponibilidad.objects.filter(
             profesional=profesional,
-            day_of_week=dia_semana
+            day_of_week=dia_semana,
+            negocio=profesional.negocio
         ).first()
         
         if not horario_trabajo:
@@ -1112,18 +1130,16 @@ class DiasConDisponibilidadView(APIView):
         hora_fin = datetime.combine(fecha, horario_trabajo.end_time)
         duracion_servicio = servicio.duration_minutes
 
-        # Generar solo algunos slots para verificar disponibilidad (más eficiente)
+        # Generar solo algunos slots para verificar disponibilidad
         slot_actual = hora_inicio
-        slots_verificados = 0
-        max_slots_a_verificar = 5  # Solo verificar primeros 5 slots
-        
-        while slot_actual + timedelta(minutes=duracion_servicio) <= hora_fin and slots_verificados < max_slots_a_verificar:
+
+        # Sin límite de slots disponibles, verifica todo
+        while slot_actual + timedelta(minutes=duracion_servicio) <= hora_fin:
             slot_fin = slot_actual + timedelta(minutes=duracion_servicio)
             
             # Si es hoy, verificar que no sea hora pasada
             if fecha == timezone.now().date() and slot_actual.time() <= timezone.now().time():
                 slot_actual += timedelta(minutes=30)
-                slots_verificados += 1
                 continue
 
             # Verificar si este slot está ocupado
@@ -1132,15 +1148,15 @@ class DiasConDisponibilidadView(APIView):
                 start_datetime__date=fecha,
                 start_datetime__time__lt=slot_fin.time(),
                 end_datetime__time__gt=slot_actual.time(),
-                status__in=['confirmado', 'pendiente']
+                status__in=['confirmado', 'pendiente'],
+                negocio=profesional.negocio  # Filtrar por negocio
             )
 
             # Si encontramos UN slot libre, ya sabemos que hay disponibilidad
             if not turnos_conflictivos.exists():
-                return True  # ¡Encontramos disponibilidad!
+                return True  # Encontró disponibilidad
 
             slot_actual += timedelta(minutes=30)
-            slots_verificados += 1
 
         return False  # No hay disponibilidad
 

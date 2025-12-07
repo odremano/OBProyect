@@ -46,21 +46,21 @@ export interface ReservaError {
 
 export type ReservaResponse = ReservaSuccess | ReservaError;
 
-export async function reservarTurno(tokens: Tokens, payload: ReservaPayload): Promise<ReservaResponse> {
-  console.log(' Enviando payload a la API:', payload); // ✅ Log del payload
+export async function reservarTurno(tokens: Tokens, payload: ReservaPayload, negocioId: number): Promise<ReservaResponse> {
+  console.log(' Enviando payload a la API:', payload); // Log del payload
   
   try {
-    const response = await axios.post<ReservaResponse>(`${API_URL}/reservas/crear/`, payload, {
+    const response = await axios.post<ReservaResponse>(`${API_URL}/reservas/crear/?negocio_id=${negocioId}`, payload, {
       headers: {
         Authorization: `Bearer ${tokens.access}`,
         'Content-Type': 'application/json',
       },
     });
-    console.log('✅ Respuesta exitosa:', response.data); // ✅ Log de respuesta exitosa
+    console.log('✅ Respuesta exitosa:', response.data); // Log de respuesta exitosa
     return response.data;
   } catch (error: any) {
-    console.log('❌ Error en la petición:', error.response?.data); // ✅ Log de error
-    console.log('❌ Status code:', error.response?.status); // ✅ Log del status code
+    console.log('Error en la petición:', error.response?.data); // Log de error
+    console.log('Status code:', error.response?.status); // Log del status code
     throw error;
   }
 }
@@ -148,15 +148,14 @@ export interface TurnoProfesional {
   puede_cancelar: boolean;
 }
 
-// Función para obtener turnos del profesional por fecha (para la agenda)
-export async function obtenerTurnosProfesional(tokens: Tokens, fecha: string): Promise<TurnoProfesional[]> {
+export async function obtenerTurnosProfesional(tokens: Tokens, fecha: string, negocioId: number): Promise<TurnoProfesional[]> {
   try {
-    const response = await axios.get(`${API_URL}/reservas/agenda-profesional/`, {
+    const response = await axios.get(`${API_URL}/reservas/agenda-profesional/?negocio_id=${negocioId}`, {
       headers: {
         Authorization: `Bearer ${tokens.access}`,
       },
       params: {
-        fecha: fecha, // YYYY-MM-DD
+        fecha: fecha,
       }
     });
     return response.data.turnos || [];
@@ -220,16 +219,15 @@ export async function cancelarTurnoProfesional(tokens: Tokens, turnoId: number) 
   }
 }
 
-// Función para obtener días con turnos en un mes específico
-export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: number): Promise<number[]> {
+export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: number, negocioId: number): Promise<number[]> {
   try {
-    const response = await axios.get(`${API_URL}/reservas/dias-con-turnos/`, {
+    const response = await axios.get(`${API_URL}/reservas/dias-con-turnos/?negocio_id=${negocioId}`, {
       headers: {
         Authorization: `Bearer ${tokens.access}`,
       },
       params: {
         año: año,
-        mes: mes + 1, // Mes en formato 1-12
+        mes: mes + 1,
       }
     });
     return response.data.dias || [];
@@ -239,7 +237,7 @@ export async function obtenerDiasConTurnos(tokens: Tokens, año: number, mes: nu
   }
 }
 
-// ✅ Nueva función API optimizada para obtener días con disponibilidad
+// Nueva función API optimizada para obtener días con disponibilidad
 export async function obtenerDiasConDisponibilidadOptimizada(
   year: number,
   month: number, // 1-12 (formato backend)
@@ -247,8 +245,7 @@ export async function obtenerDiasConDisponibilidadOptimizada(
   servicioId: number
 ): Promise<number[]> {
   try {
-    console.log('📅 Enviando parámetros:', { year, month, profesionalId, servicioId });
-    
+
     const response = await axios.get(`${API_URL}/reservas/dias-con-disponibilidad/`, {
       params: {
         year: year,
@@ -258,19 +255,19 @@ export async function obtenerDiasConDisponibilidadOptimizada(
       }
     });
 
-    console.log('✅ Respuesta API disponibilidad:', response.data);
+    console.log('Respuesta API disponibilidad:', response.data);
     
     if (response.data.success) {
       return response.data.dias || [];
     } else {
-      console.error('❌ Error en respuesta API:', response.data.error);
+      console.error('Error en respuesta API:', response.data.error);
       return [];
     }
   } catch (error: any) {
-    console.error('❌ Error obteniendo días con disponibilidad:', error);
+    console.error('Error obteniendo días con disponibilidad:', error);
     if (error.response) {
-      console.error('❌ Detalles del error:', error.response.data);
-      console.error('❌ Status code:', error.response.status);
+      console.error('Detalles del error:', error.response.data);
+      console.error('Status code:', error.response.status);
     }
     return [];
   }

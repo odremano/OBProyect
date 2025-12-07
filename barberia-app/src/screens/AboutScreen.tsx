@@ -52,7 +52,7 @@ const AboutScreen: React.FC = () => {
           <DynamicLogo
             style={styles.logo}
             resizeMode="contain"
-            forceDefault={true} // ✅ Forzar logo de Ordema
+            forceDefault={true} // Forzar logo de Ordema
           />
           <Text style={[styles.appVersion, { color: screenColors.dark3 }]}>Versión 1.0.0</Text>
           <Text style={[styles.appDescription, { color: screenColors.textSecondary }]}>
@@ -91,7 +91,7 @@ const AboutScreen: React.FC = () => {
             </View>
             <View style={styles.infoText}>
               <Text style={[styles.infoLabel, { color: screenColors.text }]}>Última actualización</Text>
-              <Text style={[styles.infoValue, { color: screenColors.textSecondary }]}>Julio 2025</Text>
+              <Text style={[styles.infoValue, { color: screenColors.textSecondary }]}>Noviembre 2025</Text>
             </View>
           </View>
         </View>
@@ -107,7 +107,7 @@ const AboutScreen: React.FC = () => {
               </View>
               <View style={styles.developerText}>
                 <Text style={[styles.developerName, { color: screenColors.text }]}>Jesús Odreman</Text>
-                <Text style={[styles.developerTitle, { color: screenColors.dark3 }]}>Tester QA & Dev</Text>
+                <Text style={[styles.developerTitle, { color: screenColors.dark3 }]}>Tester QA & Software Developer</Text>
                 <Text style={[styles.developerDescription, { color: screenColors.textSecondary }]}>
                   Especializado en pruebas de software y estudiante de programación.
                 </Text>

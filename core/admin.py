@@ -159,18 +159,36 @@ class MembershipAdmin(admin.ModelAdmin):
 
 # --- Usuario ---
 class UsuarioAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'is_staff')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'is_staff', 'profile_picture_preview')  # Agregar preview
     search_fields = ('username', 'email', 'first_name', 'last_name', 'phone_number')
+
+    def profile_picture_preview(self, obj):
+        if obj.profile_picture_url:
+            return format_html(
+                '<img src="{}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />',
+                obj.profile_picture_url
+            )
+        return '—'
+    profile_picture_preview.short_description = 'Foto'
 
     def get_fieldsets(self, request, obj=None):
         # Convierte a lista y haz copia profunda
         fieldsets = list(copy.deepcopy(super().get_fieldsets(request, obj)))
-        # Asegurar que el campo phone_number aparezca en "Personal info"
+        # Asegurar que phone_number Y profile_picture_url aparezcan en "Personal info"
         for name, opts in fieldsets:
             if name == 'Información personal' and 'fields' in opts:
                 fields_tuple = opts.get('fields', ())
-                if 'phone_number' not in fields_tuple:
-                    opts['fields'] = tuple(list(fields_tuple) + ['phone_number'])
+                new_fields = list(fields_tuple)
+                
+                # Agregar phone_number si no está
+                if 'phone_number' not in new_fields:
+                    new_fields.append('phone_number')
+                
+                # Agregar profile_picture_url si no está
+                if 'profile_picture_url' not in new_fields:
+                    new_fields.append('profile_picture_url')
+                
+                opts['fields'] = tuple(new_fields)
                 break
         return fieldsets
 
@@ -291,20 +309,50 @@ admin.site.register(Servicio, ServicioAdmin)
 
 # --- Profesional ---
 class ProfesionalAdmin(admin.ModelAdmin):
-    list_display = ('user', 'negocio', 'bio', 'is_available', 'created_at')
+    list_display = ('user', 'negocio', 'bio', 'is_available', 'profile_picture_preview', 'created_at')  # Agregar preview
     list_filter = ('is_available', 'negocio', 'created_at')
     search_fields = ('user__username', 'user__email', 'negocio__nombre')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'profile_picture_display')  # Agregar campo readonly
     
     fieldsets = (
         ('Información Básica', {
             'fields': ('user', 'negocio', 'bio', 'is_available')
+        }),
+        # Vista previa de foto
+        ('Foto de Perfil', {
+            'fields': ('profile_picture_display',),
+            'description': 'La foto de perfil se gestiona desde el usuario. Para cambiarla, editá el usuario asociado.'
         }),
         ('Fechas', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
+
+    # Miniatura en la lista
+    def profile_picture_preview(self, obj):
+        if obj.user.profile_picture_url:
+            return format_html(
+                '<img src="{}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />',
+                obj.user.profile_picture_url
+            )
+        return '—'
+    profile_picture_preview.short_description = 'Foto'
+    
+    # Vista completa en el formulario
+    def profile_picture_display(self, obj):
+        if obj.user.profile_picture_url:
+            return format_html(
+                '<div style="margin: 10px 0;">'
+                '<img src="{}" style="max-width: 200px; max-height: 200px; border-radius: 12px; display: block; margin-bottom: 10px;" />'
+                '<p style="margin: 0;"><strong>URL:</strong> <a href="{}" target="_blank" style="word-break: break-all;">{}</a></p>'
+                '</div>',
+                obj.user.profile_picture_url,
+                obj.user.profile_picture_url,
+                obj.user.profile_picture_url
+            )
+        return format_html('<p style="color: #999;">Sin foto de perfil configurada</p>')
+    profile_picture_display.short_description = 'Foto de Perfil Actual'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

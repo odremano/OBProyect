@@ -14,6 +14,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import TurnoCard from '../components/TurnoCard';
 import HistorialItem from '../components/HistorialItem';
+import ConfirmDialog from '../components/ConfirmDialog';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -92,11 +93,13 @@ const mapearTurnosAPI = (turnosResponse: MisTurnosResponse): Turno[] => {
 };
 
 export default function MisTurnosScreen({ navigation }: Props) {
-  const { tokens } = useContext(AuthContext);
+  const { tokens, user } = useContext(AuthContext);
   const { colors } = useTheme();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [turnoACancelar, setTurnoACancelar] = useState<string | null>(null);
   const { showSuccess, showError, showWarning } = useNotifications();
 
   // Función para cargar turnos desde la API
@@ -109,7 +112,7 @@ export default function MisTurnosScreen({ navigation }: Props) {
     if (showLoading) setLoading(true);
 
     try {
-      const response = await fetchMisTurnos(tokens);
+      const response = await fetchMisTurnos(tokens, user?.negocio?.id ?? 0);
       const turnosMapeados = mapearTurnosAPI(response);
       setTurnos(turnosMapeados);
     } catch (error: any) {
@@ -140,41 +143,39 @@ export default function MisTurnosScreen({ navigation }: Props) {
   const handleCancelarTurno = async (turnoId: string) => {
     if (!tokens) return;
     
-    Alert.alert(
-      'Cancelar turno',
-      '¿Estás seguro de que deseas cancelar este turno?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Llamada real a la API
-              await cancelarTurno(tokens, parseInt(turnoId));
-              
-              // Refrescar la lista desde el servidor
-              await cargarTurnos(false);
-              
-              showSuccess(
-                'Turno cancelado',
-                'Su turno ha sido cancelado correctamente.'    
-              );
-            } catch (error: any) {
-              if (error.response && error.response.status === 400) {
-                showWarning(
-                  'Ya no puedes cancelar este turno',
-                  'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitás ayuda, comunicate con el negocio.'
-                );
-              } else {
-                console.error('Error cancelando turno:', error);
-                showError('No se pudo cancelar el turno.');
-              }
-            }
-          }
-        }
-      ]
-    );
+    setTurnoACancelar(turnoId);
+    setShowCancelDialog(true);
+  };
+
+  const confirmarCancelacion = async () => {
+    if (!turnoACancelar || !tokens) return;
+
+    setShowCancelDialog(false);
+    
+    try {
+      // Llamada real a la API
+      await cancelarTurno(tokens, parseInt(turnoACancelar), user?.negocio?.id ?? 0);
+      
+      // Refrescar la lista desde el servidor
+      await cargarTurnos(false);
+      
+      showSuccess(
+        'Turno cancelado',
+        'Su turno ha sido cancelado correctamente.'    
+      );
+    } catch (error: any) {
+      if (error.response && error.response.status === 400) {
+        showWarning(
+          'Ya no puedes cancelar este turno',
+          'Las cancelaciones deben hacerse al menos 2 horas antes del horario reservado. Si necesitás ayuda, comunicate con el negocio.'
+        );
+      } else {
+        console.error('Error cancelando turno:', error);
+        showError('No se pudo cancelar el turno.');
+      }
+    } finally {
+      setTurnoACancelar(null);
+    }
   };
 
   const handleReservarTurno = () => {
@@ -260,6 +261,22 @@ export default function MisTurnosScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
+
+      <ConfirmDialog
+        visible={showCancelDialog}
+        title="Cancelar turno"
+        message="¿Estás seguro de que deseas cancelar este turno?"
+        confirmText="Sí, cancelar"
+        cancelText="No"
+        variant="danger"
+        icon="calendar-outline"
+        iconColor={colors.text}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => {
+          setShowCancelDialog(false);
+          setTurnoACancelar(null);
+        }}
+      />
     </View>
   );
 }

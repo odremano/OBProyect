@@ -9,7 +9,7 @@ export interface AuthContextType {
   negocioId: number | null;
   negocioLogo: string | null;
   logoDimensions: { width: number; height: number } | null;
-  login: (user: User, tokens: Tokens) => Promise<void>; // ✅ Removido parámetro negocio
+  login: (user: User, tokens: Tokens) => Promise<void>;
   updateUser: (user: User) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;

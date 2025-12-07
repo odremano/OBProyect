@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, Image 
 import { useTheme } from '../context/ThemeContext';
 import LoginModal from '../components/LoginModal';
 import OrdemaBackground from '../components/OrdemaBackground';
-import { login } from '../api/auth';
+import { login, seleccionarNegocio } from '../api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
+
 
 const { width } = Dimensions.get('window');
 
@@ -32,14 +33,55 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     setLoginError(undefined);
     try {
-      const data = await login(username, password);
-      if (data.success) {
-        await contextLogin(data.user, data.tokens);
+      const loginData = await login(username, password);
+      
+      if (!loginData.success) {
+        setLoginError(loginData.message || 'Error al iniciar sesión');
+        setLoading(false);
+        return;
+      }
+
+      const negociosDisponibles = loginData.user.negocios || [];
+
+      if (negociosDisponibles.length === 0) {
+        setLoginError('No tienes acceso a ningún negocio');
+        setLoading(false);
+        return;
+      }
+
+      if (negociosDisponibles.length === 1) {
+        const primerNegocio = negociosDisponibles[0];
+        
+        const seleccionData = await seleccionarNegocio(
+          primerNegocio.id,
+          loginData.tokens.access
+        );
+
+        if (!seleccionData.success) {
+          setLoginError(seleccionData.message || 'Error al seleccionar negocio');
+          setLoading(false);
+          return;
+        }
+
+        await AsyncStorage.setItem('negocio_id', primerNegocio.id.toString());
+        await contextLogin(seleccionData.user, loginData.tokens);
         
         setLoginVisible(false);
       } else {
-        setLoginError(data.message || 'Error al iniciar sesión');
+        await contextLogin(loginData.user, loginData.tokens);
+        
+        navigation.reset({
+          index: 0,
+          routes: [
+            { 
+              name: 'SeleccionarNegocio',
+            }
+          ],
+        });
+        
+        setLoginVisible(false);
       }
+
     } catch (err: any) {
       setLoginError(err.message || 'Error de red');
     } finally {
@@ -90,16 +132,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoContainer: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+    marginTop: 100,
+    marginBottom: 60,
   },
   logo: {
-    width: 380,
+    width: width * 0.9,
     height: 165,
-    marginBottom: 45,
-    marginTop: 80,
-    marginLeft: -15,
+    maxWidth: 400,
+    marginBottom: 60,
+    marginTop: 100,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,

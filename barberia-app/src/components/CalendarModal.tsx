@@ -12,7 +12,7 @@ interface CalendarModalProps {
   title?: string;
   minimumDate?: Date;
   maximumDate?: Date;
-  onMonthChange?: (date: Date) => void; // ✅ Callback para cuando cambie el mes
+  onMonthChange?: (date: Date) => void; // Callback para cuando cambie el mes
 }
 
 export const CalendarModal: React.FC<CalendarModalProps> = ({
@@ -24,7 +24,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({
   title = 'Seleccionar fecha',
   minimumDate,
   maximumDate,
-  onMonthChange // ✅ Nuevo prop
+  onMonthChange // Nuevo prop
 }) => {
   const { colors } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
@@ -32,7 +32,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({
   // Sincronizar currentMonth cuando cambie selectedDate
   useEffect(() => {
     setCurrentMonth(new Date(selectedDate));
-  }, [selectedDate]);
+  }, [visible]);
 
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -99,7 +99,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({
     }
     setCurrentMonth(nuevoMes);
     
-    // ✅ Notificar el cambio de mes al componente padre
+    // Notificar el cambio de mes al componente padre
     if (onMonthChange) {
       onMonthChange(nuevoMes);
     }

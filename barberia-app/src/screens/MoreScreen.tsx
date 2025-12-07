@@ -1,10 +1,11 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AuthContext } from '../context/AuthContext';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface MenuItem {
   id: string;
@@ -21,6 +22,8 @@ const MoreScreen: React.FC = () => {
   const { user, logout } = useContext(AuthContext);
   const isAuthenticated = !!user;
   const userName = user?.first_name || user?.username || 'Usuario';
+  
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Usar colores del contexto siempre
   const screenColors = themeColors;
@@ -60,24 +63,16 @@ const MoreScreen: React.FC = () => {
       description: 'Salir de tu cuenta',
       requiresAuth: true,
       onPress: () => {
-        Alert.alert(
-          'Cerrar sesión',
-          '¿Estás seguro que deseas cerrar sesión?',
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            { 
-              text: 'Cerrar sesión', 
-              style: 'destructive', 
-              onPress: async () => {
-                await logout();
-                navigation.navigate('Login');
-              }
-            }
-          ]
-        );
+        setShowLogoutDialog(true);
       }
     });
   }
+
+  const handleLogout = async () => {
+    setShowLogoutDialog(false);
+    await logout();
+    navigation.navigate('Login');
+  };
 
   // Configuración de elementos del menú (Configuración)
   const menuItems: MenuItem[] = [
@@ -202,6 +197,19 @@ const MoreScreen: React.FC = () => {
           </Text>
         </View>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={showLogoutDialog}
+        title="Cerrar sesión"
+        message="¿Estás seguro que deseas cerrar sesión?"
+        confirmText="Cerrar sesión"
+        cancelText="Cancelar"
+        variant="danger"
+        icon="log-out"
+        iconColor={screenColors.text}
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutDialog(false)}
+      />
     </View>
   );
 };
@@ -292,4 +300,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MoreScreen; 
+export default MoreScreen;
