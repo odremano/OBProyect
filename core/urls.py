@@ -18,7 +18,10 @@ from .views import (
     AgendaProfesionalView, DiasConTurnosView, CompletarTurnoView, CancelarTurnoProfesionalView,
     
     # Endpoint optimizado para calendario
-    DiasConDisponibilidadView
+    DiasConDisponibilidadView,
+
+    # API Check User
+    check_user
 )
 
 urlpatterns = [
@@ -38,6 +41,9 @@ urlpatterns = [
     # Perfil de usuario
     path('auth/perfil/', PerfilView.as_view(), name='perfil'),
     path('auth/cambiar-contrasena/', CambiarContrasenaView.as_view(), name='cambiar_contrasena'),
+    
+    # Check User (21/07/2025)
+    path('check-user/', check_user, name='check_user'),
     
     # =============================================================================
     # RUTAS PÚBLICAS (SIN AUTENTICACIÓN)
@@ -73,4 +79,4 @@ urlpatterns = [
     path('reservas/completar/<int:turno_id>/', CompletarTurnoView.as_view(), name='completar_turno'),
     path('reservas/cancelar-profesional/<int:turno_id>/', CancelarTurnoProfesionalView.as_view(), name='cancelar_turno_profesional'),
 
-] 
+]

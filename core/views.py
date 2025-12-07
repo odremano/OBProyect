@@ -396,6 +396,59 @@ def resumen_negocio(request):
 
 
 # =============================================================================
+# API CHECK USER (07/12/2025) - BotWhatsapp
+# =============================================================================
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def check_user(request):
+    """
+    API para verificar si un usuario existe por su número de teléfono.
+    
+    GET /api/v1/check-user/?phone=+5491173616085
+    """
+    phone = request.query_params.get('phone')
+    
+    if not phone:
+        return Response({
+            'found': False,
+            'message': 'Parámetro phone requerido'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Buscar usuario por teléfono (case insensitive o exacto según necesidad, aquí exacto)
+    try:
+        user = Usuario.objects.get(phone_number=phone)
+    except Usuario.DoesNotExist:
+        return Response({
+            "found": False,
+            "message": "Usuario no registrado"
+        }, status=status.HTTP_200_OK)
+
+    # Obtener membresías del usuario
+    memberships = Membership.objects.filter(user=user, is_active=True).select_related('negocio')
+    
+    businesses_data = []
+    for membership in memberships:
+        businesses_data.append({
+            "id": membership.negocio.id,
+            "name": membership.negocio.nombre
+        })
+
+    response_data = {
+        "found": True,
+        "user": {
+            "id": user.id,
+            "first_name": f"{user.first_name} {user.last_name}".strip(),
+            "phone": user.phone_number
+        },
+        "business_count": len(businesses_data),
+        "businesses": businesses_data
+    }
+
+    return Response([response_data], status=status.HTTP_200_OK)
+
+
+# =============================================================================
 # APIs DE RESERVAS
 # =============================================================================
 
