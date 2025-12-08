@@ -431,7 +431,8 @@ def check_user(request):
     for membership in memberships:
         businesses_data.append({
             "id": membership.negocio.id,
-            "name": membership.negocio.nombre
+            "name": membership.negocio.nombre,
+            "role": membership.rol.capitalize()
         })
 
     response_data = {
@@ -439,7 +440,7 @@ def check_user(request):
         "user": {
             "id": user.id,
             "username": user.username,
-            "first_name": f"{user.first_name} {user.last_name}".strip(),
+            "first_name": f"{user.first_name}".strip(),
             "phone": user.phone_number
         },
         "business_count": len(businesses_data),
