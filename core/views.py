@@ -438,6 +438,7 @@ def check_user(request):
         "found": True,
         "user": {
             "id": user.id,
+            "username": user.username,
             "first_name": f"{user.first_name} {user.last_name}".strip(),
             "phone": user.phone_number
         },
