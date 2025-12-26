@@ -182,33 +182,33 @@ export default function ConfirmacionTurnoScreen({ route, navigation }: Props) {
           <Icon name="information-circle" size={16} color={colors.primaryDark} />
           <Text style={[styles.noteText, { color: colors.text }]}>Puedes cancelar tu turno hasta 2 horas antes del horario programado</Text>
         </View>
-
-        {/* Botón de confirmación */}
-        <View style={styles.bottomContainer}>
-          <TouchableOpacity
-            style={[
-              styles.confirmButton,
-              { backgroundColor: colors.success }, // ✅ Usar colors.success
-              loading && { backgroundColor: colors.success, opacity: 0.7 }
-            ]}
-            disabled={loading}
-            onPress={handleConfirmarReserva}
-          >
-            <View style={styles.buttonContent}>
-              {loading && (
-                <ActivityIndicator 
-                  size="small" 
-                  color={colors.white} 
-                  style={styles.spinner}
-                />
-              )}
-              <Text style={[styles.confirmButtonText, { color: colors.white }]}>
-                {loading ? 'Reservando...' : 'Reservar turno'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      {/* Botón de confirmación fijo */}
+      <View style={[styles.bottomContainer, { backgroundColor: colors.background }]}>
+        <TouchableOpacity
+          style={[
+            styles.confirmButton,
+            { backgroundColor: colors.success }, 
+            loading && { backgroundColor: colors.success, opacity: 0.7 }
+          ]}
+          disabled={loading}
+          onPress={handleConfirmarReserva}
+        >
+          <View style={styles.buttonContent}>
+            {loading && (
+              <ActivityIndicator 
+                size="small" 
+                color={colors.white} 
+                style={styles.spinner}
+              />
+            )}
+            <Text style={[styles.confirmButtonText, { color: colors.white }]}>
+              {loading ? 'Reservando...' : 'Reservar turno'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   scrollContentContainer: {
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 34,
+    paddingBottom: 100, // Espacio para el botón fijo
   },
   confirmationHeader: {
     alignItems: 'center',
@@ -386,7 +386,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   bottomContainer: {
-    // Sin padding adicional ya que está en contentContainerStyle
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 34,
   },
   confirmButton: {
     borderRadius: 12,
