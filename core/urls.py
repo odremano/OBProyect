@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     # APIs de Autenticación
-    RegistroView, mis_negocios, seleccionar_negocio, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
+    RegistroView, BotRegistroView, mis_negocios, seleccionar_negocio, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
     
     # APIs Públicas
     servicios_publicos, profesionales_disponibles, resumen_negocio,
@@ -44,6 +44,13 @@ urlpatterns = [
     
     # Check User (21/07/2025)
     path('check-user/', check_user, name='check_user'),
+    
+    # =============================================================================
+    # RUTAS DE BOT DE WHATSAPP
+    # =============================================================================
+    
+    # Registro desde bot de WhatsApp
+    path('bot/register/', BotRegistroView.as_view(), name='bot_registro'),
     
     # =============================================================================
     # RUTAS PÚBLICAS (SIN AUTENTICACIÓN)

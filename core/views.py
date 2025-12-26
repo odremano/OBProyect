@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from datetime import datetime, timedelta, date
 from rest_framework import serializers
-from core.permissions import IsMemberOfSelectedNegocio
+from core.permissions import IsMemberOfSelectedNegocio, IsBotOrAdmin
 from core.roles import is_profesional, is_cliente
 from core.services.memberships import get_profesional_profile
 import calendar
@@ -20,7 +20,7 @@ from .serializers import (
     UsuarioSerializer, UsuarioLoginSerializer, RegistroSerializer, LoginSerializer,
     ServicioSerializer, ProfesionalSerializer, TurnoBasicoSerializer,
     CrearTurnoSerializer, DisponibilidadConsultaSerializer, MisTurnosSerializer, HorarioDisponibilidadSerializer,
-    AgendaProfesionalSerializer, CambiarContrasenaSerializer, NegocioSerializer
+    AgendaProfesionalSerializer, CambiarContrasenaSerializer, NegocioSerializer, BotRegistroSerializer
 )
 
 
@@ -62,6 +62,75 @@ class RegistroView(APIView):
         return Response({
             'success': False,
             'message': 'Error en el registro',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BotRegistroView(APIView):
+    """
+    API para registro de usuarios desde el bot de WhatsApp.
+    
+    POST /api/v1/bot/register/
+    Header: X-BOT-TOKEN: <token_secreto>
+    Body: {
+        "phone": "+58424123456",
+        "email": "usuario@example.com",
+        "name": "Jesus Odreman",
+        "negocio_id": 1
+    }
+    
+    - No requiere JWT de usuario (el usuario aún no existe)
+    - Requiere header X-BOT-TOKEN con valor correcto
+    - Genera username y password automáticamente
+    - Envía credenciales por email
+    - Crea el usuario como cliente en el negocio especificado
+    """
+    permission_classes = [IsBotOrAdmin]
+    
+    def post(self, request):
+        serializer = BotRegistroSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            try:
+                # Crear el usuario (el serializer maneja la transacción y el email)
+                resultado = serializer.save()
+                
+                return Response({
+                    'success': True,
+                    'message': 'Usuario registrado exitosamente. Se han enviado las credenciales por email.',
+                    'data': {
+                        'user_id': resultado['user_id'],
+                        'username': resultado['username'],
+                        'first_name': resultado['first_name'],
+                        'email': resultado['email']
+                    }
+                }, status=status.HTTP_201_CREATED)
+                
+            except Exception as e:
+                return Response({
+                    'success': False,
+                    'message': 'Error al procesar el registro',
+                    'error': str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Si hay errores de validación, retornar 409 Conflict
+        # (para email o teléfono duplicados)
+        error_messages = []
+        if 'email' in serializer.errors:
+            error_messages.append(serializer.errors['email'][0])
+        if 'phone' in serializer.errors:
+            error_messages.append(serializer.errors['phone'][0])
+        
+        if error_messages:
+            return Response({
+                'success': False,
+                'message': ' | '.join(error_messages),
+                'errors': serializer.errors
+            }, status=status.HTTP_409_CONFLICT)
+        
+        return Response({
+            'success': False,
+            'message': 'Error en la validación de datos',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
