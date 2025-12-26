@@ -261,17 +261,17 @@ Hola {first_name},
 
 ¡Bienvenido a {negocio.nombre}!
 
-Tu cuenta ha sido creada exitosamente. A continuación encontrarás tus credenciales de acceso:
+Tu cuenta ha sido creada exitosamente. A continuación encontrarás tus credenciales de acceso a la app:
 
 Usuario: {username}
-Contraseña: {password}
+Contraseña temporal: {password} (Por favor, cambia tu contraseña una vez accedas a la aplicación)
 
-Puedes iniciar sesión en nuestra aplicación móvil con estas credenciales.
+Puedes iniciar sesión en nuestra aplicación móvil con estas credenciales o comunicarte con el chatbot de OrdemAI al whatsapp +5491125593285 desde tu número registrado. 
 
 ¡Te esperamos!
 
 Saludos,
-El equipo de {negocio.nombre}
+El equipo de {negocio.nombre} & Ordema.
                 """
                 
                 try:
