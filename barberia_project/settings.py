@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 from decouple import config
 
@@ -25,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -102,15 +103,12 @@ WSGI_APPLICATION = 'barberia_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'barberia_system',
-        'USER': 'root',
-        'PASSWORD': 'OdreBARBER2003',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+        'ENGINE': 'django.db.backends.postgresql', # Cambiamos a Postgres
+        'NAME': os.environ.get('POSTGRES_DB', 'ordema_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'ordema_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'ordema_password'),
+        'HOST': os.environ.get('DB_HOST', 'db'), # <--- IMPORTANTE: 'db' es el nombre del servicio en docker-compose
+        'PORT': '5432',
     }
 }
 
