@@ -29,16 +29,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "192.168.0.40",
-    "192.168.0.14",
-    "192.168.0.22",
-    "192.168.1.18",
-    "https://ordema-backend.onrender.com",
-    "ordema-backend.onrender.com",
-    "ordema.app", 
-    "www.ordema.app"
+    "*"
 
 ]
 
@@ -252,3 +243,23 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# =============================================================================
+# CONFIGURACIÓN DE EMAIL
+# =============================================================================
+
+# Configuración de email para enviar credenciales
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ordema.app')
+
+# =============================================================================
+# CONFIGURACIÓN DE BOT DE WHATSAPP
+# =============================================================================
+
+# Token de autenticación para el bot de WhatsApp
+BOT_TOKEN = config('BOT_TOKEN', default='change-this-token-in-production')
