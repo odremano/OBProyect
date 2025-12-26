@@ -1,6 +1,30 @@
 from rest_framework.permissions import BasePermission
 from core.models import Membership
 from core.roles import Roles, has_any_role, can_receive_appointments, user_has_access_to_negocio
+from django.conf import settings
+
+
+class IsBotOrAdmin(BasePermission):
+    """
+    Permiso personalizado para el bot de WhatsApp o administradores.
+    Verifica que se proporcione el token correcto en el header X-BOT-TOKEN.
+    """
+    message = "Token de autenticación de bot inválido o ausente."
+    
+    def has_permission(self, request, view):
+        # Verificar si el usuario es superadmin
+        if request.user and request.user.is_authenticated and request.user.is_superuser:
+            return True
+        
+        # Verificar el token del bot en el header
+        bot_token = request.headers.get('X-BOT-TOKEN')
+        expected_token = getattr(settings, 'BOT_TOKEN', None)
+        
+        if not expected_token:
+            # Si no está configurado el token, denegar acceso
+            return False
+        
+        return bot_token == expected_token
 
 
 class IsMemberOfSelectedNegocio(BasePermission):

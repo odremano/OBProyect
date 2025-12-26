@@ -141,6 +141,162 @@ class LoginSerializer(serializers.Serializer):
         return value.lower()
 
 
+class BotRegistroSerializer(serializers.Serializer):
+    """
+    Serializer para registro de usuarios desde el bot de WhatsApp.
+    
+    Solo requiere: phone, email, name
+    - Genera username automáticamente (ej: jodreman, jodreman1, etc.)
+    - Genera password aleatoria
+    - Envía credenciales por email
+    """
+    phone = serializers.CharField(max_length=20, required=True)
+    email = serializers.EmailField(required=True)
+    name = serializers.CharField(max_length=200, required=True)
+    negocio_id = serializers.IntegerField(required=True)
+    
+    def validate_phone(self, value):
+        """Validar que el teléfono no esté registrado"""
+        if Usuario.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError('El número de teléfono ya está registrado')
+        return value
+    
+    def validate_email(self, value):
+        """Validar que el email no esté registrado"""
+        if Usuario.objects.filter(email=value).exists():
+            raise serializers.ValidationError('El correo electrónico ya está registrado')
+        return value
+    
+    def validate_negocio_id(self, value):
+        """Validar que el negocio exista"""
+        from .models import Negocio
+        if not Negocio.objects.filter(id=value).exists():
+            raise serializers.ValidationError('El negocio especificado no existe')
+        return value
+    
+    def _generar_username(self, nombre_completo):
+        """
+        Genera un username único basado en nombre y apellido.
+        Ej: Jesus Odreman -> jodreman, jodreman1, jodreman2, etc.
+        """
+        # Separar el nombre completo
+        partes = nombre_completo.strip().split()
+        
+        if len(partes) < 2:
+            # Si solo tiene un nombre, usar ese nombre
+            base_username = partes[0].lower()
+        else:
+            # Tomar primera letra del nombre + apellido
+            primer_nombre = partes[0]
+            apellido = partes[-1]
+            base_username = f"{primer_nombre[0]}{apellido}".lower()
+        
+        # Limpiar caracteres especiales y acentos
+        import unicodedata
+        base_username = ''.join(
+            c for c in unicodedata.normalize('NFD', base_username)
+            if unicodedata.category(c) != 'Mn'
+        )
+        
+        # Verificar si el username está disponible
+        username = base_username
+        contador = 1
+        
+        while Usuario.objects.filter(username=username).exists():
+            username = f"{base_username}{contador}"
+            contador += 1
+        
+        return username
+    
+    def create(self, validated_data):
+        """
+        Crear usuario con username y password generados automáticamente.
+        """
+        from django.db import transaction
+        from django.core.mail import send_mail
+        from django.conf import settings
+        from .models import Membership, Negocio
+        
+        phone = validated_data['phone']
+        email = validated_data['email']
+        name = validated_data['name']
+        negocio_id = validated_data['negocio_id']
+        
+        # Separar nombre y apellido
+        partes_nombre = name.strip().split()
+        first_name = partes_nombre[0] if len(partes_nombre) > 0 else ''
+        last_name = ' '.join(partes_nombre[1:]) if len(partes_nombre) > 1 else ''
+        
+        # Generar username y password
+        username = self._generar_username(name)
+        password = Usuario.objects.make_random_password(length=10)
+        
+        try:
+            with transaction.atomic():
+                # Crear el usuario
+                user = Usuario.objects.create_user(
+                    username=username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone_number=phone,
+                    password=password
+                )
+                
+                # Obtener el negocio
+                negocio = Negocio.objects.get(id=negocio_id)
+                
+                # Crear membership como cliente
+                Membership.objects.create(
+                    user=user,
+                    negocio=negocio,
+                    rol=Membership.Roles.CLIENTE,
+                    is_active=True
+                )
+                
+                # Enviar email con las credenciales
+                asunto = f'Bienvenido a {negocio.nombre} - Tus credenciales de acceso'
+                mensaje = f"""
+Hola {first_name},
+
+¡Bienvenido a {negocio.nombre}!
+
+Tu cuenta ha sido creada exitosamente. A continuación encontrarás tus credenciales de acceso:
+
+Usuario: {username}
+Contraseña: {password}
+
+Puedes iniciar sesión en nuestra aplicación móvil con estas credenciales.
+
+¡Te esperamos!
+
+Saludos,
+El equipo de {negocio.nombre}
+                """
+                
+                try:
+                    send_mail(
+                        asunto,
+                        mensaje,
+                        settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@ordema.app',
+                        [email],
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    # Si falla el envío del email, loguear pero no fallar la transacción
+                    print(f"Error al enviar email: {str(e)}")
+                
+                return {
+                    'user_id': user.id,
+                    'username': username,
+                    'first_name': first_name,
+                    'email': email
+                }
+                
+        except Exception as e:
+            raise serializers.ValidationError(f'Error al crear el usuario: {str(e)}')
+
+
 # =============================================================================
 # SERIALIZERS DE SERVICIOS
 # =============================================================================

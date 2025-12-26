@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # SERVICIO 1: TU BACKEND (Django)
+  web:
+    build: .             # "Construye la imagen usando el Dockerfile de esta carpeta"
+    command: python manage.py runserver 0.0.0.0:8000  # El comando para arrancar Django
+    volumes:
+      - .:/app           # <--- ESTO ES VITAL.
+                         # Significa: "Lo que hay en mi carpeta de Windows (.),
+                         # refléjalo en la carpeta /app del contenedor".
+                         # Gracias a esto, si editas código en VS Code, el contenedor lo ve.
+    ports:
+      - "8000:8000"      # Abre el puerto 8000 de tu PC para ver la web
+    env_file:
+      - .env             # Lee las variables que creamos en el paso 1
+    depends_on:
+      - db               # "No arranques hasta que la base de datos esté lista"
+
+  # SERVICIO 2: LA BASE DE DATOS (PostgreSQL)
+  db:
+    image: postgres:15-alpine  # Usamos una imagen oficial ligera de Postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # <--- PERSISTENCIA
+                         # Esto crea un volumen oculto para guardar tus datos.
+                         # Si apagas el contenedor, ¡tus usuarios no se borran!
+    environment:
+      # Le pasamos las mismas credenciales del .env para que cree la DB
+      - POSTGRES_DB=ordema_db
+      - POSTGRES_USER=ordema_user
+      - POSTGRES_PASSWORD=ordema_password
+
+volumes:
+  postgres_data:         # Declaramos el volumen de la base de datos

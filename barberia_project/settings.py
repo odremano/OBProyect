@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 from decouple import config
 
@@ -22,22 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-r*ob4wonyo@ihsktt8lbgck4_z7kiy!%$*9p2%d+miii96y8@f'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "192.168.0.40",
-    "192.168.0.14",
-    "192.168.0.22",
-    "192.168.1.18",
-    "https://ordema-backend.onrender.com",
-    "ordema-backend.onrender.com",
-    "ordema.app", 
-    "www.ordema.app"
+    "*"
 
 ]
 
@@ -102,15 +94,12 @@ WSGI_APPLICATION = 'barberia_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'barberia_system',
-        'USER': 'root',
-        'PASSWORD': 'OdreBARBER2003',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+        'ENGINE': 'django.db.backends.postgresql', # Cambiamos a Postgres
+        'NAME': os.environ.get('POSTGRES_DB', 'ordema_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'ordema_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'ordema_password'),
+        'HOST': os.environ.get('DB_HOST', 'db'), # <--- IMPORTANTE: 'db' es el nombre del servicio en docker-compose
+        'PORT': '5432',
     }
 }
 
@@ -254,3 +243,23 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# =============================================================================
+# CONFIGURACIÓN DE EMAIL
+# =============================================================================
+
+# Configuración de email para enviar credenciales
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ordema.app')
+
+# =============================================================================
+# CONFIGURACIÓN DE BOT DE WHATSAPP
+# =============================================================================
+
+# Token de autenticación para el bot de WhatsApp
+BOT_TOKEN = config('BOT_TOKEN', default='change-this-token-in-production')
