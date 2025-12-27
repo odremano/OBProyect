@@ -84,6 +84,7 @@ class Membership(models.Model):
 # =====================================================
 class Negocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
+    address = models.CharField(max_length=200, null=True, blank=True, verbose_name="Dirección")
     logo = models.ImageField(upload_to='negocio_logos/', null=True, blank=True)
     logo_width = models.IntegerField(
         default=100, 
