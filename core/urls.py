@@ -6,7 +6,7 @@ from .views import (
     RegistroView, BotRegistroView, mis_negocios, seleccionar_negocio, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
     
     # APIs Públicas
-    servicios_publicos, profesionales_disponibles, resumen_negocio,
+    servicios_publicos, profesionales_disponibles, resumen_negocio, listar_negocios,
     
     # APIs de Reservas
     CrearTurnoView, MisTurnosView, CancelarTurnoView, consultar_disponibilidad,
@@ -56,6 +56,7 @@ urlpatterns = [
     # RUTAS PÚBLICAS (SIN AUTENTICACIÓN)
     # =============================================================================
     
+    path('negocios/', listar_negocios, name='listar_negocios'),
     path('servicios-publicos/', servicios_publicos, name='servicios_publicos'),
     path('profesionales-disponibles/', profesionales_disponibles, name='profesionales_disponibles'),
     path('resumen-negocio/', resumen_negocio, name='resumen_negocio'),

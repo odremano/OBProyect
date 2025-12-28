@@ -431,6 +431,27 @@ def profesionales_disponibles(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+def listar_negocios(request):
+    """
+    API pública para listar todos los negocios disponibles en Ordema.
+    
+    GET /api/v1/negocios/
+    
+    Devuelve una lista de todos los negocios para que el usuario pueda 
+    seleccionar uno durante el registro.
+    """
+    negocios = Negocio.objects.all().order_by('nombre')
+    serializer = NegocioSerializer(negocios, many=True, context={'request': request})
+    
+    return Response({
+        'success': True,
+        'count': negocios.count(),
+        'negocios': serializer.data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def resumen_negocio(request):
     """
     API pública con información general de un negocio específico.
