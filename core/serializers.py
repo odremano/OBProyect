@@ -255,18 +255,20 @@ class BotRegistroSerializer(serializers.Serializer):
                 )
                 
                 # Enviar email con las credenciales
-                asunto = f'Bienvenido a {negocio.nombre} - Tus credenciales de acceso'
+                asunto = f'Bienvenido a Ordema - Tus credenciales de acceso a la app'
                 mensaje = f"""
 Hola {first_name},
 
-¡Bienvenido a {negocio.nombre}!
+¡Bienvenido a Ordema!
 
-Tu cuenta ha sido creada exitosamente. A continuación encontrarás tus credenciales de acceso a la app:
+Tu cuenta ha sido creada y relacionada al negocio {negocio.nombre} exitosamente. A continuación encontrarás tus credenciales de acceso a la app:
 
 Usuario: {username}
 Contraseña temporal: {password} (Por favor, cambia tu contraseña una vez accedas a la aplicación)
 
-Puedes iniciar sesión en nuestra aplicación móvil con estas credenciales o comunicarte con el chatbot de OrdemAI al whatsapp +5491125593285 desde tu número registrado. 
+Puedes iniciar sesión en nuestra aplicación móvil con estas credenciales o comunicarte con nuestro chatbot OrdemAI al whatsapp +5491125593285 desde tu número registrado. 
+
+Link de acceso directo al chatbot OrdemAI: https://wa.me/message/BYVIR2BDKTACD1
 
 ¡Te esperamos!
 
