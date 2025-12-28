@@ -248,14 +248,14 @@ admin.site.register(Usuario, UsuarioAdmin)
 
 # --- Negocio ---
 class NegocioAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'id', 'propietario', 'logo_preview', 'fecha_creacion')
+    list_display = ('nombre', "address", 'id', 'propietario', 'logo_preview', 'fecha_creacion')
     list_filter = ('fecha_creacion',)
     search_fields = ('nombre', 'propietario__username')
     readonly_fields = ('fecha_creacion',)
     
     fieldsets = (
         ('Información General', {
-            'fields': ('nombre', 'propietario', 'fecha_creacion')
+            'fields': ('nombre', 'address', 'propietario', 'fecha_creacion')
         }),
         ('Logo y Dimensiones', {
             'fields': ('logo', 'logo_width', 'logo_height'),
