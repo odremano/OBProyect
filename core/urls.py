@@ -19,6 +19,9 @@ from .views import (
     
     # Endpoint optimizado para calendario
     DiasConDisponibilidadView,
+    
+    # Endpoint para WhatsApp Flow - Próximos días disponibles
+    ProximosDiasDisponiblesView,
 
     # API Check User
     check_user
@@ -69,6 +72,8 @@ urlpatterns = [
     path('reservas/disponibilidad/', consultar_disponibilidad, name='consultar_disponibilidad'),
     # Nuevo endpoint optimizado para obtener días con disponibilidad (público)
     path('reservas/dias-con-disponibilidad/', DiasConDisponibilidadView.as_view(), name='dias_con_disponibilidad'),
+    # Endpoint para WhatsApp Flow - Próximos N días disponibles
+    path('reservas/disponibilidad/proximos-dias/', ProximosDiasDisponiblesView.as_view(), name='proximos_dias_disponibles'),
     # Consultar disponibilidad (privada)
     path('disponibilidad/', disponibilidad_profesional, name='disponibilidad_profesional'),
     

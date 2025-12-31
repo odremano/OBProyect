@@ -1296,3 +1296,240 @@ class CambiarContrasenaView(APIView):
             'message': 'Error al cambiar contraseña',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# =============================================================================
+# API PARA WHATSAPP FLOW - PRÓXIMOS DÍAS DISPONIBLES
+# =============================================================================
+
+class ProximosDiasDisponiblesView(APIView):
+    """
+    API optimizada para WhatsApp Flow (n8n).
+    Retorna los próximos N días con disponibilidad para un profesional y servicio.
+    
+    GET /api/v1/reservas/disponibilidad/proximos-dias/
+    
+    Query Parameters:
+    - profesional_id (int, requerido): ID del profesional
+    - servicio_id (int, requerido): ID del servicio
+    - fecha_desde (str, opcional): Fecha de inicio en formato YYYY-MM-DD (default: hoy)
+    - limite (int, opcional): Cantidad de días a retornar (default: 9, máx: 20)
+    
+    Response:
+    {
+        "success": true,
+        "cantidad": 9,
+        "fechas": [
+            {
+                "fecha": "2025-12-30",
+                "nombre_dia": "Tuesday",
+                "tiene_disponibilidad": true
+            },
+            ...
+        ]
+    }
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        # Validar parámetros requeridos
+        profesional_id = request.GET.get('profesional_id')
+        servicio_id = request.GET.get('servicio_id')
+        
+        if not profesional_id or not servicio_id:
+            return Response({
+                'success': False,
+                'error': 'Se requieren los parámetros profesional_id y servicio_id'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            profesional_id = int(profesional_id)
+            servicio_id = int(servicio_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'profesional_id y servicio_id deben ser números enteros'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar fecha de inicio (opcional, default: hoy)
+        fecha_desde_str = request.GET.get('fecha_desde')
+        if fecha_desde_str:
+            try:
+                fecha_desde = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 'Formato de fecha inválido. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            fecha_desde = timezone.now().date()
+        
+        # Validar límite (opcional, default: 9, máx: 20)
+        limite = request.GET.get('limite', 9)
+        try:
+            limite = int(limite)
+            if limite < 1 or limite > 20:
+                limite = 9
+        except (ValueError, TypeError):
+            limite = 9
+        
+        # Validar que el profesional y servicio existan
+        try:
+            profesional = Profesional.objects.get(id=profesional_id)
+            servicio = Servicio.objects.get(id=servicio_id)
+        except Profesional.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Profesional no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Servicio.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Servicio no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Obtener horarios de trabajo del profesional (pre-fetch para optimización)
+        horarios_trabajo = HorarioDisponibilidad.objects.filter(
+            profesional=profesional,
+            negocio=profesional.negocio
+        ).values('day_of_week', 'start_time', 'end_time')
+        
+        # Crear diccionario de horarios por día de la semana
+        horarios_dict = {}
+        for horario in horarios_trabajo:
+            dia = horario['day_of_week']
+            if dia not in horarios_dict:
+                horarios_dict[dia] = []
+            horarios_dict[dia].append({
+                'start_time': horario['start_time'],
+                'end_time': horario['end_time']
+            })
+        
+        # Buscar días disponibles
+        fechas_disponibles = []
+        fecha_actual = fecha_desde
+        max_dias_a_revisar = 60  # Límite de seguridad
+        dias_revisados = 0
+        
+        while len(fechas_disponibles) < limite and dias_revisados < max_dias_a_revisar:
+            # Verificar si hay disponibilidad en este día
+            if self._verificar_disponibilidad_dia(
+                profesional, 
+                servicio, 
+                fecha_actual, 
+                horarios_dict
+            ):
+                fechas_disponibles.append({
+                    'fecha': fecha_actual.strftime('%Y-%m-%d'),
+                    'nombre_dia': fecha_actual.strftime('%A'),
+                    'tiene_disponibilidad': True
+                })
+            
+            # Avanzar al siguiente día
+            fecha_actual += timedelta(days=1)
+            dias_revisados += 1
+        
+        return Response({
+            'success': True,
+            'cantidad': len(fechas_disponibles),
+            'profesional_id': profesional_id,
+            'servicio_id': servicio_id,
+            'fecha_desde': fecha_desde.strftime('%Y-%m-%d'),
+            'fechas': fechas_disponibles
+        }, status=status.HTTP_200_OK)
+    
+    def _verificar_disponibilidad_dia(self, profesional, servicio, fecha, horarios_dict):
+        """
+        Verifica si un día específico tiene al menos un slot disponible.
+        Optimizado para no calcular todos los slots, solo verificar si existe al menos uno.
+        
+        Args:
+            profesional: Instancia de Profesional
+            servicio: Instancia de Servicio
+            fecha: date object
+            horarios_dict: Dict con horarios pre-cargados {day_of_week: [horarios]}
+        
+        Returns:
+            bool: True si hay al menos un slot disponible
+        """
+        # Verificar si es día pasado
+        if fecha < timezone.now().date():
+            return False
+        
+        # Verificar si el profesional trabaja este día
+        dia_semana = fecha.weekday()
+        horarios_del_dia = horarios_dict.get(dia_semana)
+        
+        if not horarios_del_dia:
+            return False
+        
+        # Si es hoy, verificar que no sea muy tarde
+        ahora = timezone.now()
+        if fecha == ahora.date():
+            hora_actual = ahora.time()
+            # Verificar si algún horario tiene slots después de la hora actual + 1 hora
+            hora_limite = (ahora + timedelta(hours=1)).time()
+            tiene_horario_valido = any(
+                horario['end_time'] > hora_limite 
+                for horario in horarios_del_dia
+            )
+            if not tiene_horario_valido:
+                return False
+        
+        # Obtener turnos existentes para esta fecha (optimizado: una sola query)
+        turnos_existentes = Turno.objects.filter(
+            profesional=profesional,
+            start_datetime__date=fecha,
+            status__in=['confirmado', 'pendiente'],
+            negocio=profesional.negocio
+        ).values('start_datetime', 'end_datetime')
+        
+        # Convertir a lista para iterar múltiples veces
+        lista_turnos = list(turnos_existentes)
+        
+        duracion_servicio = servicio.duration_minutes
+        
+        # Verificar cada bloque de horario del día
+        for horario in horarios_del_dia:
+            hora_inicio = datetime.combine(fecha, horario['start_time'])
+            hora_fin = datetime.combine(fecha, horario['end_time'])
+            
+            # Generar slots cada 30 minutos
+            slot_actual = hora_inicio
+            
+            while slot_actual + timedelta(minutes=duracion_servicio) <= hora_fin:
+                slot_fin = slot_actual + timedelta(minutes=duracion_servicio)
+                
+                # Si es hoy, verificar que no sea hora pasada
+                if fecha == ahora.date():
+                    hora_limite = (ahora + timedelta(hours=1)).time()
+                    if slot_actual.time() < hora_limite:
+                        slot_actual += timedelta(minutes=30)
+                        continue
+                
+                # Verificar si este slot está ocupado
+                hay_conflicto = False
+                for turno in lista_turnos:
+                    turno_inicio = turno['start_datetime']
+                    turno_fin = turno['end_datetime']
+                    
+                    # Hacer timezone-aware si es necesario
+                    if timezone.is_aware(turno_inicio):
+                        slot_actual_aware = timezone.make_aware(slot_actual)
+                        slot_fin_aware = timezone.make_aware(slot_fin)
+                    else:
+                        slot_actual_aware = slot_actual
+                        slot_fin_aware = slot_fin
+                    
+                    # Verificar solapamiento
+                    if slot_actual_aware < turno_fin and slot_fin_aware > turno_inicio:
+                        hay_conflicto = True
+                        break
+                
+                # Si encontramos UN slot libre, el día tiene disponibilidad
+                if not hay_conflicto:
+                    return True
+                
+                slot_actual += timedelta(minutes=30)
+        
+        return False
