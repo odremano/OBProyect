@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     
     # Apps del proyecto
     'core',
+
+    #Generador de tokens permanentes (Para el bot - 31/12/2025)
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
