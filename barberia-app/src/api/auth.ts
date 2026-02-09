@@ -106,6 +106,88 @@ export interface MisNegociosError {
 
 export type MisNegociosResult = MisNegociosSuccess | MisNegociosError;
 
+// =============================================================================
+// INTERFACES PARA REGISTRO
+// =============================================================================
+
+export interface RegistroData {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number?: string;
+  password: string;
+  password_confirm: string;
+}
+
+export interface RegistroSuccess {
+  success: true;
+  message: string;
+  user: User;
+  tokens: Tokens;
+}
+
+export interface RegistroError {
+  success: false;
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export type RegistroResult = RegistroSuccess | RegistroError;
+
+// =============================================================================
+// INTERFACES PARA UNIRSE A NEGOCIO
+// =============================================================================
+
+export interface UnirseNegocioSuccess {
+  success: true;
+  message: string;
+  membership: {
+    id: number;
+    negocio_id: number;
+    negocio_nombre: string;
+    rol: string;
+    is_active: boolean;
+  };
+}
+
+export interface UnirseNegocioError {
+  success: false;
+  message: string;
+}
+
+export type UnirseNegocioResult = UnirseNegocioSuccess | UnirseNegocioError;
+
+// =============================================================================
+// INTERFACES PARA LISTAR NEGOCIOS DISPONIBLES
+// =============================================================================
+
+export interface NegocioPublico {
+  id: number;
+  nombre: string;
+  address?: string;
+  logo_url?: string;
+  logo_width?: number;
+  logo_height?: number;
+  theme_colors?: {
+    light: ThemeColors;
+    dark: ThemeColors;
+  };
+}
+
+export interface ListarNegociosSuccess {
+  success: true;
+  count: number;
+  negocios: NegocioPublico[];
+}
+
+export interface ListarNegociosError {
+  success: false;
+  message: string;
+}
+
+export type ListarNegociosResult = ListarNegociosSuccess | ListarNegociosError;
+
 
 export async function login(username: string, password: string): Promise<LoginResult> {
   try {
@@ -203,6 +285,140 @@ export async function misNegocios(accessToken: string): Promise<MisNegociosResul
         Authorization: `Bearer ${accessToken}`,
       },
     });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'No se pudieron cargar los negocios',
+      };
+    }
+    return {
+      success: false,
+      message: 'Error de red o servidor no disponible',
+    };
+  }
+}
+
+// =============================================================================
+// FUNCIÓN DE REGISTRO
+// =============================================================================
+
+export async function registro(
+  data: RegistroData,
+  negocioId?: number
+): Promise<RegistroResult> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Si se proporciona negocioId, lo enviamos en el header para crear membership automáticamente
+    if (negocioId) {
+      headers['X-Negocio-ID'] = negocioId.toString();
+    }
+    
+    const response = await axios.post(`${API_URL}/auth/registro/`, data, { headers });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      const errorData = error.response.data;
+      let errorMsg = errorData.message || 'Error en el registro';
+      
+      // Si hay errores específicos por campo, los agregamos al mensaje
+      if (errorData.errors) {
+        const erroresDetalle: string[] = [];
+        Object.entries(errorData.errors).forEach(([campo, mensajes]) => {
+          if (Array.isArray(mensajes)) {
+            erroresDetalle.push(...mensajes);
+          }
+        });
+        if (erroresDetalle.length > 0) {
+          errorMsg = erroresDetalle.join('\n');
+        }
+      }
+      
+      return {
+        success: false,
+        message: errorMsg,
+        errors: errorData.errors,
+      };
+    }
+    return {
+      success: false,
+      message: 'Error de red o servidor no disponible',
+    };
+  }
+}
+
+// =============================================================================
+// FUNCIÓN PARA UNIRSE A UN NEGOCIO
+// =============================================================================
+
+export async function unirseNegocio(
+  negocioId: number,
+  accessToken: string
+): Promise<UnirseNegocioResult> {
+  try {
+    const response = await axios.post(
+      `${API_URL}/auth/unirse-negocio/`,
+      { negocio_id: negocioId },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'No se pudo unir al negocio',
+      };
+    }
+    return {
+      success: false,
+      message: 'Error de red o servidor no disponible',
+    };
+  }
+}
+
+// =============================================================================
+// FUNCIÓN PARA LISTAR NEGOCIOS DISPONIBLES (sin membership del usuario)
+// =============================================================================
+
+export async function negociosDisponibles(
+  accessToken: string
+): Promise<ListarNegociosResult> {
+  try {
+    const response = await axios.get(`${API_URL}/auth/negocios-disponibles/`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'No se pudieron cargar los negocios',
+      };
+    }
+    return {
+      success: false,
+      message: 'Error de red o servidor no disponible',
+    };
+  }
+}
+
+// =============================================================================
+// FUNCIÓN PARA LISTAR TODOS LOS NEGOCIOS (público, para registro)
+// =============================================================================
+
+export async function listarNegocios(): Promise<ListarNegociosResult> {
+  try {
+    const response = await axios.get(`${API_URL}/negocios/`);
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.data) {

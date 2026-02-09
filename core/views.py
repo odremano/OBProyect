@@ -289,6 +289,102 @@ def seleccionar_negocio(request):
         'negocio': negocio_data,
     }, status=status.HTTP_200_OK)
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unirse_negocio(request):
+    """
+    API para que un usuario existente se una a un nuevo negocio.
+    
+    POST /api/v1/auth/unirse-negocio/
+    Body: { "negocio_id": 1 }
+    
+    Crea una membership como 'cliente' para el usuario autenticado
+    en el negocio especificado.
+    """
+    from core.services.memberships import add_user_to_negocio
+    
+    negocio_id = request.data.get('negocio_id')
+    
+    if not negocio_id:
+        return Response({
+            'success': False,
+            'message': 'Se requiere el parámetro negocio_id'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        negocio = Negocio.objects.get(id=negocio_id)
+    except Negocio.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Negocio no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Verificar si ya tiene membership en este negocio
+    existing_membership = Membership.objects.filter(
+        user=request.user,
+        negocio=negocio
+    ).first()
+    
+    if existing_membership:
+        if existing_membership.is_active:
+            return Response({
+                'success': False,
+                'message': 'Ya eres miembro de este negocio'
+            }, status=status.HTTP_409_CONFLICT)
+        else:
+            # Reactivar membership existente
+            existing_membership.is_active = True
+            existing_membership.save(update_fields=['is_active', 'updated_at'])
+            membership = existing_membership
+    else:
+        # Crear nueva membership como cliente
+        membership = add_user_to_negocio(
+            user=request.user,
+            negocio=negocio,
+            rol=Membership.Roles.CLIENTE
+        )
+    
+    return Response({
+        'success': True,
+        'message': f'Te has unido exitosamente a {negocio.nombre}',
+        'membership': {
+            'id': membership.id,
+            'negocio_id': negocio.id,
+            'negocio_nombre': negocio.nombre,
+            'rol': membership.rol,
+            'is_active': membership.is_active
+        }
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def negocios_disponibles(request):
+    """
+    API para listar negocios donde el usuario NO tiene membership activa.
+    
+    GET /api/v1/auth/negocios-disponibles/
+    
+    Devuelve una lista de negocios a los que el usuario puede unirse.
+    """
+    # IDs de negocios donde el usuario YA tiene membership
+    mis_negocios_ids = Membership.objects.filter(
+        user=request.user,
+        is_active=True
+    ).values_list('negocio_id', flat=True)
+    
+    # Negocios donde NO tiene membership
+    negocios = Negocio.objects.exclude(id__in=mis_negocios_ids).order_by('nombre')
+    serializer = NegocioSerializer(negocios, many=True, context={'request': request})
+    
+    return Response({
+        'success': True,
+        'count': negocios.count(),
+        'negocios': serializer.data
+    })
+
+
 class LogoutView(APIView):
     """
     API para logout de usuarios.

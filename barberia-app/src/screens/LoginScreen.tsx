@@ -105,6 +105,12 @@ const LoginScreen: React.FC = () => {
           <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => setLoginVisible(true)}>
             <Text style={[styles.buttonText, { color: colors.white }]}>Ingresá a tu usuario</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.registerButton, { borderColor: colors.primary }]} 
+            onPress={() => navigation.navigate('Registro')}
+          >
+            <Text style={[styles.registerButtonText, { color: colors.white }]}>Registrate</Text>
+          </TouchableOpacity>
         </View>
         <LoginModal
           visible={loginVisible}
@@ -192,6 +198,20 @@ const styles = StyleSheet.create({
     borderWidth: 0.3,
   },
   buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  registerButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    marginTop: 12,
+    width: '100%',
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  registerButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
