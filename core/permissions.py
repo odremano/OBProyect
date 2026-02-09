@@ -27,6 +27,39 @@ class IsBotOrAdmin(BasePermission):
         return bot_token == expected_token
 
 
+class IsBotOrAuthenticatedMember(BasePermission):
+    """
+    Permiso híbrido que permite acceso si:
+    1. La request viene del bot (X-BOT-TOKEN válido), O
+    2. Es un usuario autenticado que es miembro activo del negocio
+    
+    Usado en endpoints que deben ser accesibles tanto para usuarios de la app
+    como para el bot de WhatsApp (ej: crear turnos).
+    """
+    message = "Acceso denegado. Se requiere autenticación de usuario o token de bot válido."
+    
+    def has_permission(self, request, view):
+        # Opción 1: Verificar si es el bot
+        bot_token = request.headers.get('X-BOT-TOKEN')
+        expected_token = getattr(settings, 'BOT_TOKEN', None)
+        
+        if bot_token and expected_token and bot_token == expected_token:
+            # Es el bot con token válido - permitir acceso sin más validaciones
+            # El negocio se valida en el middleware con X-Negocio-ID
+            return True
+        
+        # Opción 2: No es el bot - validar autenticación normal de usuario
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Validar que el usuario sea miembro activo del negocio
+        negocio = getattr(request, 'negocio', None)
+        if not negocio:
+            return False
+        
+        return user_has_access_to_negocio(request.user, negocio)
+
+
 class IsMemberOfSelectedNegocio(BasePermission):
     """
     Verifica que el usuario sea miembro activo del negocio en contexto.
