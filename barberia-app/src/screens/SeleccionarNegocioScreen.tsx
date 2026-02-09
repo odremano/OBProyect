@@ -18,6 +18,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NegocioCard from '../components/NegocioCard';
 import ConfirmDialog from '../components/ConfirmDialog';
+import UnirseNegocioModal from '../components/UnirseNegocioModal';
 
 type SeleccionarNegocioRouteProp = RouteProp<RootStackParamList, 'SeleccionarNegocio'>;
 
@@ -37,6 +38,7 @@ const SeleccionarNegocioScreen: React.FC = () => {
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [negocioToRemove, setNegocioToRemove] = useState<NegocioDetallado | null>(null);
   const [menuAbiertoId, setMenuAbiertoId] = useState<number | null>(null);
+  const [showUnirseModal, setShowUnirseModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -152,11 +154,17 @@ const SeleccionarNegocioScreen: React.FC = () => {
   };
 
   const handleAgregarNegocio = () => {
+    setShowUnirseModal(true);
+  };
+
+  const handleUnirseSuccess = (negocioNombre: string) => {
     showBanner(
-      'info',
-      'Próximamente',
-      'La funcionalidad de "Agregar nuevo negocio" aún no se encuentra disponible.'
+      'success',
+      'Te has unido',
+      `Ahora eres miembro de ${negocioNombre}`
     );
+    // Recargar la lista de negocios
+    cargarNegocios();
   };
 
   const handleExitPress = () => {
@@ -304,6 +312,15 @@ const SeleccionarNegocioScreen: React.FC = () => {
         }}
         confirmColor={colors.error}
       />
+
+      {tokens?.access && (
+        <UnirseNegocioModal
+          visible={showUnirseModal}
+          onClose={() => setShowUnirseModal(false)}
+          onSuccess={handleUnirseSuccess}
+          accessToken={tokens.access}
+        />
+      )}
     </View>
   );
 };

@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     # APIs de Autenticación
-    RegistroView, BotRegistroView, mis_negocios, seleccionar_negocio, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
+    RegistroView, BotRegistroView, mis_negocios, seleccionar_negocio, unirse_negocio, negocios_disponibles, LoginView, LogoutView, PerfilView, CambiarContrasenaView,
     
     # APIs Públicas
     servicios_publicos, profesionales_disponibles, resumen_negocio, listar_negocios,
@@ -40,6 +40,8 @@ urlpatterns = [
     path('auth/mis-negocios/', mis_negocios, name='mis-negocios'),
     path('auth/seleccionar-negocio/', seleccionar_negocio, name='seleccionar_negocio'),
     path('auth/cambiar-negocio/', seleccionar_negocio, name='cambiar_negocio'),  # Alias
+    path('auth/unirse-negocio/', unirse_negocio, name='unirse_negocio'),
+    path('auth/negocios-disponibles/', negocios_disponibles, name='negocios_disponibles'),
     
     # Perfil de usuario
     path('auth/perfil/', PerfilView.as_view(), name='perfil'),

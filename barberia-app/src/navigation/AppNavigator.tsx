@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/LoginScreen';
+import RegistroScreen from '../screens/RegistroScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CustomSplashScreen from '../screens/SplashScreen';
 import { AuthContext } from '../context/AuthContext';
@@ -32,6 +33,7 @@ export type RootStackParamList = {
     hora: string;
   };
   Login: undefined;
+  Registro: undefined;
   SeleccionarNegocio: { fromPrivateArea?: boolean } | undefined;
   MisTurnos: undefined;
   More: { isAuthenticated?: boolean; userName?: string } | undefined;
@@ -143,6 +145,15 @@ export default function AppNavigator() {
         />
         <Stack.Screen name="MiPerfil" component={MiPerfilScreen} options={{ headerShown: false }} />
         <Stack.Screen 
+          name="Registro" 
+          component={RegistroScreen} 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }} 
+        />
+        <Stack.Screen
           name="SeleccionarNegocio" 
           component={SeleccionarNegocioScreen} 
           options={{ 
