@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from django.conf import settings
 from datetime import datetime, timedelta, date
 from rest_framework import serializers
 from core.permissions import IsMemberOfSelectedNegocio, IsBotOrAdmin
@@ -646,18 +647,56 @@ class CrearTurnoView(APIView):
 
     POST /api/v1/reservas/crear/
 
-    Solo para clientes autenticados.
+    Soporta dos flujos:
+    1. App móvil: Usuario autenticado crea su propio turno (JWT)
+    2. Bot WhatsApp: Bot crea turno para un usuario específico (X-BOT-TOKEN + cliente_phone)
+    
     Valida disponibilidad completa antes de crear el turno.
     """
     permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
 
     def post(self, request):
-        # Solo clientes pueden crear turnos (por Membership.rol en el negocio actual)
-        if not has_role(request.user, request.negocio, Roles.CLIENTE):
-            return Response({
-                'success': False,
-                'message': 'Solo los clientes pueden crear turnos'
-            }, status=status.HTTP_403_FORBIDDEN)
+        # Detectar si la request viene del bot verificando el header X-BOT-TOKEN
+        bot_token = request.headers.get('X-BOT-TOKEN')
+        expected_bot_token = getattr(settings, 'BOT_TOKEN', None)
+        is_bot_request = bot_token and expected_bot_token and bot_token == expected_bot_token
+        
+        # Determinar el cliente real según el origen de la request
+        if is_bot_request:
+            # Flujo del bot: buscar usuario por teléfono
+            cliente_phone = request.data.get('cliente_phone')
+            
+            if not cliente_phone:
+                return Response({
+                    'success': False,
+                    'message': 'El bot debe especificar cliente_phone (sin prefijo +)'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Buscar usuario por teléfono (sin +, como se maneja en el backend)
+                cliente = Usuario.objects.get(phone_number=cliente_phone)
+            except Usuario.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': f'Usuario con teléfono {cliente_phone} no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Verificar que el cliente pertenece al negocio
+            if not has_role(cliente, request.negocio, Roles.CLIENTE):
+                return Response({
+                    'success': False,
+                    'message': f'El usuario no es cliente del negocio {request.negocio.nombre}'
+                }, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # Flujo normal de la app: el usuario autenticado es el cliente
+            cliente = request.user
+            
+            # Solo clientes pueden crear turnos (por Membership.rol en el negocio actual)
+            if not has_role(cliente, request.negocio, Roles.CLIENTE):
+                return Response({
+                    'success': False,
+                    'message': 'Solo los clientes pueden crear turnos'
+                }, status=status.HTTP_403_FORBIDDEN)
 
         # Verifica que el usuario tenga negocio asignado
         if not getattr(request, 'negocio', None):
@@ -672,8 +711,8 @@ class CrearTurnoView(APIView):
         )
 
         if serializer.is_valid():
-            # Crea el turno asignando automáticamente el cliente y el negocio
-            turno = serializer.save(cliente=request.user, negocio=request.negocio)
+            # Crea el turno asignando el cliente correcto (usuario real o especificado por el bot)
+            turno = serializer.save(cliente=cliente, negocio=request.negocio)
 
             # Enviar email de confirmación con archivo .ics (no bloquea si falla)
             from core.utils.email_utils import enviar_email_confirmacion_turno
