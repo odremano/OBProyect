@@ -213,9 +213,8 @@ class BotRegistroSerializer(serializers.Serializer):
         Crear usuario con username y password generados automáticamente.
         """
         from django.db import transaction
-        from django.core.mail import send_mail
-        from django.conf import settings
         from .models import Membership, Negocio
+        from core.utils.email_utils import enviar_email_bienvenida_usuario
         
         phone = validated_data['phone']
         email = validated_data['email']
@@ -254,39 +253,12 @@ class BotRegistroSerializer(serializers.Serializer):
                     is_active=True
                 )
                 
-                # Enviar email con las credenciales
-                asunto = f'Bienvenido a Ordema - Tus credenciales de acceso a la app'
-                mensaje = f"""
-Hola {first_name},
-
-¡Bienvenido a Ordema!
-
-Tu cuenta ha sido creada y relacionada al negocio {negocio.nombre} exitosamente. A continuación encontrarás tus credenciales de acceso a la app:
-
-Usuario: {username}
-Contraseña temporal: {password} (Por favor, cambia tu contraseña una vez accedas a la aplicación)
-
-Puedes iniciar sesión en nuestra aplicación móvil con estas credenciales o comunicarte con nuestro chatbot OrdemAI al whatsapp +5491125593285 desde tu número registrado. 
-
-Link de acceso directo al chatbot OrdemAI: https://wa.me/message/BYVIR2BDKTACD1
-
-¡Te esperamos!
-
-Saludos,
-El equipo de {negocio.nombre} & Ordema.
-                """
-                
+                # Enviar email con las credenciales usando email_utils
                 try:
-                    send_mail(
-                        asunto,
-                        mensaje,
-                        settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@ordema.app',
-                        [email],
-                        fail_silently=False,
-                    )
+                    enviar_email_bienvenida_usuario(user, password, negocio)
                 except Exception as e:
                     # Si falla el envío del email, loguear pero no fallar la transacción
-                    print(f"Error al enviar email: {str(e)}")
+                    print(f"Error al enviar email de bienvenida: {str(e)}")
                 
                 return {
                     'user_id': user.id,

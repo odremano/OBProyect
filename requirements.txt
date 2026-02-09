@@ -30,6 +30,7 @@ setuptools>=65.5.0
 Pillow
 python-dateutil==2.8.2
 django-storages[boto3]
+icalendar==5.0.11
 
 
 # Desarrollo y testing

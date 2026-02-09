@@ -675,6 +675,14 @@ class CrearTurnoView(APIView):
             # Crea el turno asignando automáticamente el cliente y el negocio
             turno = serializer.save(cliente=request.user, negocio=request.negocio)
 
+            # Enviar email de confirmación con archivo .ics (no bloquea si falla)
+            from core.utils.email_utils import enviar_email_confirmacion_turno
+            try:
+                enviar_email_confirmacion_turno(turno)
+            except Exception as e:
+                # Loguear error pero no afectar la respuesta al cliente
+                print(f"Error al enviar email de confirmación de turno: {str(e)}")
+
             # Devolver información completa del turno creado
             return Response({
                 'success': True,
