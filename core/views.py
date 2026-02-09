@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.conf import settings
 from datetime import datetime, timedelta, date
 from rest_framework import serializers
-from core.permissions import IsMemberOfSelectedNegocio, IsBotOrAdmin
+from core.permissions import IsMemberOfSelectedNegocio, IsBotOrAdmin, IsBotOrAuthenticatedMember
 from core.roles import is_profesional, is_cliente
 from core.services.memberships import get_profesional_profile
 import calendar
@@ -653,7 +653,7 @@ class CrearTurnoView(APIView):
     
     Valida disponibilidad completa antes de crear el turno.
     """
-    permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
+    permission_classes = [IsBotOrAuthenticatedMember]
 
     def post(self, request):
         # Detectar si la request viene del bot verificando el header X-BOT-TOKEN
