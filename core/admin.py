@@ -289,11 +289,30 @@ admin.site.register(Negocio, NegocioAdmin)
 
 # --- Servicio ---
 class ServicioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'description_short', 'duration_minutes', 'price', 'is_active', 'icon_name', 'negocio_nombre')
+    list_filter = ('is_active', 'negocio')
+    search_fields = ('name', 'description')
+    list_per_page = 25
+    ordering = ('name',)
+    readonly_fields = ('created_at', 'updated_at')
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(negocio=request.negocio)
+        # Optimización: select_related para evitar N+1 queries
+        qs = qs.select_related('negocio')
+        if not request.user.is_superuser:
+            qs = qs.filter(negocio=request.negocio)
+        return qs
+    
+    def description_short(self, obj):
+        if obj.description:
+            return obj.description[:50] + '...' if len(obj.description) > 50 else obj.description
+        return '—'
+    description_short.short_description = 'Descripción'
+    
+    def negocio_nombre(self, obj):
+        return obj.negocio.nombre
+    negocio_nombre.short_description = 'Negocio'
 
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
@@ -454,11 +473,35 @@ admin.site.register(Profesional, ProfesionalAdmin)
 
 # --- HorarioDisponibilidad ---
 class HorarioDisponibilidadAdmin(admin.ModelAdmin):
+    list_display = ('id', 'profesional_nombre', 'day_of_week_display', 'start_time', 'end_time', 'is_recurring', 'negocio_nombre')
+    list_filter = ('day_of_week', 'is_recurring', 'negocio')
+    search_fields = ('profesional__user__username', 'profesional__user__first_name', 'profesional__user__last_name')
+    list_per_page = 25
+    ordering = ('profesional', 'day_of_week', 'start_time')
+    readonly_fields = ('created_at', 'updated_at')
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(negocio=request.negocio)
+        # Optimización: select_related para evitar N+1 queries
+        qs = qs.select_related('profesional__user', 'negocio')
+        if not request.user.is_superuser:
+            qs = qs.filter(negocio=request.negocio)
+        return qs
+    
+    def profesional_nombre(self, obj):
+        user = obj.profesional.user
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name}"
+        return user.username
+    profesional_nombre.short_description = 'Profesional'
+    
+    def day_of_week_display(self, obj):
+        return obj.get_day_of_week_display()
+    day_of_week_display.short_description = 'Día'
+    
+    def negocio_nombre(self, obj):
+        return obj.negocio.nombre
+    negocio_nombre.short_description = 'Negocio'
 
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
@@ -480,11 +523,31 @@ admin.site.register(HorarioDisponibilidad, HorarioDisponibilidadAdmin)
 
 # --- BloqueoHorario ---
 class BloqueoHorarioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'profesional_nombre', 'start_datetime', 'end_datetime', 'reason', 'negocio_nombre')
+    list_filter = ('start_datetime', 'negocio', 'profesional')
+    search_fields = ('profesional__user__username', 'profesional__user__first_name', 'profesional__user__last_name', 'reason')
+    list_per_page = 25
+    ordering = ('-start_datetime',)
+    readonly_fields = ('created_at', 'updated_at')
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(negocio=request.negocio)
+        # Optimización: select_related para evitar N+1 queries
+        qs = qs.select_related('profesional__user', 'negocio')
+        if not request.user.is_superuser:
+            qs = qs.filter(negocio=request.negocio)
+        return qs
+    
+    def profesional_nombre(self, obj):
+        user = obj.profesional.user
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name}"
+        return user.username
+    profesional_nombre.short_description = 'Profesional'
+    
+    def negocio_nombre(self, obj):
+        return obj.negocio.nombre
+    negocio_nombre.short_description = 'Negocio'
 
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
@@ -506,11 +569,42 @@ admin.site.register(BloqueoHorario, BloqueoHorarioAdmin)
 
 # --- Turno ---
 class TurnoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'cliente_nombre', 'profesional_nombre', 'servicio_nombre', 'start_datetime', 'status', 'negocio_nombre')
+    list_filter = ('status', 'start_datetime', 'negocio', 'profesional')
+    search_fields = ('cliente__username', 'cliente__first_name', 'cliente__last_name', 'cliente__email', 'profesional__user__username')
+    list_per_page = 25
+    ordering = ('-start_datetime',)
+    readonly_fields = ('created_at', 'updated_at', 'end_datetime')
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(negocio=request.negocio)
+        # Optimización: select_related para evitar N+1 queries
+        qs = qs.select_related('cliente', 'profesional__user', 'servicio', 'negocio')
+        if not request.user.is_superuser:
+            qs = qs.filter(negocio=request.negocio)
+        return qs
+    
+    # Métodos auxiliares para list_display
+    def cliente_nombre(self, obj):
+        if obj.cliente.first_name and obj.cliente.last_name:
+            return f"{obj.cliente.first_name} {obj.cliente.last_name}"
+        return obj.cliente.username
+    cliente_nombre.short_description = 'Cliente'
+    
+    def profesional_nombre(self, obj):
+        user = obj.profesional.user
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name}"
+        return user.username
+    profesional_nombre.short_description = 'Profesional'
+    
+    def servicio_nombre(self, obj):
+        return obj.servicio.name
+    servicio_nombre.short_description = 'Servicio'
+    
+    def negocio_nombre(self, obj):
+        return obj.negocio.nombre
+    negocio_nombre.short_description = 'Negocio'
 
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
