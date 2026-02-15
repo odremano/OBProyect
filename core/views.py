@@ -743,17 +743,56 @@ class MisTurnosView(APIView):
     
     GET /api/v1/reservas/mis-turnos/
     
+    Soporta dos flujos:
+    1. App móvil: Usuario autenticado consulta sus propios turnos (JWT)
+    2. Bot WhatsApp: Bot consulta turnos de un usuario específico (X-BOT-TOKEN + cliente_phone)
+    
     Devuelve todos los turnos del cliente con información completa.
     """
-    permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
+    permission_classes = [IsBotOrAuthenticatedMember]
     
     def get(self, request):
-        # Solo clientes pueden ver sus turnos
-        if not is_cliente(request.user, request.negocio):
-            return Response({
-                'success': False,
-                'message': 'Solo los clientes pueden ver sus turnos'
-            }, status=status.HTTP_403_FORBIDDEN)
+        # Detectar si la request viene del bot verificando el header X-BOT-TOKEN
+        bot_token = request.headers.get('X-BOT-TOKEN')
+        expected_bot_token = getattr(settings, 'BOT_TOKEN', None)
+        is_bot_request = bot_token and expected_bot_token and bot_token == expected_bot_token
+        
+        # Determinar el cliente real según el origen de la request
+        if is_bot_request:
+            # Flujo del bot: buscar usuario por teléfono
+            cliente_phone = request.query_params.get('cliente_phone')
+            
+            if not cliente_phone:
+                return Response({
+                    'success': False,
+                    'message': 'El bot debe especificar cliente_phone como query parameter'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Buscar usuario por teléfono
+                cliente = Usuario.objects.get(phone_number=cliente_phone)
+            except Usuario.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': f'Usuario con teléfono {cliente_phone} no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Verificar que el cliente pertenece al negocio
+            if not has_role(cliente, request.negocio, Roles.CLIENTE):
+                return Response({
+                    'success': False,
+                    'message': f'El usuario no es cliente del negocio {request.negocio.nombre}'
+                }, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # Flujo normal de la app: el usuario autenticado es el cliente
+            cliente = request.user
+            
+            # Solo clientes pueden ver sus turnos
+            if not is_cliente(cliente, request.negocio):
+                return Response({
+                    'success': False,
+                    'message': 'Solo los clientes pueden ver sus turnos'
+                }, status=status.HTTP_403_FORBIDDEN)
         
         # Verificar que el usuario tenga negocio asignado
         if not request.negocio:
@@ -762,9 +801,9 @@ class MisTurnosView(APIView):
                 'message': 'Usuario no tiene negocio asignado'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Obtener turnos del usuario del mismo negocio ordenados por fecha (más recientes primero)
+        # Obtener turnos del cliente del mismo negocio ordenados por fecha (más recientes primero)
         turnos = Turno.objects.filter(
-            cliente=request.user,
+            cliente=cliente,
             negocio=request.negocio
         ).order_by('-start_datetime')
         
@@ -796,11 +835,50 @@ class CancelarTurnoView(APIView):
     
     POST /api/v1/reservas/cancelar/<turno_id>/
     
+    Soporta dos flujos:
+    1. App móvil: Usuario autenticado cancela su propio turno (JWT)
+    2. Bot WhatsApp: Bot cancela turno de un usuario específico (X-BOT-TOKEN + cliente_phone)
+    
     Solo permite cancelar turnos propios con más de 2 horas de anticipación.
     """
-    permission_classes = [permissions.IsAuthenticated, IsMemberOfSelectedNegocio]
+    permission_classes = [IsBotOrAuthenticatedMember]
     
     def post(self, request, turno_id):
+        # Detectar si la request viene del bot verificando el header X-BOT-TOKEN
+        bot_token = request.headers.get('X-BOT-TOKEN')
+        expected_bot_token = getattr(settings, 'BOT_TOKEN', None)
+        is_bot_request = bot_token and expected_bot_token and bot_token == expected_bot_token
+        
+        # Determinar el cliente real según el origen de la request
+        if is_bot_request:
+            # Flujo del bot: buscar usuario por teléfono
+            cliente_phone = request.data.get('cliente_phone')
+            
+            if not cliente_phone:
+                return Response({
+                    'success': False,
+                    'message': 'El bot debe especificar cliente_phone en el body'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Buscar usuario por teléfono
+                cliente = Usuario.objects.get(phone_number=cliente_phone)
+            except Usuario.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': f'Usuario con teléfono {cliente_phone} no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Verificar que el cliente pertenece al negocio
+            if not has_role(cliente, request.negocio, Roles.CLIENTE):
+                return Response({
+                    'success': False,
+                    'message': f'El usuario no es cliente del negocio {request.negocio.nombre}'
+                }, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # Flujo normal de la app: el usuario autenticado es el cliente
+            cliente = request.user
+        
         # Verificar que el usuario tenga negocio asignado
         if not request.negocio:
             return Response({
@@ -809,10 +887,10 @@ class CancelarTurnoView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Verificar que el turno existe, pertenece al usuario y al mismo negocio
+            # Verificar que el turno existe, pertenece al cliente y al mismo negocio
             turno = Turno.objects.get(
                 id=turno_id,
-                cliente=request.user,
+                cliente=cliente,
                 negocio=request.negocio
             )
         except Turno.DoesNotExist:
